@@ -4,13 +4,9 @@ import {
   Mail, 
   FileSpreadsheet, 
   FileText, 
-  Slack, 
   HardDrive, 
   Database, 
-  Trello, 
-  MessageSquare, 
   Github, 
-  ShoppingBag,
   ExternalLink
 } from "lucide-react"
 
@@ -22,7 +18,7 @@ interface IntegrationApp {
   connected: boolean
 }
 
-const apps: IntegrationApp[] = [
+export const apps: IntegrationApp[] = [
   {
     name: "Gmail",
     description: "Send and receive emails, manage drafts and labels.",
@@ -45,13 +41,6 @@ const apps: IntegrationApp[] = [
     connected: false,
   },
   {
-    name: "Slack",
-    description: "Send messages, alerts, and manage channels.",
-    icon: Slack,
-    color: "text-orange-500",
-    connected: true,
-  },
-  {
     name: "Google Drive",
     description: "Upload, download, and manage files in the cloud.",
     icon: HardDrive,
@@ -66,32 +55,11 @@ const apps: IntegrationApp[] = [
     connected: false,
   },
   {
-    name: "Trello",
-    description: "Create cards, lists, and manage boards.",
-    icon: Trello,
-    color: "text-blue-600",
-    connected: false,
-  },
-  {
-    name: "Discord",
-    description: "Post messages to channels and manage servers.",
-    icon: MessageSquare,
-    color: "text-indigo-500",
-    connected: false,
-  },
-  {
     name: "GitHub",
     description: "Trigger on pushes, pull requests, and manage issues.",
     icon: Github,
     color: "text-slate-800 dark:text-slate-200",
     connected: true,
-  },
-  {
-    name: "Shopify",
-    description: "Manage orders, products, and customers.",
-    icon: ShoppingBag,
-    color: "text-green-500",
-    connected: false,
   },
 ]
 
