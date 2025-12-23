@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon, SaveIcon } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcw, SaveIcon } from "lucide-react"
 import {
     ReactFlow,
     Controls,
@@ -57,6 +57,7 @@ export default function AutomationEditor({
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     const [addingNodeOnEdgeId, setAddingNodeOnEdgeId] = useState<string | null>(null);
+    const [rfInstance, setRfInstance] = useState<any>(null);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom' }, eds)),
@@ -216,6 +217,42 @@ export default function AutomationEditor({
     };
 
 
+    const onLayout = useCallback(() => {
+        // Simple vertical layout
+        const startNode = nodes.find(n => !edges.some(e => e.target === n.id));
+        if (!startNode) return;
+        
+        const visited = new Set<string>();
+        const sortedIds: string[] = [];
+        
+        const processNode = (nodeId: string) => {
+            if (visited.has(nodeId)) return;
+            visited.add(nodeId);
+            sortedIds.push(nodeId);
+            
+            const outgoing = edges.filter(e => e.source === nodeId);
+            outgoing.forEach(e => processNode(e.target));
+        }
+        
+        processNode(startNode.id);
+        
+        setNodes((nds) => 
+            nds.map(n => {
+                const index = sortedIds.indexOf(n.id);
+                if (index === -1) return n;
+                return {
+                    ...n,
+                    position: { x: 0, y: index * (NODE_HEIGHT + NODE_GAP) }
+                };
+            })
+        );
+        
+        setTimeout(() => {
+             rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+        }, 50);
+
+    }, [nodes, edges, rfInstance, setNodes]);
+
     return (
         <AutomationContext.Provider value={{ onAddNode: handleAddClick }}>
             <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -230,6 +267,9 @@ export default function AutomationEditor({
                         </div>
                     </div>
                     <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
+                                <RefreshCcw />
+                            </Button>
                             <Button variant="outline" onClick={onBack}>Cancel</Button>
                             <Button onClick={() => onSave(nodes, edges)}><SaveIcon className="mr-2 h-4 w-4"/> Save</Button>
                     </div>
@@ -246,7 +286,9 @@ export default function AutomationEditor({
                                 onConnect={onConnect}
                                 onNodeClick={onNodeClick}
                                 onPaneClick={onPaneClick}
+                                onInit={setRfInstance}
                                 fitView
+                                fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
                                 colorMode={theme === 'dark' ? 'dark' : 'light'}
                                 nodeTypes={nodeTypes}
                                 edgeTypes={edgeTypes}

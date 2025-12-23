@@ -44,6 +44,7 @@ import WorkflowDashboard from './Dashboad'
 import Order from './Order'
 import Integration from './Integration'
 import Automation from './Automation'
+import Logout from './Logout'
 
 export function SidebarIconExample() {
   const { theme, setTheme } = useTheme()
@@ -197,7 +198,7 @@ export function SidebarIconExample() {
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    <DropdownMenuItem>Log out</DropdownMenuItem>
+                    <Logout />
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>

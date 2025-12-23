@@ -50,7 +50,7 @@ const CustomNode = ({ data, selected }: NodeProps) => {
       >
         <div className="flex items-start gap-4">
             <div className={cn(
-                "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
                 "bg-muted"
             )}>
                 <Icon className="h-6 w-6 text-muted-foreground" />

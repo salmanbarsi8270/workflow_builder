@@ -34,8 +34,8 @@ export const apps: IntegrationApp[] = [
     connected: false,
   },
   {
-    name: "Google Forms",
-    description: "Collect data and trigger workflows on form submission.",
+    name: "Google Docs",
+    description: "Create, read, and edit documents dynamically.",
     icon: FileText,
     color: "text-purple-600",
     connected: false,

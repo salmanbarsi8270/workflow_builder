@@ -44,9 +44,9 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
 
             <div className="grid gap-2">
                 <Label>Label</Label>
-                <Input
+                <Input disabled
                     value={(selectedNode?.data as { label: string }).label || ''}
-                    onChange={(e) => onUpdateNode(e.target.value, selectedNode.data)}
+                    onChange={(e) => onUpdateNode(e.target.value)}
                 />
             </div>
 
