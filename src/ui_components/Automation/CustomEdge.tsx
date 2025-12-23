@@ -1,4 +1,4 @@
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath, useNodes } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
@@ -8,8 +8,9 @@ export default function CustomEdge({ id, source, sourceX, sourceY, targetX, targ
   const nodes = useNodes();
   const sourceNode = nodes.find(n => n.id === source);
   const isPlaceholder = sourceNode?.data?.isPlaceholder;
-
-  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  
+  // We use SmoothStepPath for a clean "straight/stepped" workflow look
+  const [edgePath, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
 
   const onEdgeClick = () => {
     onAddNode(id);

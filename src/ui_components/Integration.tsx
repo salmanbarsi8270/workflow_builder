@@ -91,11 +91,8 @@ export default function Integration() {
               </CardDescription>
             </CardContent>
             <CardFooter>
-              <Button 
-                variant={app.connected ? "outline" : "default"} 
-                className="w-full"
-              >
-                {app.connected ? "Manage" : "Connect"}
+              <Button disabled={app.connected} variant={app.connected ? "outline" : "default"} className="w-full">
+                {app.connected ? "Connected" : "Connect"}
               </Button>
             </CardFooter>
           </Card>

@@ -29,7 +29,7 @@ const CustomNode = ({ data, selected }: NodeProps) => {
                     selected ? "border-primary ring-2 ring-primary/20" : "border-muted-foreground/30"
                 )}
             >
-                <div className="flex items-center gap-2 text-blue-600 font-medium">
+                <div className="flex items-center gap-2 text-violet-600 font-medium">
                     <PlusIcon className="h-5 w-5" />
                     <span>Select Trigger</span>
                 </div>

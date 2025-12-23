@@ -44,14 +44,7 @@ interface AutomationEditorProps {
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
-export default function AutomationEditor({
-    automationName,
-    initialNodes,
-    initialEdges,
-    onBack,
-    onSave,
-    theme
-}: AutomationEditorProps) {
+export default function AutomationEditor({ automationName, initialNodes, initialEdges, onBack, onSave, theme }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -103,13 +96,9 @@ export default function AutomationEditor({
         // Here we assume if no incoming edge and it's not the end node, it's the start node.
         if (!incomingEdge) {
              // It's the start node! Reset it.
-             setNodes((nds) => 
-                nds.map(node => {
+             setNodes((nds) => nds.map(node => {
                     if (node.id === selectedNodeId) {
-                        return {
-                            ...node,
-                            data: { label: 'Select Trigger', isPlaceholder: true }
-                        }
+                        return { ...node, data: { label: 'Select Trigger', isPlaceholder: true } }
                     }
                     return node;
                 })

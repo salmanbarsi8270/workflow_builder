@@ -1,8 +1,4 @@
-import { 
-  Mail, 
-  FileSpreadsheet, 
-  Clock
-} from "lucide-react";
+import { Mail, FileSpreadsheet, Clock } from "lucide-react";
 
 export interface ActionDefinition {
   id: string;

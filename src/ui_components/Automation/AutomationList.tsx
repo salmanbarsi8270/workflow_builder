@@ -74,7 +74,7 @@ export default function AutomationList({
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button onClick={onCreate}>
+            <Button className="bg-violet-500 hover:bg-violet-600" onClick={onCreate}>
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Automation
             </Button>
@@ -92,11 +92,11 @@ export default function AutomationList({
             </TableHeader>
             <TableBody>
               {filteredAutomations.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} onClick={() => onOpenEditor(item)} className="cursor-pointer">
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.createdDate}</TableCell>
                   <TableCell>
-                    <Switch
+                    <Switch 
                         checked={item.status}
                         onCheckedChange={() => onToggleStatus(item.id)}
                     />
