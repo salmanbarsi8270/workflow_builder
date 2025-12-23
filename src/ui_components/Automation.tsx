@@ -148,14 +148,7 @@ export default function Automation() {
               status: false
           };
           setAutomations([...automations, newAuto]);
-          // Only switch to editor on create? Or both? User asked "click create automation... then view click to open".
-          // So for create, we might NOT switch to editor based on previous prompt, but let's stick to current behavior unless requested.
-          // Wait, user said "open model to enter name to create then view click to open handelEditor".
-          // This implies create just creates it in list.
-          // I will change behavior to Just Create for now as per "then view click to open" implication, or keep as is?
-          // "when click create automation open model to enter name to create then view click to open handelEditor"
-          // This strongly suggests Create -> List (with new item) -> User clicks View -> Editor.
-          // So I will REMOVE setCurrentAuto and setViewMode from Create flow.
+          handleOpenEditor(newAuto);
       }
       
       setIsCreateModalOpen(false);
