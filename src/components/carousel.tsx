@@ -1,15 +1,13 @@
 "use client"
 
 import * as React from "react"
-import useEmblaCarousel, {
-  type UseEmblaCarouselType,
-} from "embla-carousel-react"
+import useEmblaCarousel from "embla-carousel-react"
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
-type CarouselApi = UseEmblaCarouselType[1]
+type CarouselApi = ReturnType<typeof useEmblaCarousel>[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
 type CarouselOptions = UseCarouselParameters[0]
 type CarouselPlugin = UseCarouselParameters[1]
@@ -195,8 +193,7 @@ function CarouselPrevious({
       onClick={scrollPrev}
       {...props}
     >
-      <ChevronLeftIcon
-      />
+      <ChevronLeft className="h-4 w-4" />
       <span className="sr-only">Previous slide</span>
     </Button>
   )
@@ -226,8 +223,7 @@ function CarouselNext({
       onClick={scrollNext}
       {...props}
     >
-      <ChevronRightIcon
-      />
+      <ChevronRight className="h-4 w-4" />
       <span className="sr-only">Next slide</span>
     </Button>
   )

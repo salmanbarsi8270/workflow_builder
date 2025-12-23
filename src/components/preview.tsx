@@ -1233,32 +1233,7 @@ function ObservabilityCard() {
   )
 }
 
-function FieldSlider() {
-  const [value, setValue] = useState([200, 800])
-  return (
-    <Example title="Field Slider">
-      <div className="w-full max-w-md">
-        <Field>
-          <FieldTitle>Price Range</FieldTitle>
-          <FieldDescription>
-            Set your budget range ($
-            <span className="font-medium tabular-nums">{value[0]}</span> -{" "}
-            <span className="font-medium tabular-nums">{value[1]}</span>).
-          </FieldDescription>
-          <Slider
-            value={value}
-            onValueChange={setValue}
-            max={1000}
-            min={0}
-            step={10}
-            className="mt-2 w-full"
-            aria-label="Price Range"
-          />
-        </Field>
-      </div>
-    </Example>
-  )
-}
+
 
 function ItemExample() {
   return (
@@ -1318,31 +1293,7 @@ function BadgeExamples() {
   )
 }
 
-function EmptyWithSpinner() {
-  return (
-    <Example title="Empty with Spinner">
-      <Empty className="w-full border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Spinner />
-          </EmptyMedia>
-          <EmptyTitle>Processing your request</EmptyTitle>
-          <EmptyDescription>
-            Please wait while we process your request. Do not refresh the page.
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <div className="flex gap-2">
-            <Button size="sm">Submit</Button>
-            <Button variant="outline" size="sm">
-              Cancel
-            </Button>
-          </div>
-        </EmptyContent>
-      </Empty>
-    </Example>
-  )
-}
+
 
 const SHEET_SIDES = ["top", "right", "bottom", "left"] as const
 

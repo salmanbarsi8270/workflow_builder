@@ -1,0 +1,232 @@
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/dropdown-menu'
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/item'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from '@/components/sidebar'
+import { HugeiconsIcon } from "@hugeicons/react"
+import {  RoboticIcon, BookOpen02Icon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon } from "@hugeicons/core-free-icons"
+import { useTheme } from "@/components/theme-provider"
+import { Switch } from "@/components/ui/switch"
+import { useLocation } from "react-router-dom"
+import { Moon, Sun } from 'lucide-react'
+import WorkflowDashboard from './Dashboad'
+import Order from './Order'
+import Integration from './Integration'
+import Automation from './Automation'
+
+export function SidebarIconExample() {
+  const { theme, setTheme } = useTheme()
+  const location = useLocation();
+
+  const getPageTitle = (pathname: string) => {
+    switch (pathname) {
+      case "/":
+        return "Dashboard";
+      case "/order":
+        return "Order";
+      case "/integration":
+        return "Integration";
+      case "/automation":
+        return "Automation";
+      default:
+        return "Dashboard";
+    }
+  };
+
+  const pageTitle = getPageTitle(location.pathname);
+
+  const navItems = [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: <HugeiconsIcon icon={DashboardSquare02Icon} strokeWidth={2} />,
+    },
+    {
+      title: "Order",
+      url: "/order",
+      icon: <HugeiconsIcon icon={BookOpen02Icon} strokeWidth={2} />,
+    },
+    {
+      title: "Integration",
+      url: "/integration",
+      icon: <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} />,
+    },
+    {
+      title: "Automation",
+      url: "/automation",
+      icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
+    },
+  ]
+
+  const user = {
+    name: "salman",
+    email: "salman@example.com",
+    avatar: "/avatars/salman.png",
+  }
+
+  return (
+    <SidebarProvider>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+             <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
+                <a href="#">
+                    <Avatar>
+                      <AvatarImage src="https://picsum.photos/seed/picsum/200" />
+                      <AvatarFallback className="rounded-lg">FTS</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">Workflow Builder</span>
+                      <span className="truncate text-xs">Automation</span>
+                    </div>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Menu</SidebarGroupLabel>
+            <SidebarContent>
+                <SidebarMenu>
+                {navItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={item.title}>
+                        <a href={item.url}>
+                        {item.icon}
+                        <span>{item.title}</span>
+                        </a>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+            </SidebarContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                  >
+                    <Avatar>
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user.name}
+                      />
+                      <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">
+                        {user.name}
+                      </span>
+                      <span className="truncate text-xs">
+                        {user.email}
+                      </span>
+                    </div>
+                    <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      <Item size="xs">
+                        <ItemMedia>
+                          <Avatar>
+                            <AvatarImage
+                              src={user.avatar}
+                              alt={user.name}
+                            />
+                            <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
+                          </Avatar>
+                        </ItemMedia>
+                        <ItemContent>
+                          <ItemTitle>{user.name}</ItemTitle>
+                          <ItemDescription> {user.email}</ItemDescription>
+                        </ItemContent>
+                      </Item>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>Account</DropdownMenuItem>
+                    <DropdownMenuItem>Billing</DropdownMenuItem>
+                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                      <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+                        <span>Dark Mode</span>
+                        <Switch
+                          checked={theme === "dark"}
+                          onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                        />
+                      </div>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem>Log out</DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+      <SidebarInset>
+        <header className="sticky top-0 z-10 bg-background flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <h1 className="text-lg font-semibold">{pageTitle}</h1>
+          </div>
+          <div className="w-full flex flex-row justify-end mr-10">
+            <button onClick={() =>{
+                theme === "dark" ? setTheme("light") : setTheme("dark")
+            }}>
+                {theme === "dark" ? <Sun className='text-yellow-500' /> : <Moon className='text-black' />}
+            </button>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+            {location.pathname === "/" && <WorkflowDashboard />}
+            {location.pathname === "/order" && <Order />}
+            {location.pathname === "/integration" && <Integration />}
+            {location.pathname === "/automation" && <Automation />}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
