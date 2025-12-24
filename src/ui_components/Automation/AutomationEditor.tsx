@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon, RefreshCcw, Play, Rocket } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcw, Play, Rocket, Save } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
 import {
@@ -109,29 +109,34 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleDeleteNode = () => {
         if (!selectedNodeId) return;
 
-        // Auto-healing logic
+        // 1. Calculate incoming/outgoing edges
         const incomingEdge = edges.find(e => e.target === selectedNodeId);
         const outgoingEdge = edges.find(e => e.source === selectedNodeId);
 
-        // Check if Start Node (no incoming edges, essentially the first one, or explicitly checking position/id logic if standard)
-        // Here we assume if no incoming edge and it's not the end node, it's the start node.
-        if (!incomingEdge) {
-             // It's the start node! Reset it.
-             setNodes((nds) => nds.map(node => {
-                    if (node.id === selectedNodeId) {
-                        return { ...node, data: { label: 'Select Trigger', isPlaceholder: true } }
-                    }
-                    return node;
-                })
-             );
+        // Case: Start Node (ID '1')
+        if (selectedNodeId === '1') {
+             const nextNodes = nodes.map(node => {
+                if (node.id === '1') {
+                    return { ...node, data: { label: 'Select Trigger', isPlaceholder: true } }
+                }
+                return node;
+             });
+
+             // Apply layout to these next nodes
+             const layoutedNodes = onLayout(nextNodes, edges);
+             setNodes(layoutedNodes);
              setSelectedNodeId(null);
+
+             setTimeout(() => {
+                 rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+             }, 50);
              return;
         }
 
-        let newEdges = edges.filter(e => e.target !== selectedNodeId && e.source !== selectedNodeId);
-
+        // Case: Other nodes
+        let nextEdges = edges.filter(e => e.target !== selectedNodeId && e.source !== selectedNodeId);
         if (incomingEdge && outgoingEdge) {
-            newEdges.push({ 
+            nextEdges.push({ 
                 id: `e-${incomingEdge.source}-${outgoingEdge.target}`, 
                 source: incomingEdge.source, 
                 target: outgoingEdge.target, 
@@ -139,9 +144,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             });
         }
 
-        setEdges(newEdges);
-        setNodes(nodes.filter(n => n.id !== selectedNodeId));
+        const nextNodes = nodes.filter(n => n.id !== selectedNodeId);
+        
+        // Calculate layout on the future state
+        const layoutedNodes = onLayout(nextNodes, nextEdges);
+        
+        setEdges(nextEdges);
+        setNodes(layoutedNodes);
         setSelectedNodeId(null);
+        
+        setTimeout(() => {
+            rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+        }, 50);
     };
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId);
@@ -227,10 +241,13 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     };
 
 
-    const onLayout = useCallback(() => {
+    const onLayout = useCallback((passedNodes?: Node[], passedEdges?: Edge[]) => {
+        const layoutNodes = passedNodes || nodes;
+        const layoutEdges = passedEdges || edges;
+
         // Simple vertical layout
-        const startNode = nodes.find(n => !edges.some(e => e.target === n.id));
-        if (!startNode) return;
+        const startNode = layoutNodes.find(n => !layoutEdges.some(e => e.target === n.id));
+        if (!startNode) return layoutNodes;
         
         const visited = new Set<string>();
         const sortedIds: string[] = [];
@@ -240,27 +257,29 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             visited.add(nodeId);
             sortedIds.push(nodeId);
             
-            const outgoing = edges.filter(e => e.source === nodeId);
+            const outgoing = layoutEdges.filter(e => e.source === nodeId);
             outgoing.forEach(e => processNode(e.target));
         }
         
         processNode(startNode.id);
         
-        setNodes((nds) => 
-            nds.map(n => {
-                const index = sortedIds.indexOf(n.id);
-                if (index === -1) return n;
-                return {
-                    ...n,
-                    position: { x: 0, y: index * (NODE_HEIGHT + NODE_GAP) }
-                };
-            })
-        );
-        
-        setTimeout(() => {
-             rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
-        }, 50);
+        const updatedNodes = layoutNodes.map(n => {
+            const index = sortedIds.indexOf(n.id);
+            if (index === -1) return n;
+            return {
+                ...n,
+                position: { x: 0, y: index * (NODE_HEIGHT + NODE_GAP) }
+            };
+        });
 
+        if (!passedNodes) {
+            setNodes(updatedNodes);
+            setTimeout(() => {
+                 rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+            }, 50);
+        }
+
+        return updatedNodes;
     }, [nodes, edges, rfInstance, setNodes]);
 
     return (
@@ -281,6 +300,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 <span className="text-sm font-medium text-muted-foreground">Status</span>
                                 <Switch checked={automationStatus} onCheckedChange={onToggleStatus} />
                             </div>
+                            <Button variant="outline" className="mr-2" onClick={() => onAutoSave(nodes, edges)}>
+                                <Save className="mr-2 h-4 w-4" /> Save
+                            </Button>
                             <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
                                 <RefreshCcw className="h-4 w-4" />
                             </Button>
@@ -310,7 +332,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 colorMode={theme === 'dark' ? 'dark' : 'light'}
                                 nodeTypes={nodeTypes}
                                 edgeTypes={edgeTypes}
-                                nodesDraggable={false}
+                                nodesDraggable={true}
                             >
                                 <Controls />
                                 <Background gap={12} size={1} />

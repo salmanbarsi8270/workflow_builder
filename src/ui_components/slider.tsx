@@ -219,7 +219,7 @@ export function SidebarIconExample() {
             {location.pathname === "/" && <WorkflowDashboard />}
             {location.pathname === "/order" && <Order />}
             {location.pathname === "/integration" && <Integration />}
-            {location.pathname === "/automation" && <Automation />}
+            {(location.pathname === "/automation" || location.pathname.startsWith("/automation/")) && <Automation />}
         </div>
       </SidebarInset>
     </SidebarProvider>

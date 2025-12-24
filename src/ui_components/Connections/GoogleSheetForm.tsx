@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import ConnectionSelector from "./ConnectionSelector"
 
 export default function GoogleSheetForm({ data, onUpdate }: { data: any, onUpdate: (data: any) => void }) {
     const handleChange = (field: string, value: string) => {
@@ -17,15 +18,11 @@ export default function GoogleSheetForm({ data, onUpdate }: { data: any, onUpdat
         <div className="flex flex-col gap-4">
             <div className="grid gap-2">
                 <Label>Connection</Label>
-                <Select value={data.connection || ''} onValueChange={(val) => handleChange('connection', val)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select connection..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="new">+ New Connection</SelectItem>
-                        <SelectItem value="account-1">salman@example.com</SelectItem>
-                    </SelectContent>
-                </Select>
+                <ConnectionSelector 
+                    appName="Google Sheets" 
+                    value={data.connection || ''} 
+                    onChange={(val) => handleChange('connection', val)} 
+                />
             </div>
 
             <div className="grid gap-2">

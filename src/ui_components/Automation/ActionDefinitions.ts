@@ -1,10 +1,20 @@
-import { Mail, FileSpreadsheet, Clock } from "lucide-react";
+import { Mail, FileSpreadsheet, Clock, HardDrive, FileText } from "lucide-react";
+
+export interface ActionParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'connection';
+  label: string;
+  description?: string;
+  required?: boolean;
+  default?: any;
+}
 
 export interface ActionDefinition {
   id: string;
   name: string;
   description: string;
   type: 'action' | 'trigger';
+  parameters?: ActionParameter[];
 }
 
 export interface AppDefinition {
@@ -25,20 +35,16 @@ export const APP_DEFINITIONS: AppDefinition[] = [
     icon: Clock,
     category: 'utility',
     actions: [
-      { id: 'every_x_minutes', name: 'Every X Minutes', description: 'Triggers the flow every X minutes.', type: 'trigger' },
-      { id: 'every_hour', name: 'Every Hour', description: 'Triggers the flow every hour.', type: 'trigger' },
-      { id: 'every_day', name: 'Every Day', description: 'Triggers the flow every day.', type: 'trigger' },
-      { id: 'cron_expression', name: 'Cron Expression', description: 'Trigger using a specific cron expression.', type: 'trigger' }
-    ]
-  },
-  {
-    id: 'delay',
-    name: 'Delay',
-    description: 'Pause the workflow for a set time.',
-    icon: Clock, // Keeping clock for now
-    category: 'utility',
-    actions: [
-      { id: 'delay_for', name: 'Delay For', description: 'Pause execution for a specific duration.', type: 'action' }
+      { 
+        id: 'schedule', 
+        name: 'Schedule', 
+        description: 'Standard polling trigger based on intervals.', 
+        type: 'trigger',
+        parameters: [
+            { name: 'intervalMinutes', type: 'number', label: 'Interval (Minutes)', description: 'Interval in minutes (e.g., 5)', default: 5 },
+            { name: 'intervalSeconds', type: 'number', label: 'Interval (Seconds)', description: 'Interval in seconds (e.g., 300)' }
+        ]
+      }
     ]
   },
 
@@ -46,23 +52,157 @@ export const APP_DEFINITIONS: AppDefinition[] = [
   {
     id: 'gmail',
     name: 'Gmail',
-    description: 'Manage emails with Gmail integration.',
+    description: 'Integrate with Google Mail to send and read messages.',
     icon: Mail,
     category: 'app',
     actions: [
-      { id: 'send_email', name: 'Send Email', description: 'Send an email through a Gmail account.', type: 'action' },
-      { id: 'custom_api', name: 'Custom API Call', description: 'Make a custom API call to a specific endpoint.', type: 'action' }
+      // Triggers
+      { 
+        id: 'newEmail', 
+        name: 'New Email', 
+        description: 'Fires when a new email is received in the inbox.', 
+        type: 'trigger',
+        parameters: [
+             { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true }
+        ] 
+      },
+      // Actions
+      { 
+        id: 'sendEmail', 
+        name: 'Send Email', 
+        description: 'Sends a new email.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
+            { name: 'to', type: 'string', label: 'To', description: 'Recipient email address', required: true },
+            { name: 'subject', type: 'string', label: 'Subject', description: 'Email subject line', required: true },
+            { name: 'body', type: 'string', label: 'Body', description: 'Email body content (supports HTML)', required: true }
+        ]
+      },
+      { 
+        id: 'listMessages', 
+        name: 'List Messages', 
+        description: 'Lists recent emails.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
+            { name: 'maxResults', type: 'number', label: 'Max Results', description: 'Maximum number of messages to return', default: 10 },
+            { name: 'q', type: 'string', label: 'Query', description: 'Gmail search query (e.g., from:someone@gmail.com)' }
+        ]
+      }
     ]
   },
   {
     id: 'google_sheets',
     name: 'Google Sheets',
-    description: 'Manage spreadsheets.',
+    description: 'Perform operations on Google Spreadsheets.',
     icon: FileSpreadsheet,
     category: 'app',
     actions: [
-      { id: 'insert_row', name: 'Insert Row', description: 'Add a new row to a spreadsheet.', type: 'action' },
-      { id: 'read_rows', name: 'Read Rows', description: 'Read multiple rows from a sheet.', type: 'action' }
+      { 
+        id: 'appendRow', 
+        name: 'Append Row', 
+        description: 'Appends a row of values to the end of a sheet.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'Sheet name or range (e.g., Sheet1!A1)', required: true },
+            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"])', required: true }
+        ]
+      },
+      { 
+        id: 'appendRowSmart', 
+        name: 'Append Row (Smart)', 
+        description: 'Similar to appendRow, but automatically creates the worksheet if it does not exist.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'Sheet name or range (e.g., Sheet1!A1)', required: true },
+            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row', required: true }
+        ]
+      },
+      { 
+        id: 'getValues', 
+        name: 'Get Values', 
+        description: 'Retrieves values from a specific range.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'The range to read (e.g., Sheet1!A1:B10)', required: true },
+        ]
+      },
+      { 
+        id: 'createSpreadsheet', 
+        name: 'Create Spreadsheet', 
+        description: 'Creates a brand new spreadsheet.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
+            { name: 'title', type: 'string', label: 'Title', description: 'Title of the new spreadsheet', required: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'google_drive',
+    name: 'Google Drive',
+    description: 'Manage files and folders in Google Drive.',
+    icon: HardDrive,
+    category: 'app',
+    actions: [
+      { 
+        id: 'listFiles', 
+        name: 'List Files', 
+        description: 'Lists files in the user\'s Drive.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Drive Connection', required: true },
+            { name: 'pageSize', type: 'number', label: 'Page Size', description: 'Number of files to return', default: 10 }
+        ]
+      },
+      { 
+        id: 'createFolder', 
+        name: 'Create Folder', 
+        description: 'Creates a new folder.', 
+        type: 'action',
+        parameters: [
+            { name: 'connection', type: 'connection', label: 'Google Drive Connection', required: true },
+            { name: 'name', type: 'string', label: 'Folder Name', description: 'Name of the new folder', required: true }
+        ]
+      }
+    ]
+  },
+   {
+    id: 'google_docs',
+    name: 'Google Docs',
+    description: 'Create and modify Google Documents.',
+    icon: FileText,
+    category: 'app',
+    actions: [
+      { 
+        id: 'createDocument', 
+        name: 'Create Document', 
+        description: 'Creates a new Google Doc.', 
+        type: 'action',
+        parameters: [
+             { name: 'connection', type: 'connection', label: 'Google Docs Connection', required: true },
+             { name: 'title', type: 'string', label: 'Title', description: 'Title of the new document', required: true }
+        ]
+      },
+      { 
+        id: 'appendText', 
+        name: 'Append Text', 
+        description: 'Appends text to an existing document.', 
+        type: 'action',
+        parameters: [
+             { name: 'connection', type: 'connection', label: 'Google Docs Connection', required: true },
+             { name: 'documentId', type: 'string', label: 'Document ID', required: true },
+             { name: 'text', type: 'string', label: 'Text', description: 'The text content to append', required: true }
+        ]
+      }
     ]
   }
 ];

@@ -57,6 +57,11 @@ export function App() {
                             <SidebarIconExample />
                         </RequireAuth>
                     } />
+                     <Route path="/automation/:id" element={
+                        <RequireAuth>
+                            <SidebarIconExample />
+                        </RequireAuth>
+                    } />
                     
                     <Route path="*" element={<ErrorPage />} />
                 </Routes>

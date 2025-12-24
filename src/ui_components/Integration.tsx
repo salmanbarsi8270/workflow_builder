@@ -65,7 +65,7 @@ export default function Integration() {
   const [filteredApps, setFilteredApps] = useState<IntegrationApp[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [syncingApp, setSyncingApp] = useState<string | null>(null);
+  const [syncingApp] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');

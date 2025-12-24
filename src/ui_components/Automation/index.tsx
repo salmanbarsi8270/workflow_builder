@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/dialog"
 import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import AutomationList, { type AutomationItem } from './AutomationList';
 import AutomationEditor from './AutomationEditor';
-
-// --- Initial Data ---
+import axios from 'axios';
+import { API_URL } from '../api/apiurl';
+import { useUser } from '@/context/UserContext';
 
 const defaultStartNode: Node[] = [
     { 
@@ -31,43 +33,88 @@ const defaultEdges: Edge[] = [
     { id: 'e1-end', source: '1', target: 'end', type: 'custom' }
 ];
 
-const initialAutomations: AutomationItem[] = [
-//   { 
-//       id: "1", 
-//       name: "New Lead Email Sequence", 
-//       createdDate: "2024-03-10", 
-//       status: true,
-//       nodes: [
-//         { id: '1', position: { x: 100, y: 100 }, data: { label: 'Trigger: New Lead', icon: 'trigger' }, type: 'custom' },
-//         { id: '2', position: { x: 100, y: 300 }, data: { label: 'Action: Send Email', icon: 'email' }, type: 'custom' },
-//         { id: 'end', position: { x: 100, y: 500 }, data: { label: 'End' }, type: 'end' }
-//       ],
-//       edges: [
-//           { id: 'e1-2', source: '1', target: '2', type: 'custom' },
-//           { id: 'e2-end', source: '2', target: 'end', type: 'custom' }
-//       ]
-//   },
-//   { 
-//       id: "2", 
-//       name: "Order Confirmation Sync", 
-//       createdDate: "2024-03-12", 
-//       status: false,
-//       nodes: defaultStartNode,
-//       edges: defaultEdges
-//   },   
-];
-
 export default function AutomationIndex() {
   const { theme } = useTheme()
-  const [viewMode, setViewMode] = useState<'list' | 'editor'>('list');
-  const [automations, setAutomations] = useState<AutomationItem[]>(initialAutomations);
+  const { user } = useUser();
+  const { id } = useParams(); // Get ID from URL
+  const navigate = useNavigate();
+
+  const [automations, setAutomations] = useState<AutomationItem[]>([]);
   const [search, setSearch] = useState("");
   const [currentAuto, setCurrentAuto] = useState<AutomationItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Log automations state on change
+  // Fetch Automations on Load (List View)
   useEffect(() => {
-    console.log("Updated initialAutomations:", automations);
-  }, [automations]);
+    // Only fetch list if we are in list mode (no ID) OR if we want to keep sidebar updated? 
+    // Usually fetching list is fine.
+    const fetchAutomations = async () => {
+        if (!user?.id) return;
+        setIsLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/api/flows?userId=${user.id}`);
+            if (res.data && res.data.success) {
+                const mappedFlows: AutomationItem[] = res.data.flows.map((flow: any) => ({
+                    id: flow.id,
+                    name: flow.name,
+                    createdDate: new Date(flow.created_at).toISOString().split('T')[0],
+                    status: flow.is_active,
+                    nodes: [], 
+                    edges: [] 
+                }));
+                setAutomations(mappedFlows);
+            }
+        } catch (error) {
+            console.error("Failed to fetch automations:", error);
+            toast.error("Could not load automations.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchAutomations();
+  }, [user?.id]);
+
+  // Handle URL Change / Editor Loading
+  useEffect(() => {
+    const loadFlow = async () => {
+        if (id) {
+             // We are in editor mode
+             // Check if we already have it loaded?
+             if (currentAuto?.id === id) return;
+
+             try {
+                // Fetch specific flow details
+                const res = await axios.get(`${API_URL}/api/flows/${id}`);
+                if (res.data && res.data.success) {
+                     const flow = res.data.flow;
+                     const uiDef = flow.ui_definition || { nodes: [], edges: [] };
+                     const fullAuto = {
+                         id: flow.id,
+                         name: flow.name,
+                         createdDate: new Date(flow.created_at).toISOString().split('T')[0],
+                         status: flow.is_active,
+                         nodes: uiDef.nodes || [],
+                         edges: uiDef.edges || []
+                     };
+                     setCurrentAuto(fullAuto);
+                } else {
+                     toast.error("Flow not found");
+                     navigate('/automation');
+                }
+             } catch (error) {
+                console.error("Error loading flow", error);
+                toast.error("Failed to load automation");
+                navigate('/automation');
+             }
+        } else {
+            // List mode
+            setCurrentAuto(null);
+        }
+    };
+
+    loadFlow();
+  }, [id, user?.id]); // Re-run if ID changes
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -75,22 +122,39 @@ export default function AutomationIndex() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // --- Handlers ---
-
-  const handleToggleStatus = (id: string) => {
-    setAutomations(automations.map(a => 
-      a.id === id ? { ...a, status: !a.status } : a
-    ));
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+      // Optimistic update
+      setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: !currentStatus } : a));
+      
+      try {
+          await axios.patch(`${API_URL}/api/flows/${id}`, { is_active: !currentStatus });
+          toast.success("Status updated");
+      } catch(error) {
+          console.error("Failed to update status:", error);
+          toast.error("Failed to update status");
+          // Revert
+          setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: currentStatus } : a));
+      }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this automation?")) {
-      setAutomations(automations.filter(a => a.id !== id));
+        // Optimistic update
+        setAutomations(autos => autos.filter(a => a.id !== id));
+
+        try {
+            await axios.delete(`${API_URL}/api/flows/${id}`);
+            toast.success("Automation deleted");
+        } catch(error) {
+            console.error("Failed to delete flow:", error);
+            toast.error("Failed to delete automation");
+        }
     }
   };
 
   const handleOpenEditor = (automation: AutomationItem) => {
-    setCurrentAuto(automation);
-    setViewMode('editor');
+      // Navigate to URL
+      navigate(`/automation/${automation.id}`);
   };
 
   const handleOpenModal = () => {
@@ -105,90 +169,143 @@ export default function AutomationIndex() {
       setIsCreateModalOpen(true);
   };
 
-  const handleSaveAutomationName = () => {
+  const handleSaveAutomationName = async () => {
       if (!newAutomationName.trim()) return;
 
       if (editingId) {
+          // Rename Mode (stays on list mostly)
+          const oldName = automations.find(a => a.id === editingId)?.name;
           setAutomations(automations.map(a => 
               a.id === editingId ? { ...a, name: newAutomationName } : a
           ));
+          setIsCreateModalOpen(false);
+          setNewAutomationName("");
+          setEditingId(null);
+
+          try {
+              await axios.patch(`${API_URL}/api/flows/${editingId}`, { name: newAutomationName });
+              toast.success("Name updated successfully");
+          } catch(error) {
+              console.error("Failed to update name:", error);
+              toast.error("Failed to update name");
+              // Revert
+              if (oldName) {
+                    setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, name: oldName } : a));
+              }
+          }
+
       } else {
-          const newAuto: AutomationItem = {
-              id: Math.random().toString(36).substr(2, 9),
-              name: newAutomationName,
-              createdDate: new Date().toISOString().split('T')[0],
-              status: false,
-              nodes: defaultStartNode,
-              edges: defaultEdges
+          // Create Mode
+          const newUiDefinition = {
+            nodes: defaultStartNode,
+            edges: defaultEdges
           };
-          setAutomations([...automations, newAuto]);
-          handleOpenEditor(newAuto); // Optional: Open immediate? User prompt implied just create in list.
+
+          try {
+             const userId = user?.id || "anonymous"; 
+             
+             const createRes = await axios.post(`${API_URL}/api/flows`, {
+                userId: userId, 
+                name: newAutomationName,
+                ui_definition: newUiDefinition
+             });
+
+             const createdFlow = createRes.data;
+             const newId = createdFlow.id || (createdFlow.flow && createdFlow.flow.id) || (createdFlow.flow && createdFlow.flow._id) || createdFlow._id;
+
+             // Navigate to new flow
+             setIsCreateModalOpen(false);
+             setNewAutomationName("");
+             
+             if (newId) {
+                 navigate(`/automation/${newId}`);
+                 toast.success("Automation created!");
+             } else {
+                 // Fallback if ID parsing fails?
+                 toast.error("Created but failed to retrieve ID");
+                 // Refresh list?
+             }
+
+          } catch (error) {
+              console.error("Error creating automation:", error);
+              toast.error("Failed to create automation. Please try again.");
+          }
       }
-      console.log(automations);
-      
-      setIsCreateModalOpen(false);
-      setNewAutomationName("");
-      setEditingId(null);
   };
 
-  const handleSaveWorkflow = (nodes: Node[], edges: Edge[]) => {
-      if (currentAuto) {
+  const handleSaveWorkflow = useCallback(async (nodes: Node[], edges: Edge[]) => {
+      if (currentAuto && user?.id) {
           const updatedAuto = { ...currentAuto, nodes, edges };
           setCurrentAuto(updatedAuto); // Update local editor state
-          setAutomations(automations.map(a => 
+          // Also update list state if we want persistence there
+          setAutomations(automations => automations.map(a => 
             a.id === currentAuto.id ? updatedAuto : a
           ));
-      }
-  };
 
-  const handleEditorToggleStatus = () => {
+          try {
+             const uiDefinition = { nodes, edges };
+             await axios.patch(`${API_URL}/api/flows/${currentAuto.id}`, {
+                name: currentAuto.name,
+                ui_definition: uiDefinition,
+                is_active: currentAuto.status
+             });
+             console.log("Auto-saved flow:", currentAuto.id);
+          } catch (error) {
+              console.error("Failed to auto-save flow:", error);
+          }
+      }
+  }, [currentAuto, user?.id]);
+
+  const handleEditorToggleStatus = useCallback(async () => {
       if (currentAuto) {
           const newStatus = !currentAuto.status;
           const updatedAuto = { ...currentAuto, status: newStatus };
           setCurrentAuto(updatedAuto);
-          setAutomations(automations.map(a => 
-            a.id === currentAuto.id ? updatedAuto : a
-          ));
-          toast.success(`Automation turned ${newStatus ? 'ON' : 'OFF'}`);
+          
+          try {
+              await axios.patch(`${API_URL}/api/flows/${currentAuto.id}`, { is_active: newStatus });
+              toast.success(`Automation turned ${newStatus ? 'ON' : 'OFF'}`);
+          } catch(error) {
+              console.error("Failed to update status:", error);
+              toast.error("Failed to update status");
+                setCurrentAuto({ ...currentAuto, status: !newStatus });
+          }
       }
-  };
+  }, [currentAuto]);
 
   const handlePublish = () => {
     if (!currentAuto) return;
-    
-    // Validation: simple check for now
     const hasEnd = currentAuto.nodes.some(n => n.type === 'end');
     if (!hasEnd) {
         toast.error("Flow must have an End node to publish.");
         return;
     }
-
     if (!currentAuto.status) {
-        handleEditorToggleStatus(); // Turn on
+        handleEditorToggleStatus(); 
     }
     toast.success("Automation Published Successfully!");
   };
 
   const handleRun = () => {
-      // Logic to open Run Sidebar (will implement next)
       console.log("Run Test Clicked");
       toast.info("Starting Test Run...");
   };
 
-  // --- Render ---
-
-  if (viewMode === 'list') {
+  // --- Render based on ID presence ---
+  if (!id) {
+      // List Mode
       return (
           <>
             <AutomationList 
                 automations={automations}
                 search={search}
                 setSearch={setSearch}
-                onToggleStatus={handleToggleStatus}
+                onToggleStatus={(id, current) => handleToggleStatus(id, !!current)} // Fix signature mismatch if needed
                 onDelete={handleDelete}
                 onEditName={handleEditNameClick}
                 onOpenEditor={handleOpenEditor}
                 onCreate={handleOpenModal}
+                isLoading={isLoading}
             />
 
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -211,18 +328,25 @@ export default function AutomationIndex() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <Toaster />
           </>
       );
+  }
+
+  // Editor Mode
+  if (!currentAuto) {
+      // Loading or Error state for Editor
+      return <div className="p-10 flex justify-center">Loading editor...</div>;
   }
 
   return (
       <>
         <AutomationEditor 
-            automationName={currentAuto?.name || "Untitled"}
-            initialNodes={currentAuto?.nodes || []}
-            initialEdges={currentAuto?.edges || []}
-            automationStatus={currentAuto?.status || false}
-            onBack={() => setViewMode('list')}
+            automationName={currentAuto.name}
+            initialNodes={currentAuto.nodes}
+            initialEdges={currentAuto.edges}
+            automationStatus={currentAuto.status}
+            onBack={() => navigate('/automation')}
             onAutoSave={handleSaveWorkflow}
             onToggleStatus={handleEditorToggleStatus}
             onPublish={handlePublish}
