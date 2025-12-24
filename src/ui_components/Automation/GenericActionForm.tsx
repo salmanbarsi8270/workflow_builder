@@ -6,25 +6,26 @@ import ConnectionSelector from "../Connections/ConnectionSelector"
 
 interface GenericActionFormProps {
     data: any;
-    onUpdate: (data: any) => void;
+    params: any;
+    onChange: (params: any) => void;
     parameters: ActionParameter[];
+    disabled?: boolean;
 }
 
-export default function GenericActionForm({ data, onUpdate, parameters }: GenericActionFormProps) {
+export default function GenericActionForm({ data, params, onChange, parameters, disabled }: GenericActionFormProps) {
     const handleChange = (field: string, value: any) => {
-        onUpdate({ ...data, [field]: value });
+        onChange({ ...params, [field]: value });
     };
 
-    // Determine the app name for the ConnectionSelector
-    // This is tricky: GenericActionForm receives just 'data'. 
-    // Usually 'data.appName' is present from the node creation.
     const appName = data.appName || 'App'; 
 
     return (
         <div className="flex flex-col gap-4">
             {parameters.map(param => (
                 <div key={param.name} className="grid gap-2">
-                    <Label>{param.label} {param.required && <span className="text-red-500">*</span>}</Label>
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                        {param.label} {param.required && <span className="text-red-500">*</span>}
+                    </Label>
                     
                     {param.type === 'connection' && (
                         <ConnectionSelector 
@@ -32,25 +33,28 @@ export default function GenericActionForm({ data, onUpdate, parameters }: Generi
                                      param.description?.includes('Drive') ? 'Google Drive' :
                                      param.description?.includes('Docs') ? 'Google Docs' :
                                      param.description?.includes('Sheets') ? 'Google Sheets' :
-                                     appName} // Fallback to detected appName or description hint
-                            value={data[param.name]}
+                                     appName}
+                            value={params[param.name] || ''}
                             onChange={(val) => handleChange(param.name, val)}
+                            disabled={disabled}
                         />
                     )}
 
                     {param.type === 'string' && (
-                        param.name === 'body' || param.name === 'description' ? (
+                        param.name === 'body' || param.name === 'description' || param.name === 'text' ? (
                              <Textarea 
-                                value={data[param.name] || param.default || ''}
+                                value={params[param.name] || param.default || ''}
                                 onChange={(e) => handleChange(param.name, e.target.value)}
                                 placeholder={param.description}
                                 className="min-h-[100px]"
+                                disabled={disabled}
                              />
                         ) : (
                             <Input 
-                                value={data[param.name] || param.default || ''}
+                                value={params[param.name] || param.default || ''}
                                 onChange={(e) => handleChange(param.name, e.target.value)}
                                 placeholder={param.description}
+                                disabled={disabled}
                             />
                         )
                     )}
@@ -58,29 +62,21 @@ export default function GenericActionForm({ data, onUpdate, parameters }: Generi
                     {param.type === 'number' && (
                         <Input 
                             type="number"
-                            value={data[param.name] || param.default || ''}
+                            value={params[param.name] || param.default || ''}
                             onChange={(e) => handleChange(param.name, Number(e.target.value))}
                             placeholder={param.description}
+                            disabled={disabled}
                         />
                     )}
 
-                     {/* Fallback for array/boolean if needed, treating as string/text for now or JSON */}
-                     {param.type === 'array' && (
+                    {param.type === 'array' && (
                         <Input 
-                            value={Array.isArray(data[param.name]) ? JSON.stringify(data[param.name]) : (data[param.name] || '')}
-                            onChange={(e) => {
-                                try {
-                                    // Try to parse JSON if they paste it, otherwise just invalid
-                                     // For simple CSV support:
-                                     // handleChange(param.name, e.target.value.split(','));
-                                     handleChange(param.name, e.target.value);
-                                } catch (err) {
-                                    handleChange(param.name, e.target.value);
-                                }
-                            }}
+                            value={Array.isArray(params[param.name]) ? JSON.stringify(params[param.name]) : (params[param.name] || '')}
+                            onChange={(e) => handleChange(param.name, e.target.value)}
                             placeholder={param.description + " (JSON array or raw text)"}
+                            disabled={disabled}
                         />
-                     )}
+                    )}
                 </div>
             ))}
         </div>

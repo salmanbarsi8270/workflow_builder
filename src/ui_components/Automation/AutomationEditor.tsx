@@ -46,12 +46,13 @@ interface AutomationEditorProps {
     onPublish: () => void;
     onRun: () => void;
     theme: 'dark' | 'light' | 'system';
+    isLoading?: boolean;
 }
 
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
-export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, onPublish, onRun, theme }: AutomationEditorProps) {
+export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, onPublish, onRun, theme, isLoading }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -60,6 +61,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [rfInstance, setRfInstance] = useState<any>(null);
     const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
 
+    // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
+    useEffect(() => {
+        if (initialNodes.length > 0 || initialEdges.length > 0) {
+            setNodes(initialNodes);
+            setEdges(initialEdges);
+        }
+    }, [initialNodes, initialEdges, setNodes, setEdges]);
+
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
         onRun(); // Call parent handler if needed
@@ -67,11 +76,13 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
     // Auto-Save Effect
     useEffect(() => {
+        if (isLoading) return; // Don't auto-save while still loading initial data
+
         const timeoutId = setTimeout(() => {
             onAutoSave(nodes, edges);
         }, 1000); // 1s debounce
         return () => clearTimeout(timeoutId);
-    }, [nodes, edges, onAutoSave]);
+    }, [nodes, edges, onAutoSave, isLoading]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom' }, eds)),
@@ -346,6 +357,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
+                            isLoading={isLoading}
                         />
                     )}
 

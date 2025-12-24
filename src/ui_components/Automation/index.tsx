@@ -42,7 +42,9 @@ export default function AutomationIndex() {
   const [automations, setAutomations] = useState<AutomationItem[]>([]);
   const [search, setSearch] = useState("");
   const [currentAuto, setCurrentAuto] = useState<AutomationItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isListLoading, setIsListLoading] = useState(true);
+  const [isEditorLoading, setIsEditorLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch Automations on Load (List View)
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function AutomationIndex() {
     // Usually fetching list is fine.
     const fetchAutomations = async () => {
         if (!user?.id) return;
-        setIsLoading(true);
+        setIsListLoading(true);
         try {
             const res = await axios.get(`${API_URL}/api/flows?userId=${user.id}`);
             if (res.data && res.data.success) {
@@ -68,7 +70,7 @@ export default function AutomationIndex() {
             console.error("Failed to fetch automations:", error);
             toast.error("Could not load automations.");
         } finally {
-            setIsLoading(false);
+            setIsListLoading(false);
         }
     };
 
@@ -82,10 +84,11 @@ export default function AutomationIndex() {
              // We are in editor mode
              // Check if we already have it loaded?
              if (currentAuto?.id === id) return;
+             setIsEditorLoading(true);
 
              try {
-                // Fetch specific flow details
-                const res = await axios.get(`${API_URL}/api/flows/${id}`);
+                // Fetch specific flow details - only owned flows
+                const res = await axios.get(`${API_URL}/api/flows/${id}${user?.id ? `?userId=${user.id}` : ''}`);
                 if (res.data && res.data.success) {
                      const flow = res.data.flow;
                      const uiDef = flow.ui_definition || { nodes: [], edges: [] };
@@ -106,6 +109,8 @@ export default function AutomationIndex() {
                 console.error("Error loading flow", error);
                 toast.error("Failed to load automation");
                 navigate('/automation');
+             } finally {
+                 setIsEditorLoading(false);
              }
         } else {
             // List mode
@@ -235,6 +240,7 @@ export default function AutomationIndex() {
 
   const handleSaveWorkflow = useCallback(async (nodes: Node[], edges: Edge[]) => {
       if (currentAuto && user?.id) {
+          setIsSaving(true);
           const updatedAuto = { ...currentAuto, nodes, edges };
           setCurrentAuto(updatedAuto); // Update local editor state
           // Also update list state if we want persistence there
@@ -252,6 +258,9 @@ export default function AutomationIndex() {
              console.log("Auto-saved flow:", currentAuto.id);
           } catch (error) {
               console.error("Failed to auto-save flow:", error);
+              toast.error("Could not auto-save changes");
+          } finally {
+              setIsSaving(false);
           }
       }
   }, [currentAuto, user?.id]);
@@ -305,7 +314,7 @@ export default function AutomationIndex() {
                 onEditName={handleEditNameClick}
                 onOpenEditor={handleOpenEditor}
                 onCreate={handleOpenModal}
-                isLoading={isLoading}
+                isLoading={isListLoading}
             />
 
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -352,6 +361,7 @@ export default function AutomationIndex() {
             onPublish={handlePublish}
             onRun={handleRun}
             theme={theme === 'dark' ? 'dark' : 'light'}
+            isLoading={isEditorLoading || isSaving}
         />
         <Toaster />
       </>
