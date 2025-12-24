@@ -1,6 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon, RefreshCcw, SaveIcon } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcw, Play, Rocket } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+// import { toast } from "sonner"
 import {
     ReactFlow,
     Controls,
@@ -21,6 +23,7 @@ import EndNode from './EndNode';
 import CustomEdge from './CustomEdge';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
+import RunSidebar from './RunSidebar';
 
 // Define custom types
 const nodeTypes = {
@@ -36,21 +39,39 @@ interface AutomationEditorProps {
     automationName: string;
     initialNodes: Node[];
     initialEdges: Edge[];
+    automationStatus: boolean;
     onBack: () => void;
-    onSave: (nodes: Node[], edges: Edge[]) => void;
+    onAutoSave: (nodes: Node[], edges: Edge[]) => void;
+    onToggleStatus: () => void;
+    onPublish: () => void;
+    onRun: () => void;
     theme: 'dark' | 'light' | 'system';
 }
 
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
-export default function AutomationEditor({ automationName, initialNodes, initialEdges, onBack, onSave, theme }: AutomationEditorProps) {
+export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, onPublish, onRun, theme }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     const [addingNodeOnEdgeId, setAddingNodeOnEdgeId] = useState<string | null>(null);
     const [rfInstance, setRfInstance] = useState<any>(null);
+    const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
+
+    const handleRunClick = () => {
+        setIsRunSidebarOpen(true);
+        onRun(); // Call parent handler if needed
+    };
+
+    // Auto-Save Effect
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            onAutoSave(nodes, edges);
+        }, 1000); // 1s debounce
+        return () => clearTimeout(timeoutId);
+    }, [nodes, edges, onAutoSave]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom' }, eds)),
@@ -255,12 +276,20 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             <p className="text-xs text-muted-foreground">Workflow Editor</p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 mr-2">
+                                <span className="text-sm font-medium text-muted-foreground">Status</span>
+                                <Switch checked={automationStatus} onCheckedChange={onToggleStatus} />
+                            </div>
                             <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
-                                <RefreshCcw />
+                                <RefreshCcw className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" onClick={onBack}>Cancel</Button>
-                            <Button onClick={() => onSave(nodes, edges)}><SaveIcon className="mr-2 h-4 w-4"/> Save</Button>
+                            <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
+                                <Play className="mr-2 h-4 w-4" /> Run
+                            </Button>
+                            <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={onPublish}>
+                                <Rocket className="mr-2 h-4 w-4" /> Publish
+                            </Button>
                     </div>
                 </div>
 
@@ -281,6 +310,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 colorMode={theme === 'dark' ? 'dark' : 'light'}
                                 nodeTypes={nodeTypes}
                                 edgeTypes={edgeTypes}
+                                nodesDraggable={false}
                             >
                                 <Controls />
                                 <Background gap={12} size={1} />
@@ -303,6 +333,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onClose={() => setAddingNodeOnEdgeId(null)} 
                         />
                     )}
+
+                    <RunSidebar 
+                        isOpen={isRunSidebarOpen} 
+                        onClose={() => setIsRunSidebarOpen(false)} 
+                        nodes={nodes} 
+                    />
                 </div>
             </div>
         </AutomationContext.Provider>

@@ -8,6 +8,7 @@ export default function Logout() {
     const handleLogout = () => {
         // Clear authentication status
         localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('authToken');
         // Redirect to login page
         navigate('/login');
     };

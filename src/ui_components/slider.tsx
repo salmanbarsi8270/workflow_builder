@@ -45,9 +45,11 @@ import Order from './Order'
 import Integration from './Integration'
 import Automation from './Automation'
 import Logout from './Logout'
+import { useUser } from '@/context/UserContext';
 
 export function SidebarIconExample() {
   const { theme, setTheme } = useTheme()
+  const { user } = useUser();
   const location = useLocation();
 
   const getPageTitle = (pathname: string) => {
@@ -90,16 +92,11 @@ export function SidebarIconExample() {
     },
   ]
 
-  const user = {
-    name: "salman",
-    email: "salman@example.com",
-    avatar: "/avatars/salman.png",
-  }
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
+        <SidebarHeader className='p-3 mt-2'>
              <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
@@ -125,10 +122,7 @@ export function SidebarIconExample() {
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild tooltip={item.title}>
-                        <a href={item.url}>
-                        {item.icon}
-                        <span>{item.title}</span>
-                        </a>
+                        <a href={item.url}>{item.icon}<span>{item.title}</span></a>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}
@@ -147,17 +141,17 @@ export function SidebarIconExample() {
                   >
                     <Avatar>
                       <AvatarImage
-                        src={user.avatar}
-                        alt={user.name}
+                        src={user?.picture}
+                        alt={user?.name || 'User'}
                       />
-                      <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
+                      <AvatarFallback className="rounded-lg">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-medium">
-                        {user.name}
+                        {user?.name || 'User'}
                       </span>
                       <span className="truncate text-xs">
-                        {user.email}
+                        {user?.email || 'User@user.com'}
                       </span>
                     </div>
                     <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} />
@@ -170,15 +164,15 @@ export function SidebarIconExample() {
                         <ItemMedia>
                           <Avatar>
                             <AvatarImage
-                              src={user.avatar}
-                              alt={user.name}
+                              src={user?.picture}
+                              alt={user?.name || 'User'}
                             />
-                            <AvatarFallback className="rounded-lg">{user.name[0]}</AvatarFallback>
+                            <AvatarFallback className="rounded-lg">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
                           </Avatar>
                         </ItemMedia>
                         <ItemContent>
-                          <ItemTitle>{user.name}</ItemTitle>
-                          <ItemDescription> {user.email}</ItemDescription>
+                          <ItemTitle>{user?.name || 'User'}</ItemTitle>
+                          <ItemDescription> {user?.email || 'User@user.com'}</ItemDescription>
                         </ItemContent>
                       </Item>
                     </DropdownMenuLabel>

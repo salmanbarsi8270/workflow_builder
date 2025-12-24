@@ -1,20 +1,15 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_URL } from "./api/apiurl";
 
 export default function LoginPage() {
-    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
 
     const handleGoogleLogin = () => {
         setIsLoading(true);
-        // Mock login delay
-        setTimeout(() => {
-            localStorage.setItem('isAuthenticated', 'true');
-            setIsLoading(false);
-            navigate('/');
-        }, 800);
+        // Redirect to Backend Login Endpoint
+        window.location.href = `${API_URL}/auth/login`;
     };
 
     return (

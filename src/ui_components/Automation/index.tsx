@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/dialog"
+import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
 
 import AutomationList, { type AutomationItem } from './AutomationList';
@@ -63,6 +64,11 @@ export default function AutomationIndex() {
   const [search, setSearch] = useState("");
   const [currentAuto, setCurrentAuto] = useState<AutomationItem | null>(null);
 
+  // Log automations state on change
+  useEffect(() => {
+    console.log("Updated initialAutomations:", automations);
+  }, [automations]);
+
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newAutomationName, setNewAutomationName] = useState("");
@@ -118,6 +124,7 @@ export default function AutomationIndex() {
           setAutomations([...automations, newAuto]);
           handleOpenEditor(newAuto); // Optional: Open immediate? User prompt implied just create in list.
       }
+      console.log(automations);
       
       setIsCreateModalOpen(false);
       setNewAutomationName("");
@@ -126,11 +133,46 @@ export default function AutomationIndex() {
 
   const handleSaveWorkflow = (nodes: Node[], edges: Edge[]) => {
       if (currentAuto) {
+          const updatedAuto = { ...currentAuto, nodes, edges };
+          setCurrentAuto(updatedAuto); // Update local editor state
           setAutomations(automations.map(a => 
-            a.id === currentAuto.id ? { ...a, nodes: nodes, edges: edges } : a
+            a.id === currentAuto.id ? updatedAuto : a
           ));
-          setViewMode('list');
       }
+  };
+
+  const handleEditorToggleStatus = () => {
+      if (currentAuto) {
+          const newStatus = !currentAuto.status;
+          const updatedAuto = { ...currentAuto, status: newStatus };
+          setCurrentAuto(updatedAuto);
+          setAutomations(automations.map(a => 
+            a.id === currentAuto.id ? updatedAuto : a
+          ));
+          toast.success(`Automation turned ${newStatus ? 'ON' : 'OFF'}`);
+      }
+  };
+
+  const handlePublish = () => {
+    if (!currentAuto) return;
+    
+    // Validation: simple check for now
+    const hasEnd = currentAuto.nodes.some(n => n.type === 'end');
+    if (!hasEnd) {
+        toast.error("Flow must have an End node to publish.");
+        return;
+    }
+
+    if (!currentAuto.status) {
+        handleEditorToggleStatus(); // Turn on
+    }
+    toast.success("Automation Published Successfully!");
+  };
+
+  const handleRun = () => {
+      // Logic to open Run Sidebar (will implement next)
+      console.log("Run Test Clicked");
+      toast.info("Starting Test Run...");
   };
 
   // --- Render ---
@@ -174,13 +216,20 @@ export default function AutomationIndex() {
   }
 
   return (
-      <AutomationEditor 
-          automationName={currentAuto?.name || "Untitled"}
-          initialNodes={currentAuto?.nodes || []}
-          initialEdges={currentAuto?.edges || []}
-          onBack={() => setViewMode('list')}
-          onSave={handleSaveWorkflow}
-          theme={theme === 'dark' ? 'dark' : 'light'} // Simplified theme usage
-      />
+      <>
+        <AutomationEditor 
+            automationName={currentAuto?.name || "Untitled"}
+            initialNodes={currentAuto?.nodes || []}
+            initialEdges={currentAuto?.edges || []}
+            automationStatus={currentAuto?.status || false}
+            onBack={() => setViewMode('list')}
+            onAutoSave={handleSaveWorkflow}
+            onToggleStatus={handleEditorToggleStatus}
+            onPublish={handlePublish}
+            onRun={handleRun}
+            theme={theme === 'dark' ? 'dark' : 'light'}
+        />
+        <Toaster />
+      </>
   );
 }

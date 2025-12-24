@@ -92,11 +92,11 @@ export default function AutomationList({
             </TableHeader>
             <TableBody>
               {filteredAutomations.map((item) => (
-                <TableRow key={item.id} onClick={() => onOpenEditor(item)} className="cursor-pointer">
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.createdDate}</TableCell>
-                  <TableCell>
-                    <Switch 
+                <TableRow key={item.id} className="cursor-pointer">
+                  <TableCell onClick={() => onOpenEditor(item)} className="font-medium">{item.name}</TableCell>
+                  <TableCell onClick={() => onOpenEditor(item)}>{item.createdDate}</TableCell>
+                  <TableCell className="cursor-pointer">
+                    <Switch className="cursor-pointer"
                         checked={item.status}
                         onCheckedChange={() => onToggleStatus(item.id)}
                     />
