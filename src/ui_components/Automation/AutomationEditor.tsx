@@ -45,12 +45,14 @@ interface AutomationEditorProps {
     onPublish: () => void;
     theme: 'dark' | 'light' | 'system';
     isLoading?: boolean;
+    socket?: any;
+    flowId?: string;
 }
 
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
-export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, theme, isLoading }: AutomationEditorProps) {
+export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, theme, isLoading, socket, flowId }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -371,6 +373,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         isOpen={isRunSidebarOpen} 
                         onClose={() => setIsRunSidebarOpen(false)} 
                         nodes={nodes} 
+                        socket={socket}
+                        flowId={flowId}
                     />
                 </div>
             </div>
