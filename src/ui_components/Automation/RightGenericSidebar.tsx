@@ -101,23 +101,39 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
     const handleSave = () => {
         if (isLoading) return;
 
-        // Validation
-        if (actionDef?.parameters) {
-            for (const param of actionDef.parameters) {
-                // If it's required, we must check if it's currently relevant/visible
-                if (param.required) {
-                    let isVisible = true;
-                    if (param.dependsOn) {
-                        const dependentValue = localParams[param.dependsOn.field];
-                        if (dependentValue !== param.dependsOn.value) {
-                            isVisible = false;
-                        }
-                    }
+        let filteredParams = { ...localParams };
 
-                    if (isVisible && !localParams[param.name]) {
+        // Validation & Filtering
+        if (actionDef?.parameters) {
+            const activeParamNames = new Set<string>();
+            
+            // First pass: identify active params
+            actionDef.parameters.forEach(param => {
+                let isVisible = true;
+                if (param.dependsOn) {
+                    const dependentValue = localParams[param.dependsOn.field];
+                    if (dependentValue !== param.dependsOn.value) {
+                        isVisible = false;
+                    }
+                }
+                
+                if (isVisible) {
+                    activeParamNames.add(param.name);
+                }
+            });
+
+            // Second pass: validate active ones and remove inactive ones
+            for (const param of actionDef.parameters) {
+                const isActive = activeParamNames.has(param.name);
+
+                if (isActive) {
+                    if (param.required && !localParams[param.name]) {
                         toast.error(`${param.label} is required`);
                         return;
                     }
+                } else {
+                    // Remove inactive parameters from the final object
+                    delete filteredParams[param.name];
                 }
             }
         }
@@ -125,7 +141,7 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
         onUpdateNode(localLabel, { 
             ...selectedNode.data, 
             label: localLabel, 
-            params: localParams 
+            params: filteredParams 
         });
         toast.success("Changes saved successfully");
     };

@@ -138,7 +138,7 @@ export const APP_DEFINITIONS: AppDefinition[] = [
     ]
   },
   {
-    id: 'google_sheets',
+    id: 'sheets',
     name: 'Google Sheets',
     description: 'Perform operations on Google Spreadsheets.',
     icon: FileSpreadsheet,
@@ -192,7 +192,7 @@ export const APP_DEFINITIONS: AppDefinition[] = [
     ]
   },
   {
-    id: 'google_drive',
+    id: 'drive',
     name: 'Google Drive',
     description: 'Manage files and folders in Google Drive.',
     icon: HardDrive,
@@ -221,7 +221,7 @@ export const APP_DEFINITIONS: AppDefinition[] = [
     ]
   },
    {
-    id: 'google_docs',
+    id: 'docs',
     name: 'Google Docs',
     description: 'Create and modify Google Documents.',
     icon: FileText,

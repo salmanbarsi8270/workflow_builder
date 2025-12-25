@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock } from "lucide-react"; 
+import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive } from "lucide-react"; 
 
 const IconMap: Record<string, any> = {
   'trigger': Zap,
@@ -11,9 +11,11 @@ const IconMap: Record<string, any> = {
   'doc': FileText,
   'schedule': Clock as any, 
   'delay': Clock as any,
-  'gmail': Mail,
-  'google_sheets': FileText,
-  'default': Zap
+   'gmail': Mail,
+   'sheets': FileText,
+   'docs': FileText,
+   'drive': HardDrive,
+   'default': Zap
 };
 
 const CustomNode = ({ data, selected }: NodeProps) => {

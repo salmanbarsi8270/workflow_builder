@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select"
 import type { ActionParameter } from "./ActionDefinitions"
 import ConnectionSelector from "../Connections/ConnectionSelector"
+import { useState, useEffect } from "react";
 
 interface GenericActionFormProps {
     data: any;
@@ -18,6 +19,45 @@ interface GenericActionFormProps {
     parameters: ActionParameter[];
     disabled?: boolean;
 }
+
+const ArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
+    const [localValue, setLocalValue] = useState(Array.isArray(value) ? JSON.stringify(value) : (value || ''));
+
+    // Sync if value changes from outside (e.g. from a different node selection)
+    useEffect(() => {
+        const strValue = Array.isArray(value) ? JSON.stringify(value) : (value || '');
+        if (strValue !== localValue) {
+            try {
+                // Only update if the parsed local value is truly different
+                const parsedLocal = JSON.parse(localValue);
+                if (JSON.stringify(parsedLocal) !== strValue) {
+                    setLocalValue(strValue);
+                }
+            } catch {
+                setLocalValue(strValue);
+            }
+        }
+    }, [value]);
+
+    const handleBlur = () => {
+        try {
+            const parsed = JSON.parse(localValue);
+            onChange(parsed);
+        } catch {
+            onChange(localValue);
+        }
+    };
+
+    return (
+        <Input 
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            disabled={disabled}
+        />
+    );
+};
 
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled }: GenericActionFormProps) {
     const handleChange = (field: string, value: any) => {
@@ -105,10 +145,10 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                         )}
 
                         {param.type === 'array' && (
-                            <Input 
-                                value={Array.isArray(params[param.name]) ? JSON.stringify(params[param.name]) : (params[param.name] || '')}
-                                onChange={(e) => handleChange(param.name, e.target.value)}
-                                placeholder={param.description + " (JSON array or raw text)"}
+                            <ArrayInput 
+                                value={params[param.name]}
+                                onChange={(val) => handleChange(param.name, val)}
+                                placeholder={param.description + " (e.g. [\"data1\", \"data2\"])"}
                                 disabled={disabled}
                             />
                         )}

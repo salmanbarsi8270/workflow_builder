@@ -37,12 +37,14 @@ export default function StepSelector({ onSelect, onClose }: StepSelectorProps) {
         
         // Construct the node data
         onSelect({
-            name: selectedApp.name, // The overall app name (e.g. Gmail)
+            name: `${selectedApp.name}_${action.id}`, // Combined name (e.g. Google Sheets_appendRowSmart)
+            piece: selectedApp.id, // e.g. sheets
+            action: action.id, // e.g. appendRowSmart
             appName: selectedApp.name,
             description: action.description,
-            icon: selectedApp.id, // Using ID as icon key for now
+            icon: selectedApp.id, 
             actionId: action.id,
-            actionName: action.name, // Specific action (e.g. Send Email)
+            actionName: action.name, 
             isPlaceholder: false 
         });
         onClose();
