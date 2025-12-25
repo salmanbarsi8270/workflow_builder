@@ -10,9 +10,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import AutomationList, { type AutomationItem } from './AutomationList';
 import AutomationEditor from './AutomationEditor';
-import axios from 'axios';
+
 import { API_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
+import { io, type Socket } from 'socket.io-client';
 
 const defaultStartNode: Node[] = [
     { 
@@ -45,20 +46,75 @@ export default function AutomationIndex() {
   const [isListLoading, setIsListLoading] = useState(true);
   const [isEditorLoading, setIsEditorLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // Initialize Socket
+  useEffect(() => {
+      if (user?.id) {
+          const newSocket = io(API_URL, {
+              withCredentials: true,
+          });
+
+          newSocket.on('connect', () => {
+              console.log('Connected to socket server:', newSocket.id);
+          });
+
+          setSocket(newSocket);
+
+          return () => {
+              newSocket.disconnect();
+          };
+      }
+  }, [user?.id]);
+
+  // Join Flow Room & Listen for Updates
+  useEffect(() => {
+      if (socket && id) {
+          socket.emit('join-flow', id);
+
+          const handleRemoteUpdate = (updatedFlow: any) => {
+              console.log("Received remote update:", updatedFlow);
+              if (updatedFlow && updatedFlow.id === id) {
+                 const uiDef = updatedFlow.ui_definition || { nodes: [], edges: [] };
+                 const mappedFlow = {
+                    id: updatedFlow.id,
+                    name: updatedFlow.name,
+                    createdDate: new Date(updatedFlow.created_at).toISOString().split('T')[0],
+                    status: updatedFlow.is_active,
+                    nodes: uiDef.nodes || [],
+                    edges: uiDef.edges || []
+                 };
+                 // Only update if it's different to avoid loops? 
+                 // For now, trust the server state
+                 setCurrentAuto(mappedFlow);
+              }
+          };
+
+          socket.on('flow-updated', handleRemoteUpdate);
+
+          return () => {
+              socket.off('flow-updated', handleRemoteUpdate);
+          };
+      }
+  }, [socket, id]);
+
 
   // Fetch Automations on Load (List View)
   useEffect(() => {
     const fetchAutomations = async (showLoading = true) => {
-        if (!user?.id) {
-            if (!isUserLoading) setIsListLoading(false);
+        if (!user?.id || !socket) {
+            // Wait for socket
             return;
         }
 
         if (showLoading) setIsListLoading(true);
-        try {
-            const res = await axios.get(`${API_URL}/api/flows?userId=${user.id}`);
-            if (res.data && res.data.success) {
-                const mappedFlows: AutomationItem[] = res.data.flows.map((flow: any) => ({
+        
+        socket.emit('list-flows', user.id, (response: any) => {
+             if (showLoading) setIsListLoading(false);
+             if (response.error) {
+                 console.error("Failed to fetch automations:", response.error);
+             } else if (response.success && response.flows) {
+                 const mappedFlows: AutomationItem[] = response.flows.map((flow: any) => ({
                     id: flow.id,
                     name: flow.name,
                     createdDate: new Date(flow.created_at).toISOString().split('T')[0],
@@ -67,12 +123,8 @@ export default function AutomationIndex() {
                     edges: [] 
                 }));
                 setAutomations(mappedFlows);
-            }
-        } catch (error) {
-            console.error("Failed to fetch automations:", error);
-        } finally {
-            if (showLoading) setIsListLoading(false);
-        }
+             }
+        });
     };
 
     fetchAutomations();
@@ -83,7 +135,7 @@ export default function AutomationIndex() {
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [user?.id, isUserLoading, id]); // Re-run when navigation happens (id changes)
+  }, [user?.id, isUserLoading, id, socket]); // Re-run when navigation happens or socket connects
 
   // Handle URL Change / Editor Loading
   useEffect(() => {
@@ -93,43 +145,37 @@ export default function AutomationIndex() {
             return;
         }
 
-        // Wait for user context to be ready
-        if (isUserLoading) return;
+        // Wait for user context and socket to be ready
+        if (isUserLoading || !socket) return;
 
         // Check if we already have it loaded?
         if (currentAuto?.id === id) return;
         setIsEditorLoading(true);
 
-        try {
-           // Fetch specific flow details - only owned flows
-           const res = await axios.get(`${API_URL}/api/flows/${id}${user?.id ? `?userId=${user.id}` : ''}`);
-           if (res.data && res.data.success) {
-                const flow = res.data.flow;
-                const uiDef = flow.ui_definition || { nodes: [], edges: [] };
-                const fullAuto = {
+        socket.emit('get-flow', id, (response: any) => {
+             setIsEditorLoading(false);
+             if (response.error) {
+                 console.error("Error loading flow", response.error);
+                 toast.error("Failed to load automation");
+                 navigate('/automation');
+             } else if (response.success && response.flow) {
+                 const flow = response.flow;
+                 const uiDef = flow.ui_definition || { nodes: [], edges: [] };
+                 const fullAuto = {
                     id: flow.id,
                     name: flow.name,
                     createdDate: new Date(flow.created_at).toISOString().split('T')[0],
                     status: flow.is_active,
                     nodes: uiDef.nodes || [],
                     edges: uiDef.edges || []
-                };
-                setCurrentAuto(fullAuto);
-           } else {
-                toast.error("Flow not found");
-                navigate('/automation');
-           }
-        } catch (error) {
-           console.error("Error loading flow", error);
-           toast.error("Failed to load automation");
-           navigate('/automation');
-        } finally {
-            setIsEditorLoading(false);
-        }
+                 };
+                 setCurrentAuto(fullAuto);
+             }
+        });
     };
 
     loadFlow();
-  }, [id, user?.id, isUserLoading]); // Re-run if ID or User changes
+  }, [id, user?.id, isUserLoading, socket]); // Re-run if ID or User or Socket changes
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -144,13 +190,19 @@ export default function AutomationIndex() {
       // Optimistic update
       setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: !currentStatus } : a));
       
-      try {
-          await axios.patch(`${API_URL}/api/flows/${id}`, { is_active: !currentStatus });
-          toast.success(!currentStatus ? `Automation ${autoName} started` : `Automation ${autoName} stopped`);
-      } catch(error) {
-          console.error("Failed to update status:", error);
-          toast.error("Failed to update status");
-          // Revert
+      if (socket) {
+          socket.emit('update-flow', { flowId: id, is_active: !currentStatus }, (response: any) => {
+              if (response.error) {
+                  console.error("Socket status update failed:", response.error);
+                  toast.error("Failed to update status");
+                  // Revert
+                  setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: currentStatus } : a));
+              } else {
+                  toast.success(!currentStatus ? `Automation ${autoName} started` : `Automation ${autoName} stopped`);
+              }
+          });
+      } else {
+          toast.error("Connection lost. Cannot update status.");
           setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: currentStatus } : a));
       }
   };
@@ -160,12 +212,17 @@ export default function AutomationIndex() {
         // Optimistic update
         setAutomations(autos => autos.filter(a => a.id !== id));
 
-        try {
-            await axios.delete(`${API_URL}/api/flows/${id}`);
-            toast.success("Automation deleted");
-        } catch(error) {
-            console.error("Failed to delete flow:", error);
-            toast.error("Failed to delete automation");
+        if (socket) {
+            socket.emit('delete-flow', id, (response: any) => {
+                if (response.error) {
+                    console.error("Failed to delete flow:", response.error);
+                    toast.error("Failed to delete automation");
+                } else {
+                    toast.success("Automation deleted");
+                }
+            });
+        } else {
+            toast.error("Connection lost. Cannot delete flow.");
         }
     }
   };
@@ -200,53 +257,65 @@ export default function AutomationIndex() {
           setNewAutomationName("");
           setEditingId(null);
 
-          try {
-              await axios.patch(`${API_URL}/api/flows/${editingId}`, { name: newAutomationName });
-              toast.success("Name updated successfully");
-          } catch(error) {
-              console.error("Failed to update name:", error);
-              toast.error("Failed to update name");
-              // Revert
-              if (oldName) {
-                    setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, name: oldName } : a));
-              }
+          if (socket) {
+              socket.emit('update-flow', { flowId: editingId, name: newAutomationName }, (response: any) => {
+                  if (response.error) {
+                      console.error("Socket rename failed:", response.error);
+                      toast.error("Failed to update name");
+                      // Revert
+                      if (oldName) {
+                          setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, name: oldName } : a));
+                      }
+                  } else {
+                      toast.success("Name updated successfully");
+                  }
+              });
+          } else {
+               toast.error("Connection lost. Cannot update name.");
+               if (oldName) {
+                   setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, name: oldName } : a));
+               }
           }
 
       } else {
+
           // Create Mode
           const newUiDefinition = {
             nodes: defaultStartNode,
             edges: defaultEdges
           };
 
-          try {
-             const userId = user?.id || "anonymous"; 
-             
-             const createRes = await axios.post(`${API_URL}/api/flows`, {
-                userId: userId, 
-                name: newAutomationName,
-                ui_definition: newUiDefinition
-             });
+          const userId = user?.id || "anonymous";
+          
+          if (socket) {
+              const payload = {
+                  userId: userId,
+                  name: newAutomationName,
+                  ui_definition: newUiDefinition
+              };
+              
+              socket.emit('create-flow', payload, (response: any) => {
+                   if (response.error) {
+                       console.error("Error creating automation:", response.error);
+                       toast.error("Failed to create automation. Please try again.");
+                   } else if (response.success && response.flow) {
+                        const createdFlow = response.flow;
+                        const newId = createdFlow.id || (createdFlow.flow && createdFlow.flow.id) || (createdFlow.flow && createdFlow.flow._id) || createdFlow._id;
 
-             const createdFlow = createRes.data;
-             const newId = createdFlow.id || (createdFlow.flow && createdFlow.flow.id) || (createdFlow.flow && createdFlow.flow._id) || createdFlow._id;
-
-             // Navigate to new flow
-             setIsCreateModalOpen(false);
-             setNewAutomationName("");
-             
-             if (newId) {
-                 navigate(`/automation/${newId}`);
-                 toast.success("Automation created!");
-             } else {
-                 // Fallback if ID parsing fails?
-                 toast.error("Created but failed to retrieve ID");
-                 // Refresh list?
-             }
-
-          } catch (error) {
-              console.error("Error creating automation:", error);
-              toast.error("Failed to create automation. Please try again.");
+                         // Navigate to new flow
+                        setIsCreateModalOpen(false);
+                        setNewAutomationName("");
+                        
+                        if (newId) {
+                            navigate(`/automation/${newId}`);
+                            toast.success("Automation created!");
+                        } else {
+                            toast.error("Created but failed to retrieve ID");
+                        }
+                   }
+              });
+          } else {
+              toast.error("Connection lost. Cannot create automation.");
           }
       }
   };
@@ -255,45 +324,65 @@ export default function AutomationIndex() {
       if (currentAuto && user?.id) {
           setIsSaving(true);
           const updatedAuto = { ...currentAuto, nodes, edges };
-          setCurrentAuto(updatedAuto); // Update local editor state
-          // Also update list state if we want persistence there
+          setCurrentAuto(updatedAuto); // Optimistic local update
+           
+           // Update list state too
           setAutomations(automations => automations.map(a => 
             a.id === currentAuto.id ? updatedAuto : a
           ));
 
-          try {
-             const uiDefinition = { nodes, edges };
-             await axios.patch(`${API_URL}/api/flows/${currentAuto.id}`, {
-                name: currentAuto.name,
-                ui_definition: uiDefinition,
-                is_active: currentAuto.status
-             });
-             console.log("Auto-saved flow:", currentAuto.id);
-          } catch (error) {
-              console.error("Failed to auto-save flow:", error);
-              toast.error("Could not auto-save changes");
-          } finally {
+          const uiDefinition = { nodes, edges };
+          const payload = {
+            flowId: currentAuto.id,
+            name: currentAuto.name,
+            ui_definition: uiDefinition,
+            is_active: currentAuto.status
+          };
+
+          if (socket) {
+              socket.emit('update-flow', payload, (response: any) => {
+                  setIsSaving(false);
+                  if (response.error) {
+                      console.error("Socket update failed:", response.error);
+                      toast.error("Failed to save via socket");
+                  } else {
+                      console.log("Socket update success");
+                  }
+              });
+          } else {
               setIsSaving(false);
+              toast.error("Connection lost. cannot save.");
           }
       }
-  }, [currentAuto, user?.id]);
+  }, [currentAuto, user?.id, socket]);
 
   const handleEditorToggleStatus = useCallback(async () => {
       if (currentAuto) {
           const newStatus = !currentAuto.status;
           const updatedAuto = { ...currentAuto, status: newStatus };
-          setCurrentAuto(updatedAuto);
+          setCurrentAuto(updatedAuto); // Optimistic update
           
-          try {
-              await axios.patch(`${API_URL}/api/flows/${currentAuto.id}`, { is_active: newStatus });
-              toast.success(newStatus ? `Automation ${currentAuto.name} started` : `Automation ${currentAuto.name} stopped`);
-          } catch(error) {
-              console.error("Failed to update status:", error);
-              toast.error("Failed to update status");
-                setCurrentAuto({ ...currentAuto, status: !newStatus });
+          const payload = {
+            flowId: currentAuto.id,
+            is_active: newStatus
+          };
+
+          if (socket) {
+              socket.emit('update-flow', payload, (response: any) => {
+                if (response.error) {
+                    console.error("Socket status update failed:", response.error);
+                    toast.error("Failed to update status");
+                    setCurrentAuto({ ...currentAuto, status: !newStatus }); // Revert
+                } else {
+                     toast.success(newStatus ? `Automation ${currentAuto.name} started` : `Automation ${currentAuto.name} stopped`);
+                }
+              });
+          } else {
+               toast.error("Connection lost. Cannot update status.");
+               setCurrentAuto({ ...currentAuto, status: !newStatus });
           }
       }
-  }, [currentAuto]);
+  }, [currentAuto, socket]);
 
   const handlePublish = () => {
     if (!currentAuto) return;
