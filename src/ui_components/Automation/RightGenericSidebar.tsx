@@ -4,21 +4,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { type Node } from '@xyflow/react';
 import { toast } from "sonner";
-import GmailForm from "../Connections/GmailForm";
-import GoogleSheetForm from "../Connections/GoogleSheetForm";
-import ScheduleForm from "../Utility/ScheduleForm";
 import GenericActionForm from "./GenericActionForm";
 import { APP_DEFINITIONS } from "./ActionDefinitions";
 
-import GoogleDocsForm from "../Connections/GoogleDocsForm";
-import GoogleDriveForm from "../Connections/GoogleDriveForm";
-
 const SpecificForms: Record<string, any> = {
-    'Gmail': GmailForm,
-    'Google Sheets': GoogleSheetForm,
-    'Schedule': ScheduleForm,
-    'Google Docs': GoogleDocsForm,
-    'Google Drive': GoogleDriveForm
+    // Using GenericActionForm for these to ensure compliance with schema
+    // 'Gmail': GmailForm,
+    // 'Google Sheets': GoogleSheetForm,
+    // 'Schedule': ScheduleForm,
+    // 'Google Docs': GoogleDocsForm,
+    // 'Google Drive': GoogleDriveForm
 };
 
 interface RightGenericSidebarProps {
@@ -29,31 +24,64 @@ interface RightGenericSidebarProps {
     isLoading?: boolean;
 }
 
+const getInitialParams = (node: Node) => {
+    const nodeData = node.data as any;
+    const migratedParams = { ...(nodeData.params || {}) } as any;
+    
+    // Support migration from old top-level fields to nested params
+    const legacyFields = [
+        'to', 'subject', 'body', // Gmail
+        'spreadsheetId', 'spreadsheet_id', 'sheetName', 'sheet_name', 'range', 'values', // Sheets
+        'fileId', 'file_id', 'title', 'documentId', 'document_id', 'text', // Docs/Drive
+        'intervalMinutes', 'intervalSeconds', 'intervalHours', 'intervalDay', 'intervalType', // Schedule
+        'connection'
+    ];
+
+    legacyFields.forEach(field => {
+        if (nodeData[field] !== undefined && (migratedParams[field] === undefined || migratedParams[field] === '')) {
+            migratedParams[field] = nodeData[field];
+        }
+    });
+
+    // Special Case: Google Sheets sheetName -> range migration
+    if ((nodeData.sheetName || nodeData.sheet_name) && (migratedParams.range === undefined || migratedParams.range === '')) {
+        migratedParams.range = nodeData.sheetName || nodeData.sheet_name;
+    }
+
+    // Ensure defaults are populated from Action Definitions
+    const appName = nodeData.appName as string;
+    const actionId = nodeData.actionId as string;
+    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === nodeData.icon);
+    const actionDef = appDef?.actions.find(a => a.id === actionId);
+
+    if (actionDef?.parameters) {
+        actionDef.parameters.forEach(p => {
+            if (p.default !== undefined && (migratedParams[p.name] === undefined || migratedParams[p.name] === '')) {
+                migratedParams[p.name] = p.default;
+            }
+        });
+    }
+
+    return migratedParams;
+};
+
 export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDeleteNode, isLoading }: RightGenericSidebarProps) {
-    const [localLabel, setLocalLabel] = useState('');
-    const [localParams, setLocalParams] = useState<any>({});
+    const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
+    const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
 
     useEffect(() => {
         if (selectedNode) {
-            setLocalLabel(selectedNode.data.label as string || '');
+            const currentLabel = selectedNode.data.label as string || '';
+            const migrated = getInitialParams(selectedNode);
+
+            // Sync if background data changed (but avoid interrupting typing)
+            const paramsChanged = JSON.stringify(migrated) !== JSON.stringify(localParams);
+            const labelChanged = currentLabel !== localLabel;
             
-            // --- Data Migration & Sync Logic ---
-            const existingParams = selectedNode.data.params || {};
-            const migratedParams = { ...existingParams } as any;
-
-            // Support migration from old top-level fields to nested params
-            // This fixes the "Gmail values not showing" if they were saved in the old structure
-            const legacyFields = ['to', 'subject', 'body', 'spreadsheetId', 'sheetName', 'fileId', 'title', 'documentId', 'text', 'intervalMinutes', 'connection'];
-            const nodeData = selectedNode.data as any;
-            legacyFields.forEach(field => {
-                if (nodeData[field] !== undefined && migratedParams[field] === undefined) {
-                    migratedParams[field] = nodeData[field];
-                }
-            });
-
-            setLocalParams(migratedParams);
+            if (paramsChanged) setLocalParams(migrated);
+            if (labelChanged) setLocalLabel(currentLabel);
         }
-    }, [selectedNode?.id, selectedNode?.data]); // Re-run if ID or data changes
+    }, [selectedNode]);
 
     if (!selectedNode) return null;
 
@@ -76,9 +104,20 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
         // Validation
         if (actionDef?.parameters) {
             for (const param of actionDef.parameters) {
-                if (param.required && !localParams[param.name]) {
-                    toast.error(`${param.label} is required`);
-                    return;
+                // If it's required, we must check if it's currently relevant/visible
+                if (param.required) {
+                    let isVisible = true;
+                    if (param.dependsOn) {
+                        const dependentValue = localParams[param.dependsOn.field];
+                        if (dependentValue !== param.dependsOn.value) {
+                            isVisible = false;
+                        }
+                    }
+
+                    if (isVisible && !localParams[param.name]) {
+                        toast.error(`${param.label} is required`);
+                        return;
+                    }
                 }
             }
         }

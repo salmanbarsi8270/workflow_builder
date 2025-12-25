@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon, RefreshCcw, Play, Rocket, Save } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
 import {
@@ -44,7 +44,6 @@ interface AutomationEditorProps {
     onAutoSave: (nodes: Node[], edges: Edge[]) => void;
     onToggleStatus: () => void;
     onPublish: () => void;
-    onRun: () => void;
     theme: 'dark' | 'light' | 'system';
     isLoading?: boolean;
 }
@@ -52,7 +51,7 @@ interface AutomationEditorProps {
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
-export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, onPublish, onRun, theme, isLoading }: AutomationEditorProps) {
+export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, theme, isLoading }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -71,13 +70,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
-        onRun(); // Call parent handler if needed
+    };
+
+    const handleRunToggle = (checked: boolean) => {
+        onToggleStatus();
+        if (checked) {
+            setIsRunSidebarOpen(true);
+        }
     };
 
     // Auto-Save Effect
     useEffect(() => {
-        if (isLoading) return; // Don't auto-save while still loading initial data
-
+        if (isLoading || nodes.length === 0) return; // Don't auto-save while still loading or if data is missing
+        
         const timeoutId = setTimeout(() => {
             onAutoSave(nodes, edges);
         }, 1000); // 1s debounce
@@ -307,22 +312,16 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 mr-2">
-                                <span className="text-sm font-medium text-muted-foreground">Status</span>
-                                <Switch checked={automationStatus} onCheckedChange={onToggleStatus} />
-                            </div>
-                            <Button variant="outline" className="mr-2" onClick={() => onAutoSave(nodes, edges)}>
-                                <Save className="mr-2 h-4 w-4" /> Save
-                            </Button>
                             <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
                                 <RefreshCcw className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
-                                <Play className="mr-2 h-4 w-4" /> Run
+                                <HistoryIcon className="mr-2 h-4 w-4" /> Runs
                             </Button>
-                            <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={onPublish}>
-                                <Rocket className="mr-2 h-4 w-4" /> Publish
-                            </Button>
+                            <div className="flex items-center gap-2 mr-2">
+                                <span className="text-sm font-medium text-muted-foreground">Run</span>
+                                <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
+                            </div>
                     </div>
                 </div>
 
@@ -353,6 +352,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
                     {selectedNodeId && selectedNode && !selectedNode.data.isPlaceholder && (
                         <RightGenericSidebar
+                            key={selectedNode.id}
                             selectedNode={selectedNode}
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}

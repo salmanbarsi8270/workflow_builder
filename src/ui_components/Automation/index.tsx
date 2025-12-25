@@ -35,7 +35,7 @@ const defaultEdges: Edge[] = [
 
 export default function AutomationIndex() {
   const { theme } = useTheme()
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   const { id } = useParams(); // Get ID from URL
   const navigate = useNavigate();
 
@@ -48,11 +48,13 @@ export default function AutomationIndex() {
 
   // Fetch Automations on Load (List View)
   useEffect(() => {
-    // Only fetch list if we are in list mode (no ID) OR if we want to keep sidebar updated? 
-    // Usually fetching list is fine.
-    const fetchAutomations = async () => {
-        if (!user?.id) return;
-        setIsListLoading(true);
+    const fetchAutomations = async (showLoading = true) => {
+        if (!user?.id) {
+            if (!isUserLoading) setIsListLoading(false);
+            return;
+        }
+
+        if (showLoading) setIsListLoading(true);
         try {
             const res = await axios.get(`${API_URL}/api/flows?userId=${user.id}`);
             if (res.data && res.data.success) {
@@ -68,58 +70,66 @@ export default function AutomationIndex() {
             }
         } catch (error) {
             console.error("Failed to fetch automations:", error);
-            toast.error("Could not load automations.");
         } finally {
-            setIsListLoading(false);
+            if (showLoading) setIsListLoading(false);
         }
     };
 
     fetchAutomations();
-  }, [user?.id]);
+
+    // Background polling every 30 seconds
+    const intervalId = setInterval(() => {
+        fetchAutomations(false); // Fetch silently in background
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [user?.id, isUserLoading, id]); // Re-run when navigation happens (id changes)
 
   // Handle URL Change / Editor Loading
   useEffect(() => {
     const loadFlow = async () => {
-        if (id) {
-             // We are in editor mode
-             // Check if we already have it loaded?
-             if (currentAuto?.id === id) return;
-             setIsEditorLoading(true);
-
-             try {
-                // Fetch specific flow details - only owned flows
-                const res = await axios.get(`${API_URL}/api/flows/${id}${user?.id ? `?userId=${user.id}` : ''}`);
-                if (res.data && res.data.success) {
-                     const flow = res.data.flow;
-                     const uiDef = flow.ui_definition || { nodes: [], edges: [] };
-                     const fullAuto = {
-                         id: flow.id,
-                         name: flow.name,
-                         createdDate: new Date(flow.created_at).toISOString().split('T')[0],
-                         status: flow.is_active,
-                         nodes: uiDef.nodes || [],
-                         edges: uiDef.edges || []
-                     };
-                     setCurrentAuto(fullAuto);
-                } else {
-                     toast.error("Flow not found");
-                     navigate('/automation');
-                }
-             } catch (error) {
-                console.error("Error loading flow", error);
-                toast.error("Failed to load automation");
-                navigate('/automation');
-             } finally {
-                 setIsEditorLoading(false);
-             }
-        } else {
-            // List mode
+        if (!id) {
             setCurrentAuto(null);
+            return;
+        }
+
+        // Wait for user context to be ready
+        if (isUserLoading) return;
+
+        // Check if we already have it loaded?
+        if (currentAuto?.id === id) return;
+        setIsEditorLoading(true);
+
+        try {
+           // Fetch specific flow details - only owned flows
+           const res = await axios.get(`${API_URL}/api/flows/${id}${user?.id ? `?userId=${user.id}` : ''}`);
+           if (res.data && res.data.success) {
+                const flow = res.data.flow;
+                const uiDef = flow.ui_definition || { nodes: [], edges: [] };
+                const fullAuto = {
+                    id: flow.id,
+                    name: flow.name,
+                    createdDate: new Date(flow.created_at).toISOString().split('T')[0],
+                    status: flow.is_active,
+                    nodes: uiDef.nodes || [],
+                    edges: uiDef.edges || []
+                };
+                setCurrentAuto(fullAuto);
+           } else {
+                toast.error("Flow not found");
+                navigate('/automation');
+           }
+        } catch (error) {
+           console.error("Error loading flow", error);
+           toast.error("Failed to load automation");
+           navigate('/automation');
+        } finally {
+            setIsEditorLoading(false);
         }
     };
 
     loadFlow();
-  }, [id, user?.id]); // Re-run if ID changes
+  }, [id, user?.id, isUserLoading]); // Re-run if ID or User changes
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -128,12 +138,15 @@ export default function AutomationIndex() {
 
   // --- Handlers ---
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+      const targetAuto = automations.find(a => a.id === id);
+      const autoName = targetAuto?.name || "Automation";
+
       // Optimistic update
       setAutomations(autos => autos.map(a => a.id === id ? { ...a, status: !currentStatus } : a));
       
       try {
           await axios.patch(`${API_URL}/api/flows/${id}`, { is_active: !currentStatus });
-          toast.success("Status updated");
+          toast.success(!currentStatus ? `Automation ${autoName} started` : `Automation ${autoName} stopped`);
       } catch(error) {
           console.error("Failed to update status:", error);
           toast.error("Failed to update status");
@@ -273,7 +286,7 @@ export default function AutomationIndex() {
           
           try {
               await axios.patch(`${API_URL}/api/flows/${currentAuto.id}`, { is_active: newStatus });
-              toast.success(`Automation turned ${newStatus ? 'ON' : 'OFF'}`);
+              toast.success(newStatus ? `Automation ${currentAuto.name} started` : `Automation ${currentAuto.name} stopped`);
           } catch(error) {
               console.error("Failed to update status:", error);
               toast.error("Failed to update status");
@@ -295,10 +308,7 @@ export default function AutomationIndex() {
     toast.success("Automation Published Successfully!");
   };
 
-  const handleRun = () => {
-      console.log("Run Test Clicked");
-      toast.info("Starting Test Run...");
-  };
+
 
   // --- Render based on ID presence ---
   if (!id) {
@@ -351,6 +361,7 @@ export default function AutomationIndex() {
   return (
       <>
         <AutomationEditor 
+            key={id}
             automationName={currentAuto.name}
             initialNodes={currentAuto.nodes}
             initialEdges={currentAuto.edges}
@@ -359,7 +370,6 @@ export default function AutomationIndex() {
             onAutoSave={handleSaveWorkflow}
             onToggleStatus={handleEditorToggleStatus}
             onPublish={handlePublish}
-            onRun={handleRun}
             theme={theme === 'dark' ? 'dark' : 'light'}
             isLoading={isEditorLoading || isSaving}
         />

@@ -2,11 +2,13 @@ import { Mail, FileSpreadsheet, Clock, HardDrive, FileText } from "lucide-react"
 
 export interface ActionParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'connection';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select';
   label: string;
   description?: string;
   required?: boolean;
   default?: any;
+  options?: { label: string, value: string }[];
+  dependsOn?: { field: string, value: any };
 }
 
 export interface ActionDefinition {
@@ -41,8 +43,51 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         description: 'Standard polling trigger based on intervals.', 
         type: 'trigger',
         parameters: [
-            { name: 'intervalMinutes', type: 'number', label: 'Interval (Minutes)', description: 'Interval in minutes (e.g., 5)', default: 5 },
-            { name: 'intervalSeconds', type: 'number', label: 'Interval (Seconds)', description: 'Interval in seconds (e.g., 300)' }
+            { 
+              name: 'intervalType', 
+              type: 'select', 
+              label: 'Interval Type', 
+              default: 'minutes',
+              required: true,
+              options: [
+                { label: 'Minutes', value: 'minutes' },
+                { label: 'Seconds', value: 'seconds' },
+                { label: 'Hours', value: 'hours' },
+                { label: 'Days', value: 'days' }
+              ]
+            },
+            { 
+              name: 'intervalMinutes', 
+              type: 'number', 
+              label: 'Minutes', 
+              description: 'e.g. 5', 
+              required: true,
+              dependsOn: { field: 'intervalType', value: 'minutes' } 
+            },
+            { 
+              name: 'intervalSeconds', 
+              type: 'number', 
+              label: 'Seconds', 
+              description: 'e.g. 300', 
+              required: true,
+              dependsOn: { field: 'intervalType', value: 'seconds' } 
+            },
+            { 
+              name: 'intervalHours', 
+              type: 'number', 
+              label: 'Hours', 
+              description: 'e.g. 1', 
+              required: true,
+              dependsOn: { field: 'intervalType', value: 'hours' } 
+            },
+            { 
+              name: 'intervalDay', 
+              type: 'number', 
+              label: 'Days', 
+              description: 'e.g. 1', 
+              required: true,
+              dependsOn: { field: 'intervalType', value: 'days' } 
+            }
         ]
       }
     ]
@@ -106,21 +151,21 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'Sheet name or range (e.g., Sheet1!A1)', required: true },
-            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"])', required: true }
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'The sheet name or range (e.g., Sheet1!A1).', required: true },
+            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"]).', required: true }
         ]
       },
       { 
         id: 'appendRowSmart', 
-        name: 'Append Row (Smart)', 
-        description: 'Similar to appendRow, but automatically creates the worksheet if it does not exist.', 
+        name: 'Append Row Smart', 
+        description: 'Similar to appendRow, but automatically creates the worksheet if it doesn\'t exist.', 
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'Sheet name or range (e.g., Sheet1!A1)', required: true },
-            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row', required: true }
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'The sheet name or range (e.g., Sheet1!A1).', required: true },
+            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"]).', required: true }
         ]
       },
       { 
@@ -130,8 +175,8 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'The range to read (e.g., Sheet1!A1:B10)', required: true },
+            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
+            { name: 'range', type: 'string', label: 'Range', description: 'The range to read (e.g., Sheet1!A1:B10).', required: true },
         ]
       },
       { 
@@ -141,7 +186,7 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'title', type: 'string', label: 'Title', description: 'Title of the new spreadsheet', required: true }
+            { name: 'title', type: 'string', label: 'Title', description: 'Title of the new spreadsheet.', required: true }
         ]
       }
     ]

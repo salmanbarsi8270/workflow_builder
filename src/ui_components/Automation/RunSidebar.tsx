@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, CheckCircle2, XCircle, Play, ChevronRight, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ChevronRight, ChevronDown } from "lucide-react";
 import { type Node } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 
@@ -22,45 +21,12 @@ interface StepResult {
 }
 
 export default function RunSidebar({ isOpen, onClose, nodes }: RunSidebarProps) {
-    const [isRunning, setIsRunning] = useState(false);
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
     // Initial simple linear sort of nodes for the list
-    // This is naive; a real topological sort is better, but this suffices for the linear flow we mostly have.
-    // We can just iterate the nodes array for now, assuming they are somewhat ordered or we just show them.
-    // Better: Sort by Y position.
     const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
 
-    const startRun = async () => {
-        setIsRunning(true);
-        setResults({});
-        
-        for (const node of sortedNodes) {
-            // Set status to running
-            setResults(prev => ({ ...prev, [node.id]: { nodeId: node.id, status: 'running', output: null, duration: 0 } }));
-            
-            // Simulate delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Mock Success
-            setResults(prev => ({
-                ...prev,
-                [node.id]: {
-                    nodeId: node.id,
-                    status: 'success',
-                    output: { 
-                        message: "Step completed successfully", 
-                        timestamp: new Date().toISOString(),
-                        data: { sample: "value", id: Math.floor(Math.random() * 1000) }
-                    },
-                    duration: 150
-                }
-            }));
-        }
-
-        setIsRunning(false);
-    };
 
     useEffect(() => {
         if (isOpen) {
@@ -86,7 +52,7 @@ export default function RunSidebar({ isOpen, onClose, nodes }: RunSidebarProps) 
                     <div className="space-y-6">
                         {sortedNodes.length === 0 ? (
                             <div className="text-center text-muted-foreground py-10">
-                                No steps to run. Add some steps to your workflow.
+                                No Runs found. Add some steps to your workflow.
                             </div>
                         ) : (
                             <div className="relative border-l-2 border-muted ml-3 space-y-6">
@@ -149,19 +115,7 @@ export default function RunSidebar({ isOpen, onClose, nodes }: RunSidebarProps) 
                     </div>
                 </ScrollArea>
 
-                <SheetFooter className="p-6 border-t bg-muted/20">
-                    <Button className="w-full bg-violet-600 hover:bg-violet-700" size="lg" onClick={startRun} disabled={isRunning || sortedNodes.length === 0}>
-                        {isRunning ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running...
-                            </>
-                        ) : (
-                            <>
-                                <Play className="mr-2 h-4 w-4" /> Start New Test Run
-                            </>
-                        )}
-                    </Button>
-                </SheetFooter>
+
             </SheetContent>
         </Sheet>
     );
