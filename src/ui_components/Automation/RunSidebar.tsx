@@ -403,33 +403,6 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                         )}
                     </div>
                 </ScrollArea>
-
-                {/* Quick Stats Footer */}
-                {view === 'live' && sortedNodes.length > 0 && (
-                    <div className="border-t p-4">
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div>
-                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Steps</div>
-                                <div className="text-lg font-bold">{sortedNodes.length}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Completed</div>
-                                <div className="text-lg font-bold">
-                                    {Object.values(displayResults).filter(r => r.status === 'success').length}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</div>
-                                <div className={cn(
-                                    "text-sm font-bold",
-                                    hasActiveRun ? "text-primary" : "text-muted-foreground"
-                                )}>
-                                    {hasActiveRun ? "Running" : "Ready"}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </SheetContent>
         </Sheet>
     );
