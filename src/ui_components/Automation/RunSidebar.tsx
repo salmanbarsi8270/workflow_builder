@@ -221,12 +221,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                     {/* Tabs */}
                     {view !== 'detail' && (
                         <div className="flex gap-2 mt-4">
-                            <Button
-                                variant={view === 'live' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => handleViewChange('live')}
-                                className="flex-1 gap-2"
-                            >
+                            <Button variant={view === 'live' ? 'default' : 'outline'} size="sm" onClick={() => handleViewChange('live')} className="flex-1 gap-2">
                                 <RefreshCcw className={cn("h-4 w-4", view === 'live' && hasActiveRun && "animate-spin")} />
                                 Current Run
                                 {hasActiveRun && (
@@ -235,12 +230,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                     </Badge>
                                 )}
                             </Button>
-                            <Button
-                                variant={view === 'history' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => { handleViewChange('history'); fetchHistory(); }}
-                                className="flex-1 gap-2"
-                            >
+                            <Button variant={view === 'history' ? 'default' : 'outline'} size="sm" onClick={() => { handleViewChange('history'); fetchHistory(); }} className="flex-1 gap-2">
                                 <HistoryIcon className="h-4 w-4" />
                                 History
                             </Button>
@@ -273,28 +263,15 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                 )}
                                 
                                 {runHistory.map(run => (
-                                    <div 
-                                        key={run.id}
-                                        className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer"
-                                        onClick={() => handleRunClick(run)}
-                                    >
+                                    <div key={run.id} className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer" onClick={() => handleRunClick(run)}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className={cn(
-                                                    "h-8 w-8 rounded-full flex items-center justify-center",
-                                                    run.status === 'success' 
-                                                        ? "bg-green-100 text-green-600"
-                                                        : "bg-red-100 text-red-600"
-                                                )}>
-                                                    {run.status === 'success' 
-                                                        ? <Check className="h-4 w-4" />
-                                                        : <X className="h-4 w-4" />}
+                                                <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", run.status === 'success' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600")}>
+                                                    {run.status === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-sm">Run #{run.id.slice(0, 6)}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {new Date(run.created_at).toLocaleString()}
-                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">{new Date(run.created_at).toLocaleString()}</p>
                                                 </div>
                                             </div>
                                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -352,13 +329,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <div 
-                                                            className={cn(
-                                                                "flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/50",
-                                                                expandedStep === node.id && "ring-2 ring-primary/20 border-primary"
-                                                            )}
-                                                            onClick={() => setExpandedStep(expandedStep === node.id ? null : node.id)}
-                                                        >
+                                                        <div className={cn("flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/50", expandedStep === node.id && "ring-2 ring-primary/20 border-primary")} onClick={() => setExpandedStep(expandedStep === node.id ? null : node.id)}>
                                                             <div className="flex items-center gap-3">
                                                                 <span className="font-medium text-sm">{node.data.label as string}</span>
                                                             </div>
