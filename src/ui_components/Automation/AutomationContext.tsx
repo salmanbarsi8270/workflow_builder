@@ -2,7 +2,10 @@ import { createContext, useContext } from 'react';
 
 interface AutomationContextType {
     onAddNode: (edgeId: string) => void;
+    onDeleteEdge: (edgeId: string) => void;
+    onEdgeClick?: (edgeId: string) => void;
 }
+
 
 const AutomationContext = createContext<AutomationContextType | null>(null);
 

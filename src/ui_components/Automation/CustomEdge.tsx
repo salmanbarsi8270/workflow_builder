@@ -1,35 +1,303 @@
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
-import { Plus } from 'lucide-react';
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes, useEdges } from '@xyflow/react';
+import { Plus, Trash2, Settings, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
+import { cn } from "@/lib/utils";
 
-export default function CustomEdge({ id, source, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style = {}, markerEnd }: EdgeProps) {
-  const { onAddNode } = useAutomationContext();
+// Edge Status Colors
+const EdgeStatusColors = {
+  pending: {
+    stroke: '#94a3b8',
+    width: 2,
+    dasharray: '5,5',
+    glow: ''
+  },
+  running: {
+    stroke: '#3b82f6',
+    width: 3,
+    dasharray: 'none',
+    glow: 'drop-shadow(0_0_8px_rgba(59,130,246,0.6))'
+  },
+  success: {
+    stroke: '#22c55e',
+    width: 3,
+    dasharray: 'none',
+    glow: 'drop-shadow(0_0_8px_rgba(34,197,94,0.4))'
+  },
+  error: {
+    stroke: '#ef4444',
+    width: 3,
+    dasharray: 'none',
+    glow: 'drop-shadow(0_0_8px_rgba(239,68,68,0.4))'
+  },
+  warning: {
+    stroke: '#f59e0b',
+    width: 2.5,
+    dasharray: 'none',
+    glow: 'drop-shadow(0_0_8px_rgba(245,158,11,0.4))'
+  },
+  conditional: {
+    stroke: '#8b5cf6',
+    width: 2,
+    dasharray: '10,5',
+    glow: 'drop-shadow(0_0_8px_rgba(139,92,246,0.3))'
+  }
+} as const;
+
+// Edge Type Colors
+const EdgeTypeColors = {
+  default: '#94a3b8',
+  data: '#0ea5e9',
+  control: '#8b5cf6',
+  conditional: '#d946ef',
+  parallel: '#f59e0b'
+} as const;
+
+export default function CustomEdge({ 
+  id, 
+  source, 
+  target,
+  sourceX, 
+  sourceY, 
+  targetX, 
+  targetY, 
+  sourcePosition, 
+  targetPosition, 
+  style = {}, 
+  markerEnd,
+  selected,
+  data
+}: EdgeProps) {
+  const { onAddNode, onDeleteEdge, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
-  const sourceNode = nodes.find(n => n.id === source);
-  const isPlaceholder = sourceNode?.data?.isPlaceholder;
+  const edges = useEdges();
   
-  // We use SmoothStepPath for a clean "straight/stepped" workflow look
-  const [edgePath, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  const sourceNode = nodes.find(n => n.id === source);
+  const targetNode = nodes.find(n => n.id === target);
+  
+  const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
+  const isPlaceholder = sourceNode?.data?.isPlaceholder;
+  const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
+  const hasError = data?.hasError as boolean;
+  const label = data?.label as string;
+  
+  // Get SmoothStepPath for clean workflow look
+  const [edgePath, labelX, labelY] = getSmoothStepPath({ 
+    sourceX, 
+    sourceY, 
+    sourcePosition, 
+    targetX, 
+    targetY, 
+    targetPosition,
+    borderRadius: 8
+  });
 
-  const onEdgeClick = () => {
+  // Calculate edge style based on status and type
+  const edgeStyle = {
+    ...style,
+    stroke: hasError ? '#ef4444' : (EdgeTypeColors[edgeType] || EdgeStatusColors[status].stroke),
+    strokeWidth: EdgeStatusColors[status].width,
+    strokeDasharray: EdgeStatusColors[status].dasharray,
+    filter: EdgeStatusColors[status].glow,
+    opacity: isPlaceholder ? 0.5 : 1,
+    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    cursor: 'pointer'
+  };
+
+  const handleAddNode = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onAddNode(id);
   };
 
+  const handleDeleteEdge = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeleteEdge(id);
+  };
+
+  const handleEdgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdgeClick) {
+      onEdgeClick(id);
+    }
+  };
+
+  // Calculate edge direction for arrow positioning
+  const isHorizontal = Math.abs(targetX - sourceX) > Math.abs(targetY - sourceY);
+  const direction = targetY > sourceY ? 'down' : 'up';
+
   if (isPlaceholder) {
-      return <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />;
+    return (
+      <>
+        <BaseEdge 
+          path={edgePath} 
+          markerEnd={markerEnd} 
+          style={edgeStyle} 
+          onClick={handleEdgeClick}
+        />
+        {selected && (
+          <EdgeLabelRenderer>
+            <div 
+              style={{ 
+                position: 'absolute', 
+                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                pointerEvents: 'all' 
+              }} 
+              className="nodrag nopan"
+            >
+              <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 rounded-full hover:bg-primary hover:text-primary-foreground transition-all"
+                  onClick={handleAddNode}
+                  title="Add node"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-all"
+                  onClick={handleDeleteEdge}
+                  title="Delete connection"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </EdgeLabelRenderer>
+        )}
+      </>
+    );
   }
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      {/* Main Edge */}
+      <BaseEdge 
+        path={edgePath} 
+        markerEnd={markerEnd} 
+        style={edgeStyle} 
+        onClick={handleEdgeClick}
+        className={cn(
+          selected && "ring-2 ring-primary/30",
+          hasError && "animate-pulse"
+        )}
+      />
+      
+      {/* Hover Effects */}
       <EdgeLabelRenderer>
-        <div style={{ position: 'absolute', transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`, pointerEvents: 'all', }} className="nodrag nopan">
-          <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-dashed border-2 hover:border-solid hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all" onClick={onEdgeClick}>
-            <Plus className="h-3 w-3" />
-          </Button>
+        {/* Add Node Button */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            pointerEvents: 'all' 
+          }} 
+          className="nodrag nopan"
+        >
+          <div className={cn(
+            "flex items-center gap-1 transition-all duration-300",
+            selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
+          )}>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className={cn(
+                "h-8 w-8 rounded-full border-2 backdrop-blur-sm transition-all duration-300 hover:scale-110",
+                hasError 
+                  ? "border-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground" 
+                  : "border-primary/50 bg-background/80 hover:border-primary hover:bg-primary hover:text-primary-foreground"
+              )}
+              onClick={handleAddNode}
+              title="Insert step here"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            
+            {/* Edge Label */}
+            {label && (
+              <div className="px-2 py-1 rounded-md bg-background/90 backdrop-blur-sm border shadow-sm text-xs font-medium min-w-[60px] text-center">
+                {label}
+              </div>
+            )}
+          </div>
         </div>
+        
+        {/* Edge Status Indicator */}
+        {status !== 'pending' && (
+          <div 
+            style={{ 
+              position: 'absolute', 
+              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px,${(sourceY + targetY) / 2}px)`,
+              pointerEvents: 'none' 
+            }}
+          >
+            <div className={cn(
+              "h-4 w-4 rounded-full flex items-center justify-center border-2 border-background",
+              status === 'running' && "bg-blue-500 animate-pulse",
+              status === 'success' && "bg-green-500",
+              status === 'error' && "bg-red-500",
+              status === 'warning' && "bg-amber-500"
+            )}>
+              {status === 'running' && <Zap className="h-2 w-2 text-white" />}
+              {status === 'error' && <AlertCircle className="h-2 w-2 text-white" />}
+            </div>
+          </div>
+        )}
       </EdgeLabelRenderer>
+      
+      {/* Edge Selection Outline */}
+      {selected && (
+        <BaseEdge 
+          path={edgePath} 
+          style={{
+            stroke: 'transparent',
+            strokeWidth: 15,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            pointerEvents: 'stroke'
+          }}
+          onClick={handleEdgeClick}
+        />
+      )}
     </>
   );
 }
+
+// Helper component for animated flow
+const FlowAnimation = () => {
+  return (
+    <svg width="0" height="0">
+      <defs>
+        <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
+          <stop offset="50%" stopColor="#3b82f6" stopOpacity="1" />
+          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+        </linearGradient>
+        <marker
+          id="arrow-running"
+          viewBox="0 0 10 10"
+          refX="5"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+        </marker>
+        <marker
+          id="arrow-success"
+          viewBox="0 0 10 10"
+          refX="5"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
+        </marker>
+      </defs>
+    </svg>
+  );
+};

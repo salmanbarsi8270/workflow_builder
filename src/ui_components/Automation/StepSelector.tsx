@@ -8,24 +8,29 @@ import { cn } from "@/lib/utils";
 interface StepSelectorProps {
     onSelect: (app: any) => void;
     onClose: () => void;
+    mode?: 'trigger' | 'action';
 }
 
-export default function StepSelector({ onSelect, onClose }: StepSelectorProps) {
+export default function StepSelector({ onSelect, onClose, mode = 'action' }: StepSelectorProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
 
-    // Initial Filter: Category & Search
-    const filteredApps = APP_DEFINITIONS.filter(app => 
-        app.category === activeTab && 
-        (app.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         app.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // Filter apps that have at least one action matching the mode
+    const filteredApps = APP_DEFINITIONS.filter(app => {
+        const hasMatchingAction = app.actions.some(action => action.type === mode);
+        const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             app.description.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        return app.category === activeTab && hasMatchingAction && matchesSearch;
+    });
 
     // Actions Filter: If App Selected
     const filteredActions = selectedApp?.actions.filter(action => 
+        action.type === mode &&
         action.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
 
     const handleAppClick = (app: AppDefinition) => {
         setSelectedApp(app);

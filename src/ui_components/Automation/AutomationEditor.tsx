@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
@@ -49,6 +49,16 @@ interface AutomationEditorProps {
     flowId?: string;
 }
 
+export type StepStatus = 'pending' | 'running' | 'success' | 'error';
+
+export interface StepResult {
+    nodeId: string;
+    status: StepStatus;
+    output: any;
+    duration: number;
+}
+
+
 const NODE_HEIGHT = 100;
 const NODE_GAP = 100;
 
@@ -60,6 +70,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [addingNodeOnEdgeId, setAddingNodeOnEdgeId] = useState<string | null>(null);
     const [rfInstance, setRfInstance] = useState<any>(null);
     const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
+    const [results, setResults] = useState<Record<string, StepResult>>({});
+
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
     useEffect(() => {
@@ -77,8 +89,109 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         onToggleStatus();
         if (checked) {
             setIsRunSidebarOpen(true);
+        } else {
+            // Clear results when turning off? Or keep them? 
+            // Usually good to clear if we're stopping the flow
+            setResults({});
         }
     };
+
+    const nodesRef = useRef(nodes);
+    useEffect(() => {
+        nodesRef.current = nodes;
+    }, [nodes]);
+
+    // Socket listeners for run progress
+    useEffect(() => {
+        if (socket) {
+            const handleStepStart = (data: any) => {
+                setResults(prev => {
+                    const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
+                    const isFirstNode = sortedNodes[0]?.id === data.nodeId;
+                    const noActiveResults = Object.keys(prev).length === 0;
+                    
+                    if (isFirstNode || noActiveResults) {
+                        return {
+                            [data.nodeId]: {
+                                nodeId: data.nodeId,
+                                status: 'running',
+                                output: null,
+                                duration: 0
+                            }
+                        };
+                    }
+                    return {
+                        ...prev,
+                        [data.nodeId]: {
+                            nodeId: data.nodeId,
+                            status: 'running',
+                            output: null,
+                            duration: 0
+                        }
+                    };
+                });
+            };
+
+            const handleStepFinish = (data: any) => {
+                setResults(prev => ({
+                    ...prev,
+                    [data.nodeId]: {
+                        nodeId: data.nodeId,
+                        status: data.status,
+                        output: data.output,
+                        duration: data.duration
+                    }
+                }));
+            };
+
+            const handleRunComplete = () => {
+                // Clear results after 2.5 seconds so user sees final state briefly
+                setTimeout(() => {
+                    setResults({});
+                }, 2500);
+            };
+
+            socket.on('step-run-start', handleStepStart);
+            socket.on('step-run-finish', handleStepFinish);
+            socket.on('run-complete', handleRunComplete);
+
+            return () => {
+                socket.off('step-run-start', handleStepStart);
+                socket.off('step-run-finish', handleStepFinish);
+                socket.off('run-complete', handleRunComplete);
+            };
+        }
+    }, [socket]);
+
+    // Update node data when results change to trigger re-renders in CustomNode
+    useEffect(() => {
+        setNodes(nds => nds.map(node => {
+            const result = results[node.id];
+            // If result exists and status changed, update it
+            if (result && node.data.status !== result.status) {
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        status: result.status
+                    }
+                };
+            }
+            // If result doesn't exist (cleared) but node has a status, reset it
+            if (!result && node.data.status) {
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        status: undefined
+                    }
+                };
+            }
+            return node;
+        }));
+    }, [results, setNodes]);
+
+
 
     // Auto-Save Effect
     useEffect(() => {
@@ -112,15 +225,22 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         setAddingNodeOnEdgeId(null);
     }
 
-    const handleUpdateNode = (label: string, data?: any) => {
-        setNodes((nds) =>
-            nds.map((node) => {
+    const handleUpdateNode = (label: string, data?: any, immediate: boolean = false) => {
+        setNodes((nds) => {
+            const updatedNodes = nds.map((node) => {
                 if (node.id === selectedNodeId) {
                     return { ...node, data: { ...node.data, ...data, label: label } };
                 }
                 return node;
-            })
-        );
+            });
+            
+            if (immediate) {
+                // Trigger immediate save
+                onAutoSave(updatedNodes, edges);
+            }
+            
+            return updatedNodes;
+        });
     };
 
     const handleDeleteNode = () => {
@@ -184,6 +304,15 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         setAddingNodeOnEdgeId(edgeId);
         setSelectedNodeId(null);
     };
+
+    const handleDeleteEdge = (edgeId: string) => {
+        setEdges(eds => eds.filter(e => e.id !== edgeId));
+    };
+
+    const handleEdgeClick = (edgeId: string) => {
+        console.log("Edge clicked:", edgeId);
+    };
+
 
     // 2. User selects App -> We insert node
     const handleAppSelect = (app: any) => {
@@ -300,7 +429,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     }, [nodes, edges, rfInstance, setNodes]);
 
     return (
-        <AutomationContext.Provider value={{ onAddNode: handleAddClick }}>
+        <AutomationContext.Provider value={{ 
+            onAddNode: handleAddClick, 
+            onDeleteEdge: handleDeleteEdge,
+            onEdgeClick: handleEdgeClick
+        }}>
+
             <div className="flex flex-col h-[calc(100vh-8rem)]">
                 <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-4">
@@ -358,7 +492,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
-                            isLoading={isLoading}
+                            nodeStatus={(selectedNode.data as any).status}
                         />
                     )}
 
@@ -366,8 +500,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         <StepSelector 
                             onSelect={handleAppSelect} 
                             onClose={() => setAddingNodeOnEdgeId(null)} 
+                            mode={addingNodeOnEdgeId === 'PLACEHOLDER_MODE' ? 'trigger' : 'action'}
                         />
                     )}
+
 
                     <RunSidebar 
                         isOpen={isRunSidebarOpen} 
@@ -376,6 +512,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         socket={socket}
                         flowId={flowId}
                     />
+
+
+
                 </div>
             </div>
         </AutomationContext.Provider>

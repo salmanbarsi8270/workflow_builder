@@ -16,6 +16,10 @@ interface RunSidebarProps {
     flowId?: string;
 }
 
+
+
+
+
 type StepStatus = 'pending' | 'running' | 'success' | 'error';
 
 interface StepResult {
@@ -35,6 +39,8 @@ interface FlowRun {
 
 export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
+
+
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
     
     // Track if there's an active run
@@ -183,12 +189,13 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
 
 
             return () => {
-                socket.off('step-run-start');
-                socket.off('step-run-finish');
-                socket.off('run-complete');
+                socket.off('step-run-start', handleStepStart);
+                socket.off('step-run-finish', handleStepFinish);
+                socket.off('run-complete', handleRunComplete);
             };
         }
-    }, [socket, view]);
+    }, [socket, view, sortedNodes, results]);
+
 
     const fetchHistory = async () => {
         if (!flowId) return;
@@ -350,7 +357,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                                             </div>
                                                             <div className="flex items-center gap-2">
                                                                 {status === 'success' && (
-                                                                    <span className="text-xs text-muted-foreground">{result.duration}ms</span>
+                                                                    <span className="text-xs text-muted-foreground">{formatDuration(result.duration)}</span>
                                                                 )}
                                                                 {expandedStep === node.id ? (
                                                                     <ChevronDown className="h-4 w-4 text-muted-foreground"/>
