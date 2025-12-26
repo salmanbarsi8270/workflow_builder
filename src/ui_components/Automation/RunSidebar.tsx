@@ -47,6 +47,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     const [runHistory, setRunHistory] = useState<FlowRun[]>([]);
     const [selectedRun, setSelectedRun] = useState<FlowRun | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [liveRun, setliveRun] = useState(false)
 
     // Initial simple linear sort of nodes for the list
     const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
@@ -131,6 +132,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     useEffect(() => {
         if (socket) {
             const handleStepStart = (data: any) => {
+                setliveRun(true);
                 setResults({});
                 console.log("run start");
                 if (view !== 'live') handleViewChange('live');
@@ -166,6 +168,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                     setRunStartTime(null);
                     setRunDuration(0);
                     setExpandedStep(null);
+                    setliveRun(false);
                 }, 1000);
             };
 
@@ -229,7 +232,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                     {view !== 'detail' && (
                         <div className="flex gap-2 mt-4">
                             <Button variant={view === 'live' ? 'default' : 'outline'} size="sm" onClick={() => handleViewChange('live')} className="flex-1 gap-2">
-                                <RefreshCcw className={cn("h-4 w-4", view === 'live' && hasActiveRun && "animate-spin")} />
+                                <RefreshCcw className={cn("h-4 w-4", liveRun && "animate-spin")} />
                                 Current Run
                                 {hasActiveRun && (
                                     <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 animate-pulse">
@@ -298,7 +301,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                             <div>
                                                 <h4 className="font-semibold mb-1">No Active Run</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    This workflow hasn't started running yet. Trigger a run to see live execution here.
+                                                    Wait few minutes to see live execution, sometimes its take more time to start.so, please wait.
                                                 </p>
                                             </div>
                                         </div>
