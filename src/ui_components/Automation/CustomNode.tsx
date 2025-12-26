@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe, Edit, Trash2 } from "lucide-react"; 
+import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe } from "lucide-react"; 
 import { calculateNodeProgress, shouldShowProgress as getShouldShowProgress } from './nodeUtils';
 import { AppLogoMap } from './Applogo';
 

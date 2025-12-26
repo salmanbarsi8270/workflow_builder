@@ -7,7 +7,7 @@ import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
 import { APP_DEFINITIONS } from "./ActionDefinitions";
 import ScheduleForm from "../Utility/ScheduleForm";
-import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronRight, Sparkles, Shield, Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
 import { AppLogoMap } from "./Applogo";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

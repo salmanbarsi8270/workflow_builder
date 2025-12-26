@@ -1,5 +1,5 @@
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes, useEdges } from '@xyflow/react';
-import { Plus, Trash2, Settings, Zap, AlertCircle } from 'lucide-react';
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
+import { Plus, Trash2, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
 import { cn } from "@/lib/utils";
@@ -55,8 +55,7 @@ const EdgeTypeColors = {
 
 export default function CustomEdge({ 
   id, 
-  source, 
-  target,
+  source,
   sourceX, 
   sourceY, 
   targetX, 
@@ -70,10 +69,8 @@ export default function CustomEdge({
 }: EdgeProps) {
   const { onAddNode, onDeleteEdge, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
-  const edges = useEdges();
   
   const sourceNode = nodes.find(n => n.id === source);
-  const targetNode = nodes.find(n => n.id === target);
   
   const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
   const isPlaceholder = sourceNode?.data?.isPlaceholder;
@@ -120,10 +117,6 @@ export default function CustomEdge({
       onEdgeClick(id);
     }
   };
-
-  // Calculate edge direction for arrow positioning
-  const isHorizontal = Math.abs(targetX - sourceX) > Math.abs(targetY - sourceY);
-  const direction = targetY > sourceY ? 'down' : 'up';
 
   if (isPlaceholder) {
     return (
@@ -264,40 +257,3 @@ export default function CustomEdge({
     </>
   );
 }
-
-// Helper component for animated flow
-const FlowAnimation = () => {
-  return (
-    <svg width="0" height="0">
-      <defs>
-        <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
-          <stop offset="50%" stopColor="#3b82f6" stopOpacity="1" />
-          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-        </linearGradient>
-        <marker
-          id="arrow-running"
-          viewBox="0 0 10 10"
-          refX="5"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
-        </marker>
-        <marker
-          id="arrow-success"
-          viewBox="0 0 10 10"
-          refX="5"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
-        </marker>
-      </defs>
-    </svg>
-  );
-};
