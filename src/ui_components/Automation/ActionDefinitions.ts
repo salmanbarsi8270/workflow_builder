@@ -51,7 +51,6 @@ export const APP_DEFINITIONS: AppDefinition[] = [
               required: true,
               options: [
                 { label: 'Minutes', value: 'minutes' },
-                { label: 'Seconds', value: 'seconds' },
                 { label: 'Hours', value: 'hours' },
                 { label: 'Days', value: 'days' }
               ]
@@ -63,14 +62,6 @@ export const APP_DEFINITIONS: AppDefinition[] = [
               description: 'e.g. 5', 
               required: true,
               dependsOn: { field: 'intervalType', value: 'minutes' } 
-            },
-            { 
-              name: 'intervalSeconds', 
-              type: 'number', 
-              label: 'Seconds', 
-              description: 'e.g. 300', 
-              required: true,
-              dependsOn: { field: 'intervalType', value: 'seconds' } 
             },
             { 
               name: 'intervalHours', 

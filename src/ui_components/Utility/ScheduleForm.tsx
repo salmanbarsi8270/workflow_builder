@@ -11,7 +11,7 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
 
     return (
         <div className="flex flex-col gap-4">
-             {(triggerType === 'schedule' || triggerType === 'every_x_minutes') && (
+             {(!params.intervalType || params.intervalType === 'minutes') && (
                  <div className="grid gap-2">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
                     <Input 
@@ -22,6 +22,32 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
                         disabled={disabled}
                     />
                     <p className="text-xs text-muted-foreground">Valid value between 1 to 59.</p>
+                 </div>
+             )}
+
+             {params.intervalType === 'hours' && (
+                 <div className="grid gap-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Hours)</Label>
+                    <Input 
+                        type="number" 
+                        placeholder="e.g. 1"
+                        value={params.intervalHours || ''}
+                        onChange={(e) => handleChange('intervalHours', Number(e.target.value))}
+                        disabled={disabled}
+                    />
+                 </div>
+             )}
+
+             {params.intervalType === 'days' && (
+                 <div className="grid gap-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Days)</Label>
+                    <Input 
+                        type="number" 
+                        placeholder="e.g. 1"
+                        value={params.intervalDay || ''}
+                        onChange={(e) => handleChange('intervalDay', Number(e.target.value))}
+                        disabled={disabled}
+                    />
                  </div>
              )}
 

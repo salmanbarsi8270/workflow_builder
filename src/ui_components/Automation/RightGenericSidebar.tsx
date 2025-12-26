@@ -6,12 +6,13 @@ import { type Node } from '@xyflow/react';
 import { toast } from "sonner";
 import GenericActionForm from "./GenericActionForm";
 import { APP_DEFINITIONS } from "./ActionDefinitions";
+import ScheduleForm from "../Utility/ScheduleForm";
 
 const SpecificForms: Record<string, any> = {
     // Using GenericActionForm for these to ensure compliance with schema
     // 'Gmail': GmailForm,
     // 'Google Sheets': GoogleSheetForm,
-    // 'Schedule': ScheduleForm,
+    'Schedule': ScheduleForm,
     // 'Google Docs': GoogleDocsForm,
     // 'Google Drive': GoogleDriveForm
 };
