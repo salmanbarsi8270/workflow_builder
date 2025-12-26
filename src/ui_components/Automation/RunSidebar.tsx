@@ -132,7 +132,6 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         if (socket) {
             const handleStepStart = (data: any) => {
                 setResults({});
-                setExpandedStep(null);
                 console.log("run start");
                 if (view !== 'live') handleViewChange('live');
                 setRunStartTime(new Date());
