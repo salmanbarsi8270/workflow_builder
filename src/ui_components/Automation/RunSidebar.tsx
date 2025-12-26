@@ -164,6 +164,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 console.log("run complete");
                 setTimeout(() => {
                     setRunStartTime(null);
+                    setRunDuration(0);
+                    setExpandedStep(null);
                 }, 1000);
             };
 
