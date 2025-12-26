@@ -131,7 +131,11 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     useEffect(() => {
         if (socket) {
             const handleStepStart = (data: any) => {
-                  console.log("run start");
+                setResults({});
+                setRunStartTime(null);
+                setRunDuration(0);
+                setExpandedStep(null);
+                console.log("run start");
                 if (view !== 'live') handleViewChange('live');
                 setRunStartTime(new Date());
                 setRunDuration(0);
@@ -162,10 +166,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
            const handleRunComplete = () => {
                 console.log("run complete");
                 setTimeout(() => {
-                    setResults({});
                     setRunStartTime(null);
-                    setRunDuration(0);
-                    setExpandedStep(null);
                 }, 1000);
             };
 
