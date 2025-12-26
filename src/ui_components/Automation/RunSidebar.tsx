@@ -91,13 +91,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         setView('detail');
     };
 
-    // Reset run state when closing or changing views
+    // Reset run state only when strictly necessary
     const handleViewChange = (newView: 'live' | 'history' | 'detail') => {
-        if (newView === 'history' || newView === 'detail') {
-            setResults({});
-            setRunStartTime(null);
-            setRunDuration(0);
-        }
+        // Don't clear results if we're just switching between views during an active run
+        // We only clear results when a new run explicitly starts via socket
         setView(newView);
     };
 
@@ -133,11 +130,20 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         if (socket) {
             const handleStepStart = (data: any) => {
                 setliveRun(true);
-                setResults({});
-                console.log("run start");
-                if (view !== 'live') handleViewChange('live');
-                setRunStartTime(new Date());
-                setRunDuration(0);
+                
+                // If this is the trigger node (usually first node) or we have no results, start fresh
+                const isFirstNode = sortedNodes[0]?.id === data.nodeId;
+                const noActiveResults = Object.keys(results).length === 0;
+
+                if (isFirstNode || noActiveResults) {
+                    setResults({});
+                    setRunStartTime(new Date());
+                    setRunDuration(0);
+                    console.log("Run started fresh");
+                }
+
+                if (view !== 'live') setView('live');
+
                 setResults(prev => ({
                     ...prev,
                     [data.nodeId]: {
@@ -166,8 +172,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 console.log("run complete");
                 setTimeout(() => {
                     setRunStartTime(null);
-                    setRunDuration(0);
-                    setExpandedStep(null);
+                    // Keep expanded step so user can see output
                     setliveRun(false);
                 }, 1000);
             };
@@ -217,7 +222,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                             <SheetTitle className="text-xl">Workflow Activity</SheetTitle>
                             <SheetDescription className="mt-1">
                                 {view === 'detail' && selectedRun 
-                                    ? `Run Details • ${new Date(selectedRun.created_at).toLocaleDateString()}`
+                                    ? `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`
                                     : view === 'live'
                                     ? hasActiveRun
                                         ? `Running for ${formatDuration(runDuration)}`
@@ -234,7 +239,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                             <Button variant={view === 'live' ? 'default' : 'outline'} size="sm" onClick={() => handleViewChange('live')} className="flex-1 gap-2">
                                 <RefreshCcw className={cn("h-4 w-4", liveRun && "animate-spin")} />
                                 Current Run
-                                {hasActiveRun && (
+                                {liveRun && (
                                     <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 animate-pulse">
                                         ●
                                     </Badge>
@@ -301,7 +306,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                             <div>
                                                 <h4 className="font-semibold mb-1">No Active Run</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Wait few minutes to see live execution, sometimes its take more time to start.so, please wait.
+                                                    Waiting for execution to start. Live updates will appear here once the workflow is triggered.
                                                 </p>
                                             </div>
                                         </div>
