@@ -1,5 +1,12 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 export default function ScheduleForm({ data, params, onChange, disabled }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean }) {
@@ -11,6 +18,26 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
 
     return (
         <div className="flex flex-col gap-4">
+             {triggerType === 'schedule' && (
+                 <div className="grid gap-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval Type</Label>
+                    <Select 
+                        value={params.intervalType || 'minutes'} 
+                        onValueChange={(val) => handleChange('intervalType', val)}
+                        disabled={disabled}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select interval type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="minutes">Minutes</SelectItem>
+                            <SelectItem value="hours">Hours</SelectItem>
+                            <SelectItem value="days">Days</SelectItem>
+                        </SelectContent>
+                    </Select>
+                 </div>
+             )}
+
              {(!params.intervalType || params.intervalType === 'minutes') && (
                  <div className="grid gap-2">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
