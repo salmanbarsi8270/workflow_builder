@@ -46,6 +46,7 @@ interface AutomationListProps {
     onOpenEditor: (item: AutomationItem) => void;
     onCreate: () => void;
     isLoading?: boolean;
+    createsutomationloading?: boolean;
 }
 
 export default function AutomationList({
@@ -57,7 +58,8 @@ export default function AutomationList({
     onEditName,
     onOpenEditor,
     onCreate,
-    isLoading = false
+    isLoading = false,
+    createsutomationloading = false
 }: AutomationListProps) {
     const filteredAutomations = automations.filter(a =>
         a.name.toLowerCase().includes(search.toLowerCase())

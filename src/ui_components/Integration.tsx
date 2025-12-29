@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, CheckCircle, XCircle, RefreshCw, AlertCircle, Search, X } from "lucide-react"
+import { ExternalLink, CheckCircle, XCircle, RefreshCw, AlertCircle, Search, X, Loader2 } from "lucide-react"
 import { getConnections } from "./api/connectionlist"
 import { useUser } from '@/context/UserContext';
 import { API_URL } from './api/apiurl';
@@ -66,6 +66,8 @@ export default function Integration() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [syncingApp] = useState<string | null>(null);
+  const [connectingApp, setConnectingApp] = useState<string | null>(null);
+  const [disconnectingApp, setDisconnectingApp] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -140,6 +142,7 @@ export default function Integration() {
   };
 
   const handleConnect = (app: IntegrationApp) => {
+    setConnectingApp(app.id);
     const returnPath = window.location.pathname; 
     if (app.id === 'github') {
       console.log("Connecting GitHub...");
@@ -151,6 +154,7 @@ export default function Integration() {
   };
 
   const handleDisconnect = (app: IntegrationApp) => {
+    setDisconnectingApp(app.id);
     const token = localStorage.getItem('authToken');
     if (user?.id) {
       fetch(`${API_URL}/api/disconnect/${user.id}/${app.id}`, {
@@ -171,6 +175,9 @@ export default function Integration() {
       .catch(error => {
         console.error('Error disconnecting app:', error);
         toast.error(`Failed to disconnect ${app.name}`);
+      })
+      .finally(() => {
+        setDisconnectingApp(null);
       });
     }
   };
@@ -340,14 +347,40 @@ export default function Integration() {
                     <CardFooter className="border-t pt-4">
                       {app.connected ? (
                         <div className="flex gap-2 w-full">
-                          <Button variant="destructive" className="flex-1" onClick={() => handleDisconnect(app)} disabled={syncingApp === app.id}>
-                            Disconnect
+                          <Button 
+                            variant="destructive" 
+                            className="flex-1" 
+                            onClick={() => handleDisconnect(app)} 
+                            disabled={syncingApp === app.id || disconnectingApp === app.id}
+                          >
+                            {disconnectingApp === app.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Disconnecting...
+                              </>
+                            ) : (
+                              'Disconnect'
+                            )}
                           </Button>
                         </div>
                       ) : (
-                        <Button variant="default" className="w-full group-hover:bg-primary/90 transition-colors" onClick={() => handleConnect(app)}>
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Connect
+                        <Button 
+                          variant="default" 
+                          className="w-full group-hover:bg-primary/90 transition-colors" 
+                          onClick={() => handleConnect(app)}
+                          disabled={connectingApp === app.id}
+                        >
+                          {connectingApp === app.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Connect
+                            </>
+                          )}
                         </Button>
                       )}
                     </CardFooter>

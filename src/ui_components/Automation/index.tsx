@@ -15,6 +15,7 @@ import { API_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
 import Editorloading from '../Utility/Editorloading';
+import { Loader2 } from 'lucide-react';
 
 const defaultStartNode: Node[] = [
     { 
@@ -48,6 +49,7 @@ export default function AutomationIndex() {
   const [isEditorLoading, setIsEditorLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [createsutomationloading, setcreatesutomationloading] = useState(false)
 
   // Initialize Socket
   useEffect(() => {
@@ -234,9 +236,14 @@ export default function AutomationIndex() {
   };
 
   const handleOpenModal = () => {
+    try {
       setNewAutomationName("");
       setEditingId(null);
       setIsCreateModalOpen(true);
+    } catch (error) {
+      console.error("Error opening modal:", error);
+      toast.error("Failed to open modal");
+    }
   };
 
   const handleEditNameClick = (automation: AutomationItem) => {
@@ -247,19 +254,21 @@ export default function AutomationIndex() {
 
   const handleSaveAutomationName = async () => {
       if (!newAutomationName.trim()) return;
+      setcreatesutomationloading(true);
 
+      try {
       if (editingId) {
           // Rename Mode (stays on list mostly)
           const oldName = automations.find(a => a.id === editingId)?.name;
-          setAutomations(automations.map(a => 
-              a.id === editingId ? { ...a, name: newAutomationName } : a
-          ));
-          setIsCreateModalOpen(false);
-          setNewAutomationName("");
-          setEditingId(null);
+          setAutomations(automations.map(a =>a.id === editingId ? { ...a, name: newAutomationName } : a));
 
           if (socket) {
               socket.emit('update-flow', { flowId: editingId, name: newAutomationName }, (response: any) => {
+                  setcreatesutomationloading(false);
+                  setIsCreateModalOpen(false);
+                  setNewAutomationName("");
+                  setEditingId(null);
+                  
                   if (response.error) {
                       console.error("Socket rename failed:", response.error);
                       toast.error("Failed to update name");
@@ -272,6 +281,7 @@ export default function AutomationIndex() {
                   }
               });
           } else {
+               setcreatesutomationloading(false);
                toast.error("Connection lost. Cannot update name.");
                if (oldName) {
                    setAutomations(prev => prev.map(a => a.id === editingId ? { ...a, name: oldName } : a));
@@ -296,6 +306,8 @@ export default function AutomationIndex() {
               };
               
               socket.emit('create-flow', payload, (response: any) => {
+                   setcreatesutomationloading(false);
+                   
                    if (response.error) {
                        console.error("Error creating automation:", response.error);
                        toast.error("Failed to create automation. Please try again.");
@@ -316,8 +328,14 @@ export default function AutomationIndex() {
                    }
               });
           } else {
+              setcreatesutomationloading(false);
               toast.error("Connection lost. Cannot create automation.");
           }
+      }
+      } catch (error) {
+        console.error("Error creating automation:", error);
+        toast.error("Failed to create automation. Please try again.");
+        setcreatesutomationloading(false);
       }
   };
 
@@ -433,7 +451,7 @@ export default function AutomationIndex() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveAutomationName}>{editingId ? "Save Changes" : "Create"}</Button>
+                        <Button disabled={createsutomationloading} onClick={handleSaveAutomationName}>{createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : editingId ? "Save Changes" : "Create"}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

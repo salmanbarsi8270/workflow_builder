@@ -77,7 +77,7 @@ export default function CustomEdge({
   const hasError = data?.hasError as boolean;
   const label = data?.label as string;
   
-  // Get SmoothStepPath for clean workflow look
+  // Get SmoothStepPath with 0 border radius for sharp orthogonal straight lines
   const [edgePath, labelX, labelY] = getSmoothStepPath({ 
     sourceX, 
     sourceY, 
@@ -85,7 +85,7 @@ export default function CustomEdge({
     targetX, 
     targetY, 
     targetPosition,
-    borderRadius: 8
+    borderRadius: 0
   });
 
   // Calculate edge style based on status and type
