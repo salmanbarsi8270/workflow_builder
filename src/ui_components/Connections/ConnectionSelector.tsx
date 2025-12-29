@@ -6,11 +6,21 @@ import {
     SelectTrigger,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/dialog"
-import { ExternalLink, Loader2 } from "lucide-react"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react"
 import { useUser } from '@/context/UserContext';
-import { getConnections } from "../api/connectionlist";
+import { getConnections, deleteConnection } from "../api/connectionlist";
 import { API_URL } from '../api/apiurl';
+import { toast as sonner } from "sonner";
 
 interface ConnectionSelectorProps {
     appName: string;
@@ -19,31 +29,40 @@ interface ConnectionSelectorProps {
     disabled?: boolean;
 }
 
+const SERVICE_MAP: Record<string, string> = {
+    'gmail': 'gmail',
+    'google sheets': 'sheets',
+    'google drive': 'drive',
+    'google docs': 'docs',
+    'google calendar': 'calendar',
+    'github': 'github'
+};
+
 export default function ConnectionSelector({ appName, value, onChange, disabled }: ConnectionSelectorProps) {
     const { user } = useUser();
     const [connections, setConnections] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLocalLoading, setIsLocalLoading] = useState(false);
+    const [connectionName, setConnectionName] = useState('');
+
+    const mappedService = SERVICE_MAP[appName.toLowerCase()] || appName.toLowerCase().replace(/\s+/g, '_');
 
     const fetchConnections = async () => {
         if (!user?.id) return;
         setIsLocalLoading(true);
         try {
             const data = await getConnections(user.id);
-            const allApps = data.data || [];
-            
-            // Refined filtering: handle case-insensitivity and potential underscores or spaces
-            const target = appName.toLowerCase().replace(/\s+/g, '_');
+            const allApps = Array.isArray(data) ? data : (data.data || []);
+
             const relevantApps = allApps.filter((app: any) => {
-                const name = app.name.toLowerCase().replace(/\s+/g, '_');
-                return name === target || name.includes(target) || target.includes(name);
+                const svc = (app.service || '').toLowerCase();
+                return svc === mappedService || svc.includes(mappedService) || mappedService.includes(svc);
             });
-            
+
             setConnections(relevantApps);
 
-            const connectedApp = relevantApps.find((app: any) => app.connected);
-            if (connectedApp && !value) {
-                onChange(connectedApp.id); 
+            if (relevantApps.length > 0 && !value) {
+                onChange(relevantApps[0].id);
             }
         } catch (error) {
             console.error("Failed to fetch connections", error);
@@ -57,118 +76,193 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
     }, [user?.id, appName]);
 
     const handleConnectClick = () => {
-         setIsModalOpen(true);
+        setConnectionName(`${appName} Account ${connections.length + 1}`);
+        setIsModalOpen(true);
     };
 
     const handleConfirmConnect = () => {
-        const target = appName.toLowerCase().replace(/\s+/g, '_');
-        const appToConnect = connections.find((app: any) => {
-             const name = app.name.toLowerCase().replace(/\s+/g, '_');
-             return name === target || name.includes(target) || target.includes(name);
-        }) || connections[0]; 
-        
-        if (appToConnect && user?.id) {
-             const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
-             window.location.href = `${API_URL}/auth/connect/${appToConnect.id}?userId=${user.id}&callbackUrl=${callbackUrl}`;
+        if (user?.id) {
+            const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            const nameParam = connectionName ? `&name=${encodeURIComponent(connectionName)}` : '';
+            window.location.href = `${API_URL}/auth/connect/${mappedService}?userId=${user.id}&callbackUrl=${callbackUrl}${nameParam}`;
         } else {
-            console.error("Cannot find app to connect");
+            console.error("User ID missing");
         }
     };
-    
-    const activeConnection = connections.find(c => c.connected);
-    const selectedConnection = connections.find(c => c.id === value);
 
-    const handleReconnect = (e: React.MouseEvent) => {
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
         e.stopPropagation();
-        handleConnectClick();
+
+        console.log(`[ConnectionSelector] Attempting to disconnect ${appName} (ID: ${id})`);
+
+        if (!confirm(`Disconnect this ${appName} account? This will remove these credentials from all your workflows.`)) return;
+
+        try {
+            const res = await deleteConnection(id);
+            console.log(`[ConnectionSelector] Delete result:`, res);
+
+            if (res.success) {
+                sonner.success(`Successfully disconnected ${appName} account`);
+                // If the currently selected one was deleted, clear it
+                if (value === id) {
+                    console.log(`[ConnectionSelector] Clearing currently selected value`);
+                    onChange('');
+                }
+                await fetchConnections();
+            } else {
+                console.error(`[ConnectionSelector] Delete failed:`, res.error);
+                sonner.error(res.error || "Failed to disconnect account");
+            }
+        } catch (err: any) {
+            console.error("[ConnectionSelector] Error during deletion:", err);
+            sonner.error("An error occurred while disconnecting");
+        }
     };
 
-    return (
-        <div className="flex items-center gap-2 flex-1">
-            {!activeConnection && !isLocalLoading ? (
-                <Button 
-                    variant="outline" 
-                    className="w-full justify-between h-9 px-2.5 text-xs" 
+    const activeConnectionId = value;
+    const selectedConnection = connections.find(c => c.id === activeConnectionId);
+
+    // If no connections and not loading, show direct Connect button as requested ("minimum requirement")
+    if (connections.length === 0 && !isLocalLoading) {
+        return (
+            <div className="flex items-center gap-2 flex-1 w-full">
+                <Button
+                    variant="outline"
+                    className="w-full justify-between h-9 px-2.5 text-xs font-medium border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5"
                     onClick={handleConnectClick}
                     disabled={disabled}
                 >
-                    <span>Connect {appName}</span>
-                    <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
+                    <span className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+                        Connect {appName}
+                    </span>
+                    <Plus className="h-3.5 w-3.5 opacity-50" />
                 </Button>
-            ) : (
-                <div className="flex items-center gap-2 flex-1">
-                    <Select value={value} onValueChange={onChange} disabled={disabled || isLocalLoading}>
-                        <SelectTrigger className="h-9 px-2.5 flex-1 bg-background border-input">
-                            {isLocalLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                    <span className="text-xs text-muted-foreground italic">Fetching...</span>
-                                </div>
-                            ) : selectedConnection ? (
-                                <div className="flex flex-col items-start overflow-hidden">
-                                    <span className="text-[10px] text-muted-foreground uppercase leading-tight">{appName}</span>
-                                    <span className="truncate w-full text-left">
+
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Connect {appName}</DialogTitle>
+                            <DialogDescription>
+                                Give this connection a name to identify it later.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Connection Name</Label>
+                                <Input
+                                    value={connectionName}
+                                    onChange={(e) => setConnectionName(e.target.value)}
+                                    placeholder="e.g. My Work Gmail"
+                                />
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
+                            <Button onClick={handleConfirmConnect} disabled={disabled || !connectionName.trim()}>
+                                Connect & Authenticate
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-2 flex-1 w-full">
+            <Select value={value} onValueChange={onChange} disabled={disabled || isLocalLoading}>
+                <SelectTrigger className="h-9 px-2.5 flex-1 bg-background border-input w-full">
+                    <SelectValue>
+                        {isLocalLoading ? (
+                            <div className="flex items-center gap-2 text-muted-foreground italic text-xs">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>Syncing...</span>
+                            </div>
+                        ) : selectedConnection ? (
+                            <div className="flex items-center gap-2 overflow-hidden w-full">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                <div className="flex flex-col items-start overflow-hidden text-left">
+                                    <span className="text-[10px] text-muted-foreground uppercase leading-none mb-0.5">{selectedConnection.name}</span>
+                                    <span className="text-xs font-medium truncate w-full">
                                         {selectedConnection.externalId || selectedConnection.name}
                                     </span>
                                 </div>
-                            ) : (
-                                <span className="text-muted-foreground italic text-sm">Select Connection</span>
-                            )}
-                        </SelectTrigger>
-                        <SelectContent side="bottom" align="start">
-                            {connections.map((conn) => (
-                                <SelectItem key={conn.id} value={conn.id}>
-                                    <div className="flex flex-col py-0.5">
-                                        <span className="font-medium">{conn.name}</span>
-                                        {conn.externalId && (
-                                            <span className="text-[10px] text-muted-foreground italic">{conn.externalId}</span>
-                                        )}
-                                    </div>
-                                </SelectItem>
-                            ))}
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-start text-xs font-normal px-2 py-1.5 h-auto text-primary"
-                                onClick={handleConnectClick}
-                                disabled={disabled}
+                            </div>
+                        ) : (
+                            <span className="text-muted-foreground italic text-xs">Choose {appName} Account...</span>
+                        )}
+                    </SelectValue>
+                </SelectTrigger>
+                <SelectContent side="bottom" align="start" className="w-[300px] p-1">
+                    <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground/50 uppercase border-b mb-1">
+                        Connected Accounts
+                    </div>
+                    {connections.map((conn) => (
+                        <div key={conn.id} className="group relative flex items-center pr-8 hover:bg-muted/50 rounded-sm">
+                            <SelectItem value={conn.id} className="flex-1 cursor-pointer focus:bg-transparent">
+                                <div className="flex flex-col py-0.5">
+                                    <span className="text-xs font-medium leading-none mb-0.5">{conn.name}</span>
+                                    <span className="text-[9px] text-muted-foreground italic">
+                                        {conn.externalId ? conn.externalId : `ID: ${conn.id.slice(0, 8)}`}
+                                    </span>
+                                </div>
+                            </SelectItem>
+                            <button
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors z-50"
+                                onClick={(e) => handleDelete(conn.id, e)}
                             >
-                                + Add New {appName} Connection
-                            </Button>
-                        </SelectContent>
-                    </Select>
-
-                    {selectedConnection && !isLocalLoading && (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded bg-muted/30 border border-muted-foreground/10 shrink-0">
-                            <div className={`w-1.5 h-1.5 rounded-full ${selectedConnection.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <span className="text-[10px] font-medium text-muted-foreground">
-                                {selectedConnection.connected ? 'Connected' : 'Disconnected'}
-                            </span>
-                            {!selectedConnection.connected && (
-                                <Button 
-                                    variant="link" 
-                                    className="h-auto p-0 text-[10px] text-primary" 
-                                    onClick={handleReconnect}
-                                    disabled={disabled}
-                                >
-                                    Reconnect
-                                </Button>
-                            )}
+                                <Trash2 className="h-3 w-3" />
+                            </button>
                         </div>
-                    )}
-                </div>
-            )}
+                    ))}
+
+                    <div className="p-1 border-t mt-1">
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start text-[11px] font-medium px-2 py-1.5 h-auto text-primary hover:bg-primary/5 rounded-sm"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleConnectClick();
+                            }}
+                            disabled={disabled}
+                        >
+                            <Plus className="h-3 w-3 mr-2" />
+                            Add Another Account
+                        </Button>
+                    </div>
+                </SelectContent>
+            </Select>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Connect {appName}</DialogTitle>
                         <DialogDescription>
-                            You will be redirected to authenticate with {appName}. You can close this dialog after connecting.
+                            Give this connection a name to identify it later.
                         </DialogDescription>
                     </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Connection Name</Label>
+                            <Input
+                                value={connectionName}
+                                onChange={(e) => setConnectionName(e.target.value)}
+                                placeholder="e.g. My Work Gmail"
+                            />
+                        </div>
+                    </div>
+
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
-                        <Button onClick={handleConfirmConnect} disabled={disabled}>Connect {appName}</Button>
+                        <Button onClick={handleConfirmConnect} disabled={disabled || !connectionName.trim()}>
+                            Connect & Authenticate
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
