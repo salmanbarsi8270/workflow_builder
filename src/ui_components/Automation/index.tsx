@@ -14,7 +14,6 @@ import AutomationEditor from './AutomationEditor';
 import { API_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
-import { Skeleton } from '@/components/skeleton';
 import Editorloading from '../Utility/Editorloading';
 
 const defaultStartNode: Node[] = [
