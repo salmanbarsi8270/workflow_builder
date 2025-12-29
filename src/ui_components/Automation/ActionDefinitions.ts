@@ -1,8 +1,8 @@
-import { Mail, FileSpreadsheet, Clock, HardDrive, FileText, Github } from "lucide-react";
+import { Mail, FileSpreadsheet, Clock, HardDrive, FileText, Github, Globe } from "lucide-react";
 
 export interface ActionParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select' | 'object';
   label: string;
   description?: string;
   required?: boolean;
@@ -11,12 +11,21 @@ export interface ActionParameter {
   dependsOn?: { field: string, value: any };
 }
 
+export interface PropertyMetadata {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  description?: string;
+  properties?: PropertyMetadata[];
+  items?: PropertyMetadata;
+}
+
 export interface ActionDefinition {
   id: string;
   name: string;
   description: string;
   type: 'action' | 'trigger';
   parameters?: ActionParameter[];
+  outputSchema?: PropertyMetadata[];
 }
 
 export interface AppDefinition {
@@ -100,7 +109,15 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'trigger',
         parameters: [
              { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true }
-        ] 
+        ],
+        outputSchema: [
+          { name: 'id', type: 'string', description: 'The unique ID of the message.' },
+          { name: 'threadId', type: 'string', description: 'The ID of the thread which contains this message.' },
+          { name: 'snippet', type: 'string', description: 'A short part of the message text.' },
+          { name: 'subject', type: 'string', description: 'The message subject.' },
+          { name: 'from', type: 'string', description: 'The sender email address.' },
+          { name: 'body', type: 'string', description: 'The full message body.' }
+        ]
       },
       // Actions
       { 
@@ -113,17 +130,43 @@ export const APP_DEFINITIONS: AppDefinition[] = [
             { name: 'to', type: 'string', label: 'To', description: 'Recipient email address', required: true },
             { name: 'subject', type: 'string', label: 'Subject', description: 'Email subject line', required: true },
             { name: 'body', type: 'string', label: 'Body', description: 'Email body content (supports HTML)', required: true }
+        ],
+        outputSchema: [
+          { name: 'id', type: 'string', description: 'The ID of the sent message.' },
+          { name: 'threadId', type: 'string', description: 'The thread ID of the sent message.' }
         ]
       },
-      { 
-        id: 'listMessages', 
-        name: 'List Messages', 
-        description: 'Lists recent emails.', 
+      {
+        id: 'listMessages',
+        name: 'List Messages',
+        description: 'List messages in the mailbox.',
         type: 'action',
         parameters: [
-            { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
-            { name: 'maxResults', type: 'number', label: 'Max Results', description: 'Maximum number of messages to return', default: 10 },
-            { name: 'q', type: 'string', label: 'Query', description: 'Gmail search query (e.g., from:someone@gmail.com)' }
+          { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
+          { name: 'maxResults', label: 'Max Results', type: 'number' },
+          { name: 'q', label: 'Search Query', type: 'string' }
+        ],
+        outputSchema: [
+          { name: 'messages', type: 'array', description: 'List of message summaries.' },
+          { name: 'resultSizeEstimate', type: 'number', description: 'Estimated total number of results.' }
+        ]
+      },
+      {
+        id: 'getMessage',
+        name: 'Get Message',
+        description: 'Get a specific message by its ID.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
+          { name: 'id', label: 'Message ID', type: 'string', required: true, description: 'The ID of the message to retrieve.' }
+        ],
+        outputSchema: [
+          { name: 'id', type: 'string', description: 'The unique ID of the message.' },
+          { name: 'threadId', type: 'string', description: 'The ID of the thread which contains this message.' },
+          { name: 'snippet', type: 'string', description: 'A short part of the message text.' },
+          { name: 'subject', type: 'string', description: 'The message subject.' },
+          { name: 'from', type: 'string', description: 'The sender email address.' },
+          { name: 'body', type: 'string', description: 'The full message body.' }
         ]
       }
     ]
@@ -347,6 +390,32 @@ export const APP_DEFINITIONS: AppDefinition[] = [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
           { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
           { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to unlock', required: true }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'http',
+    name: 'HTTP',
+    description: 'Send HTTP requests to any API.',
+    icon: Globe,
+    category: 'utility',
+    actions: [
+      {
+        id: 'request',
+        name: 'Send Request',
+        description: 'Sends an HTTP request.',
+        type: 'action',
+        parameters: [
+          { name: 'method', type: 'select', label: 'Method', default: 'GET', required: true, options: [{ label: 'GET', value: 'GET' }, { label: 'POST', value: 'POST' }, { label: 'PUT', value: 'PUT' }, { label: 'PATCH', value: 'PATCH' }, { label: 'DELETE', value: 'DELETE' }] },
+          { name: 'url', type: 'string', label: 'URL', description: 'The URL to send the request to', required: true },
+          { name: 'headers', type: 'object', label: 'Headers', description: 'JSON object of request headers' },
+          { name: 'body', type: 'object', label: 'Body', description: 'JSON body for the request' }
+        ],
+        outputSchema: [
+          { name: 'status', type: 'number', description: 'HTTP status code' },
+          { name: 'data', type: 'object', description: 'Response body' },
+          { name: 'headers', type: 'object', description: 'Response headers' }
         ]
       }
     ]
