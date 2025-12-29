@@ -36,7 +36,7 @@ interface FlowRun {
 export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
-    
+
     // Track if there's an active run
     const [hasActiveRun, setHasActiveRun] = useState(false);
     const [runStartTime, setRunStartTime] = useState<Date | null>(null);
@@ -52,14 +52,14 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
 
     // Initial simple linear sort of nodes for the list
     const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-    
+
     // Track active run status
     useEffect(() => {
-        const activeRun = Object.values(results).some(result => 
+        const activeRun = Object.values(results).some(result =>
             result.status === 'running' || result.status === 'success'
         );
         setHasActiveRun(activeRun);
-        
+
         // Track run duration
         if (Object.values(results).some(r => r.status === 'running')) {
             if (!runStartTime) {
@@ -106,10 +106,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     const displayResults = view === 'detail' && selectedRun ? (() => {
         const mapped: Record<string, StepResult> = {};
         const runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
-        
+
         sortedNodes.forEach(node => {
             let stepData = runRes && runRes[node.id];
-            
+
             if (!stepData && runRes) {
                 const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
                 const foundKey = triggerKeys.find(k => runRes[k]);
@@ -123,7 +123,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                     nodeId: node.id,
                     status: 'success',
                     output: stepData.data,
-                    duration: 0 
+                    duration: 0
                 };
             }
         });
@@ -134,7 +134,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         if (socket) {
             const handleStepStart = (data: any) => {
                 setliveRun(true);
-                
+
                 // If this is the trigger node (usually first node) or we have no results, start fresh
                 const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                 const noActiveResults = Object.keys(results).length === 0;
@@ -173,13 +173,13 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 }));
             };
 
-           const handleRunComplete = () => {
+            const handleRunComplete = () => {
                 console.log("run complete");
-                
+
                 // Determine summary status based on results
                 const hasError = Object.values(results).some(r => r.status === 'error');
                 const newStatus = hasError ? 'error' : 'success';
-                
+
                 // Only set summary status if we're in live view
                 if (view === 'live') {
                     setRunSummaryStatus(newStatus);
@@ -211,7 +211,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
 
     const fetchHistory = async () => {
         if (!flowId) return;
-        
+
         setIsLoadingHistory(true);
         try {
             const res = await fetch(`${API_URL}/api/flows/${flowId}/runs`);
@@ -226,6 +226,28 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         }
     };
 
+    const retryRun = async (runId: string) => {
+        try {
+            const res = await fetch(`${API_URL}/api/runs/${runId}/retry`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Determine if this run is more recent than current live view
+                // Actually, just switch to live view and let the socket updates take over
+                setView('live');
+                setResults({}); // Clear current results to show new run
+                setRunStartTime(new Date());
+                setHasActiveRun(true);
+            } else {
+                console.error("Retry failed:", data.error);
+            }
+        } catch (err) {
+            console.error("Failed to retry run", err);
+        }
+    };
+
     const formatDuration = (ms: number) => {
         if (ms < 1000) return `${ms}ms`;
         if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
@@ -237,11 +259,11 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         if (view === 'detail' && selectedRun) {
             return `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`;
         }
-        
+
         if (view === 'history') {
             return "View past executions";
         }
-        
+
         // Live view
         if (runSummaryStatus === 'success') {
             return (
@@ -250,7 +272,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 </span>
             );
         }
-        
+
         if (runSummaryStatus === 'error') {
             return (
                 <span className="text-red-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
@@ -258,11 +280,11 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 </span>
             );
         }
-        
+
         if (hasActiveRun) {
             return `Running for ${formatDuration(runDuration)}`;
         }
-        
+
         return "Ready for execution";
     };
 
@@ -302,9 +324,18 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 <ScrollArea className="flex-1">
                     <div className="px-6 space-y-6">
                         {view === 'detail' && (
-                            <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 w-8 p-0 m-0 mb-2">
-                                <ArrowLeft className="h-4 w-4" /> Back
-                            </Button>
+                            <div className="flex items-center justify-between mb-2">
+                                <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 pl-0">
+                                    <ArrowLeft className="h-4 w-4 mr-1" /> Back to History
+                                </Button>
+
+                                {selectedRun && selectedRun.status !== 'success' && selectedRun.status !== 'running' && (
+                                    <Button size="sm" variant="outline" onClick={() => retryRun(selectedRun.id)} className="h-8 gap-2 border-orange-200 hover:bg-orange-50 text-orange-700 hover:text-orange-800">
+                                        <RefreshCcw className="h-3.5 w-3.5" />
+                                        Retry from Failure
+                                    </Button>
+                                )}
+                            </div>
                         )}
                         {view === 'history' ? (
                             <div className="space-y-4">
@@ -314,7 +345,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                         <p className="text-sm text-muted-foreground">Loading past runs...</p>
                                     </div>
                                 )}
-                                
+
                                 {!isLoadingHistory && runHistory.length === 0 && (
                                     <div className="text-center py-12">
                                         <HistoryIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -322,7 +353,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                         <p className="text-sm text-muted-foreground">This workflow hasn't recorded any past executions yet.</p>
                                     </div>
                                 )}
-                                
+
                                 {runHistory.map((run, index) => (
                                     <div key={run.id} className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer" onClick={() => handleRunClick(run)}>
                                         <div className="flex items-center justify-between">
@@ -372,7 +403,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                         {sortedNodes.map((node, index) => {
                                             const result = displayResults[node.id];
                                             const status = result?.status || 'pending';
-                                            
+
                                             return (
                                                 <div key={node.id} className="ml-6 relative">
                                                     {/* Badge */}
@@ -399,9 +430,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                                                     <span className="text-xs text-muted-foreground">{formatDuration(result.duration)}</span>
                                                                 )}
                                                                 {expandedStep === node.id ? (
-                                                                    <ChevronDown className="h-4 w-4 text-muted-foreground"/>
+                                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                                                 ) : (
-                                                                    <ChevronRight className="h-4 w-4 text-muted-foreground"/>
+                                                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                                 )}
                                                             </div>
                                                         </div>
