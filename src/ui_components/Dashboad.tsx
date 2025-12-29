@@ -92,7 +92,7 @@ export default function WorkflowDashboard() {
 
         // Get recent runs (mock for now, would need a real API endpoint)
         // For now, show recent workflows as placeholder
-        const recent: RecentRun[] = flows.slice(0, 5).map((flow: any, index: number) => ({
+        const recent: RecentRun[] = flows.slice(0, 5).map((flow: any) => ({
           id: flow.id,
           name: flow.name,
           status: flow.is_active ? 'Running' : 'Success',

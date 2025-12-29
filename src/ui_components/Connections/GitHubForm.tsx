@@ -39,13 +39,13 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
     const needsIssueSelection = ['updateIssue', 'closeIssue', 'reOpenIssue', 'lock_issue', 'unlock_issue'].includes(actionId);
 
     useEffect(() => {
-        if (params.connection && user?.id) {
+        if (params.authId && user?.id) {
             fetchRepositories();
-        } else if (!params.connection) {
+        } else if (!params.authId) {
             setRepositories([]);
             setIssues([]);
         }
-    }, [params.connection, user?.id]);
+    }, [params.authId, user?.id]);
 
     useEffect(() => {
         if (params.repository && user?.id && needsIssueSelection) {
@@ -61,11 +61,11 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
     }, [params.repository, user?.id, actionId, needsIssueSelection]);
 
     const fetchRepositories = async () => {
-        if (!params.connection || !user?.id) return;
+        if (!params.authId || !user?.id) return;
 
         setIsLoadingRepos(true);
         try {
-            const response = await fetch(`${API_URL}/api/github/repos?userId=${user.id}&connectionId=${params.connection}`);
+            const response = await fetch(`${API_URL}/api/github/repos?userId=${user.id}&connectionId=${params.authId}`);
             const result = await response.json();
 
             if (response.ok) {
@@ -154,8 +154,8 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                 </Label>
                 <ConnectionSelector
                     appName="GitHub"
-                    value={params.connection || ''}
-                    onChange={(val) => handleChange('connection', val)}
+                    value={params.authId || ''}
+                    onChange={(val) => handleChange('authId', val)}
                     disabled={disabled}
                 />
             </div>

@@ -14,6 +14,8 @@ interface RunSidebarProps {
     nodes: Node[];
     socket?: any;
     flowId?: string;
+    externalResults?: Record<string, StepResult>;
+    onResultsChange?: React.Dispatch<React.SetStateAction<Record<string, StepResult>>>;
 }
 
 type StepStatus = 'pending' | 'running' | 'success' | 'error';
@@ -33,8 +35,12 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
-    const [results, setResults] = useState<Record<string, StepResult>>({});
+export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, externalResults, onResultsChange }: RunSidebarProps) {
+    const [resultsState, setResultsState] = useState<Record<string, StepResult>>({});
+    
+    // Use external results if provided, otherwise fallback to local state (for detail view)
+    const results = externalResults || resultsState;
+    const setResults = onResultsChange || setResultsState;
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
     // Track if there's an active run
@@ -130,84 +136,52 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         return mapped;
     })() : results;
 
+    // Socket listeners removed - now handled by parent AutomationEditor for single source of truth
     useEffect(() => {
-        if (socket) {
+        if (socket && !onResultsChange) {
+            // Only add listeners if NOT controlled externally (backward compatibility or standalone use)
             const handleStepStart = (data: any) => {
                 setliveRun(true);
-
-                // If this is the trigger node (usually first node) or we have no results, start fresh
                 const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                 const noActiveResults = Object.keys(results).length === 0;
-
                 if (isFirstNode || noActiveResults) {
                     setResults({});
                     setRunStartTime(new Date());
                     setRunDuration(0);
                     setRunSummaryStatus('idle');
-                    console.log("Run started fresh");
                 }
-
                 if (view !== 'live') setView('live');
-
-                setResults(prev => ({
+                setResults((prev) => ({
                     ...prev,
-                    [data.nodeId]: {
-                        nodeId: data.nodeId,
-                        status: 'running',
-                        output: null,
-                        duration: 0
-                    }
+                    [data.nodeId]: { nodeId: data.nodeId, status: 'running', output: null, duration: 0 }
                 }));
             };
-
             const handleStepFinish = (data: any) => {
-                console.log("run finish");
                 setResults(prev => ({
                     ...prev,
-                    [data.nodeId]: {
-                        nodeId: data.nodeId,
-                        status: data.status,
-                        output: data.output,
-                        duration: data.duration
-                    }
+                    [data.nodeId]: { nodeId: data.nodeId, status: data.status, output: data.output, duration: data.duration }
                 }));
             };
-
             const handleRunComplete = () => {
-                console.log("run complete");
-
-                // Determine summary status based on results
                 const hasError = Object.values(results).some(r => r.status === 'error');
                 const newStatus = hasError ? 'error' : 'success';
-
-                // Only set summary status if we're in live view
-                if (view === 'live') {
-                    setRunSummaryStatus(newStatus);
-                }
-
+                if (view === 'live') setRunSummaryStatus(newStatus);
                 setTimeout(() => {
                     setRunStartTime(null);
                     setliveRun(false);
-                    // Reset summary after 5 seconds only if still in live view
-                    setTimeout(() => {
-                        if (view === 'live') {
-                            setRunSummaryStatus('idle');
-                        }
-                    }, 5000);
+                    setTimeout(() => { if (view === 'live') setRunSummaryStatus('idle'); }, 5000);
                 }, 1000);
             };
-
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-complete', handleRunComplete);
-
             return () => {
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
                 socket.off('run-complete', handleRunComplete);
             };
         }
-    }, [socket, view, sortedNodes, results]);
+    }, [socket, view, sortedNodes, results, onResultsChange]);
 
     const fetchHistory = async () => {
         if (!flowId) return;

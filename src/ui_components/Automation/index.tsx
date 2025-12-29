@@ -350,7 +350,17 @@ export default function AutomationIndex() {
             a.id === currentAuto.id ? updatedAuto : a
           ));
 
-          const uiDefinition = { nodes, edges };
+          const uiDefinition = { 
+            nodes: nodes.map(n => ({
+              ...n,
+              data: {
+                ...n.data,
+                status: undefined,
+                duration: undefined
+              }
+            })), 
+            edges 
+          };
           const payload = {
             flowId: currentAuto.id,
             name: currentAuto.name,
