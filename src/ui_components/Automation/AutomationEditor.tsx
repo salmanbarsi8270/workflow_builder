@@ -24,6 +24,7 @@ import CustomEdge from './CustomEdge';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
+import NodeContextMenu from './NodeContextMenu';
 
 // Define custom types
 const nodeTypes = {
@@ -72,6 +73,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [rfInstance, setRfInstance] = useState<any>(null);
     const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
     const [results, setResults] = useState<Record<string, StepResult>>({});
+    const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+    const [swappingNodeId, setSwappingNodeId] = useState<string | null>(null);
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
@@ -224,7 +227,28 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const onPaneClick = () => {
         setSelectedNodeId(null);
         setAddingNodeOnEdgeId(null);
+        setMenu(null);
     }
+
+    const onNodeContextMenu = useCallback(
+        (event: React.MouseEvent, node: Node) => {
+            event.preventDefault();
+            if (node.type === 'end') return;
+
+            setMenu({
+                x: event.clientX,
+                y: event.clientY,
+                nodeId: node.id,
+            });
+        },
+        [setMenu]
+    );
+
+    const handleSwapNode = (nodeId: string) => {
+        setSwappingNodeId(nodeId);
+        // We also need to know if it's a trigger or action for the selector mode
+        // But for now, we'll let StepSelector handle it or default to action
+    };
 
     const handleUpdateNode = (label: string, data?: any, immediate: boolean = false) => {
         setNodes((nds) => {
@@ -326,7 +350,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         data: {
                             label: app.name,
                             subLabel: app.description,
-                            icon: app.name.toLowerCase() === 'google sheets' ? 'doc' : 'email',
+                            icon: app.piece || app.icon || 'default',
                             appName: app.name,
                             ...app,
                             isPlaceholder: false // No longer placeholder
@@ -336,7 +360,30 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 return n;
             }));
             setAddingNodeOnEdgeId(null);
-            setSelectedNodeId(null); // Deselect or keep selected to show sidebar? Let's deselect to show updated view.
+            setSelectedNodeId(null);
+            return;
+        }
+
+        // Mode 3: Swapping an existing node
+        if (swappingNodeId) {
+            setNodes((nds) => nds.map(n => {
+                if (n.id === swappingNodeId) {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            label: app.name,
+                            subLabel: app.description,
+                            icon: app.piece || app.icon || 'default',
+                            appName: app.name,
+                            ...app,
+                            isPlaceholder: false
+                        }
+                    }
+                }
+                return n;
+            }));
+            setSwappingNodeId(null);
             return;
         }
 
@@ -471,6 +518,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 onEdgesChange={onEdgesChange}
                                 onConnect={onConnect}
                                 onNodeClick={onNodeClick}
+                                onNodeContextMenu={onNodeContextMenu}
                                 onPaneClick={onPaneClick}
                                 onInit={setRfInstance}
                                 fitView
@@ -503,6 +551,28 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onSelect={handleAppSelect}
                             onClose={() => setAddingNodeOnEdgeId(null)}
                             mode={addingNodeOnEdgeId === 'PLACEHOLDER_MODE' ? 'trigger' : 'action'}
+                        />
+                    )}
+
+                    {swappingNodeId && (
+                        <StepSelector
+                            onSelect={handleAppSelect}
+                            onClose={() => setSwappingNodeId(null)}
+                            mode={swappingNodeId === '1' ? 'trigger' : 'action'}
+                        />
+                    )}
+
+                    {menu && (
+                        <NodeContextMenu
+                            {...menu}
+                            onSwap={() => handleSwapNode(menu.nodeId)}
+                            onDelete={() => {
+                                setSelectedNodeId(menu.nodeId);
+                                // We need to wait for state update or call deletion manually
+                                // Fixed handle delete to use ID directly
+                                setTimeout(() => handleDeleteNode(), 0);
+                            }}
+                            onClose={() => setMenu(null)}
                         />
                     )}
 

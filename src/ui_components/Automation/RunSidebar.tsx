@@ -268,7 +268,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="left" className="w-full sm:max-w-md">
+            <SheetContent side="left" className="w-full sm:max-w-md h-full flex flex-col p-0">
                 <SheetHeader className="p-6 border-b">
                     <div className="flex items-center justify-between">
                         <div>
@@ -300,7 +300,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 </SheetHeader>
 
                 <ScrollArea className="flex-1">
-                    <div className="px-6 space-y-6">
+                    <div className="p-6 space-y-6">
                         {view === 'detail' && (
                             <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 w-8 p-0 m-0 mb-2">
                                 <ArrowLeft className="h-4 w-4" /> Back

@@ -8,12 +8,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { type Node } from '@xyflow/react';
+import { VariablePicker } from "../Automation/GenericActionForm"
 
-export default function ScheduleForm({ data, params, onChange, disabled }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean }) {
+
+export default function ScheduleForm({ data, params, onChange, disabled, nodes, nodeId }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean, nodes: Node[], nodeId?: string }) {
     const triggerType = data.actionId || 'schedule';
 
     const handleChange = (field: string, value: any) => {
         onChange({ ...params, [field]: value });
+    };
+
+    const handleVariableSelect = (field: string, variable: string) => {
+        const currentValue = params[field] || '';
+        handleChange(field, currentValue + variable);
     };
 
     const handleNumberChange = (field: string, value: string, min: number = 1, max?: number) => {
@@ -51,14 +59,14 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
 
              {(!params.intervalType || params.intervalType === 'minutes') && (
                  <div className="grid gap-2">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
+                    </div>
                     <Input 
-                        type="number" 
-                        min={1}
-                        max={59}
+                        type="text" 
                         placeholder="e.g. 15"
                         value={params.intervalMinutes || ''}
-                        onChange={(e) => handleNumberChange('intervalMinutes', e.target.value, 1, 59)}
+                        onChange={(e) => handleChange('intervalMinutes', e.target.value)}
                         disabled={disabled}
                     />
                     <p className="text-xs text-muted-foreground">Valid value between 1 to 59.</p>
@@ -67,13 +75,19 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
 
              {params.intervalType === 'hours' && (
                  <div className="grid gap-2">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Hours)</Label>
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Hours)</Label>
+                        <VariablePicker
+                            nodes={nodes}
+                            onSelect={(v) => handleVariableSelect('intervalHours', v)}
+                            currentNodeId={nodeId}
+                        />
+                    </div>
                     <Input 
-                        type="number" 
-                        min={1}
+                        type="text" 
                         placeholder="e.g. 1"
                         value={params.intervalHours || ''}
-                        onChange={(e) => handleNumberChange('intervalHours', e.target.value, 1)}
+                        onChange={(e) => handleChange('intervalHours', e.target.value)}
                         disabled={disabled}
                     />
                  </div>
@@ -81,13 +95,19 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
 
              {params.intervalType === 'days' && (
                  <div className="grid gap-2">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Days)</Label>
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Days)</Label>
+                        <VariablePicker
+                            nodes={nodes}
+                            onSelect={(v) => handleVariableSelect('intervalDay', v)}
+                            currentNodeId={nodeId}
+                        />
+                    </div>
                     <Input 
-                        type="number" 
-                        min={1}
+                        type="text" 
                         placeholder="e.g. 1"
                         value={params.intervalDay || ''}
-                        onChange={(e) => handleNumberChange('intervalDay', e.target.value, 1)}
+                        onChange={(e) => handleChange('intervalDay', e.target.value)}
                         disabled={disabled}
                     />
                  </div>

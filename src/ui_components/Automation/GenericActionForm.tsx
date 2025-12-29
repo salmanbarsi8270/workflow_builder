@@ -1,14 +1,8 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { type ActionParameter } from "./ActionDefinitions"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { type ActionParameter, APP_DEFINITIONS } from "./ActionDefinitions"
 import ConnectionSelector from "../Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
 import { type Node } from "@xyflow/react";
@@ -38,11 +32,35 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
     // 1. Not placeholder
     // 2. Not the end node
     // 3. Not the CURRENT node (user can't use data from the node they are currently configuring)
-    const availableNodes = nodes.filter(n =>
-        !n.data.isPlaceholder &&
-        n.id !== 'end' &&
-        n.id !== currentNodeId
-    );
+    const normalizedCurrentNodeId = currentNodeId ? String(currentNodeId) : null;
+
+    const checkIsTrigger = (node: Node) => {
+        const appName = node.data?.appName;
+        const actionId = node.data?.actionId;
+        const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === node.data?.icon);
+        const actionDef = appDef?.actions.find(a => a.id === actionId);
+        return actionDef?.type === 'trigger';
+    };
+
+    const availableNodes = nodes.filter(n => {
+        const nodeId = String(n.id);
+        
+        // Always exclude the node being currently configured and the end node
+        if (nodeId === normalizedCurrentNodeId || nodeId === 'end') return false;
+
+        const isTrigger = checkIsTrigger(n);
+
+        // Special Case: Always allow the Trigger
+        if (isTrigger) return true;
+
+        // Exclude placeholders otherwise
+        if (n.data?.isPlaceholder) return false;
+
+        // We removed position-based exclusion to ensure all configured previous steps are visible
+        // even if they share the same Y position or layout hasn't run.
+        return true;
+    });
+    console.log("availableNodes", availableNodes);
 
     const handleSelect = (val: string) => {
         onSelect(val);
@@ -52,7 +70,7 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2 border-primary/20 hover:border-primary/50 text-primary bg-primary/5">
+                <Button variant="outline" size="sm" className="h-7 ml-2 text-[10px] gap-1 px-2 border-primary/20 hover:border-primary/50 text-primary bg-primary/5">
                     <Database className="h-3 w-3" />
                     Select Data
                 </Button>
@@ -76,8 +94,8 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
                         availableNodes.map(node => {
                             const icon = node.data.icon as string;
                             const actionId = node.data.actionId as string;
-                            const nodeId = node.id === '1' ? 'trigger' : node.id;
-                            const isTrigger = node.id === '1';
+                            const isTrigger = checkIsTrigger(node);
+                            const pathNodeId = isTrigger ? 'trigger' : node.id;
 
                             const piece = pieces[icon];
                             const actionType = isTrigger ? 'triggers' : 'actions';
@@ -96,7 +114,7 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
                                     <div className="space-y-0.5">
                                         {schema.length === 0 ? (
                                             <button
-                                                onClick={() => handleSelect(`{{steps.${nodeId}.data}}`)}
+                                                onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}
                                                 className="w-full text-left px-4 py-1.5 text-xs hover:bg-muted rounded transition-colors flex items-center justify-between"
                                             >
                                                 <span>Full Object</span>
@@ -106,7 +124,7 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
                                             schema.map((prop: any) => (
                                                 <button
                                                     key={prop.name}
-                                                    onClick={() => handleSelect(`{{steps.${nodeId}.data.${prop.name}}}`)}
+                                                    onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}
                                                     className="w-full text-left px-4 py-1.5 text-xs hover:bg-muted rounded transition-colors flex items-center justify-between group"
                                                 >
                                                     <span className="group-hover:text-primary transition-colors">{prop.name}</span>
@@ -205,7 +223,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
                                 {param.label} {param.required && <span className="text-red-500">*</span>}
                             </Label>
-                            {(param.type === 'string' || param.type === 'number') && (
+                            {(param.type === 'string' || param.type === 'number' || param.type === 'array' || param.type === 'object' || param.type === 'select') && (
                                 <VariablePicker
                                     nodes={nodes}
                                     onSelect={(v) => handleVariableSelect(param.name, v)}

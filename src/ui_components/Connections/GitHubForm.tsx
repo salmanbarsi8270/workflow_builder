@@ -168,11 +168,6 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
                                 Repository <span className="text-red-500">*</span>
                             </Label>
-                            <VariablePicker
-                                nodes={nodes}
-                                onSelect={(v) => handleVariableSelect('repository', v)}
-                                currentNodeId={nodeId}
-                            />
                         </div>
                         <Button
                             variant="ghost"
