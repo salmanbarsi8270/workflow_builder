@@ -108,7 +108,23 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         description: 'Fires when a new email is received in the inbox.', 
         type: 'trigger',
         parameters: [
-             { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true }
+             { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
+             { 
+               name: 'folder', 
+               type: 'select', 
+               label: 'Folder', 
+               default: 'INBOX',
+               required: true,
+               options: [
+                 { label: 'Inbox', value: 'INBOX' },
+                 { label: 'Sent', value: 'SENT' },
+                 { label: 'Starred', value: 'STARRED' },
+                 { label: 'Important', value: 'IMPORTANT' },
+                 { label: 'Trash', value: 'TRASH' },
+                 { label: 'Spam', value: 'SPAM' }
+               ]
+             },
+             { name: 'q', type: 'string', label: 'Search Query', description: 'Optional. e.g. "from:boss@example.com"' }
         ],
         outputSchema: [
           { name: 'id', type: 'string', description: 'The unique ID of the message.' },
