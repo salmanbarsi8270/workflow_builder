@@ -16,6 +16,17 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
         onChange({ ...params, [field]: value });
     };
 
+    const handleNumberChange = (field: string, value: string, min: number = 1, max?: number) => {
+        let num = Number(value);
+        if (isNaN(num)) return;
+        
+        // Clamp to min/max
+        if (num < min) num = min;
+        if (max !== undefined && num > max) num = max;
+        
+        handleChange(field, num);
+    };
+
     return (
         <div className="flex flex-col gap-4">
              {triggerType === 'schedule' && (
@@ -43,9 +54,11 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
                     <Input 
                         type="number" 
+                        min={1}
+                        max={59}
                         placeholder="e.g. 15"
                         value={params.intervalMinutes || ''}
-                        onChange={(e) => handleChange('intervalMinutes', Number(e.target.value))}
+                        onChange={(e) => handleNumberChange('intervalMinutes', e.target.value, 1, 59)}
                         disabled={disabled}
                     />
                     <p className="text-xs text-muted-foreground">Valid value between 1 to 59.</p>
@@ -57,9 +70,10 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Hours)</Label>
                     <Input 
                         type="number" 
+                        min={1}
                         placeholder="e.g. 1"
                         value={params.intervalHours || ''}
-                        onChange={(e) => handleChange('intervalHours', Number(e.target.value))}
+                        onChange={(e) => handleNumberChange('intervalHours', e.target.value, 1)}
                         disabled={disabled}
                     />
                  </div>
@@ -70,9 +84,10 @@ export default function ScheduleForm({ data, params, onChange, disabled }: { dat
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Days)</Label>
                     <Input 
                         type="number" 
+                        min={1}
                         placeholder="e.g. 1"
                         value={params.intervalDay || ''}
-                        onChange={(e) => handleChange('intervalDay', Number(e.target.value))}
+                        onChange={(e) => handleNumberChange('intervalDay', e.target.value, 1)}
                         disabled={disabled}
                     />
                  </div>

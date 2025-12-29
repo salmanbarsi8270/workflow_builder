@@ -187,3 +187,47 @@
 .node-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes dash {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Optional: Smoother transitions for status changes */
+@keyframes status-change {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.status-animation {
+  animation: status-change 0.3s ease-out;
+}
+
+/* Optional: Pulse effect for success/error messages */
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.soft-pulse {
+  animation: soft-pulse 2s ease-in-out infinite;
+}

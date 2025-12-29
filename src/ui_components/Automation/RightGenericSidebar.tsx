@@ -7,6 +7,7 @@ import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
 import { APP_DEFINITIONS } from "./ActionDefinitions";
 import ScheduleForm from "../Utility/ScheduleForm";
+import GitHubForm from "../Connections/GitHubForm";
 import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
 import { AppLogoMap } from "./Applogo";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 
 const SpecificForms: Record<string, any> = {
     'Schedule': ScheduleForm,
+    'GitHub': GitHubForm,
 };
 
 interface RightGenericSidebarProps {
@@ -56,16 +58,26 @@ const getInitialParams = (node: Node) => {
         }
     });
 
-    // Special Case: Google Sheets sheetName -> range migration
-    if ((nodeData.sheetName || nodeData.sheet_name) && (migratedParams.range === undefined || migratedParams.range === '')) {
-        migratedParams.range = nodeData.sheetName || nodeData.sheet_name;
-    }
-
     // Ensure defaults are populated from Action Definitions
     const appName = nodeData.appName as string;
     const actionId = nodeData.actionId as string;
     const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === nodeData.icon);
     const actionDef = appDef?.actions.find(a => a.id === actionId);
+
+    // Special Case: Google Sheets sheetName -> range migration
+    if ((nodeData.sheetName || nodeData.sheet_name) && (migratedParams.range === undefined || migratedParams.range === '')) {
+        migratedParams.range = nodeData.sheetName || nodeData.sheet_name;
+    }
+
+    // Special Case: GitHub createRepository/createIssue title -> name/repository migration
+    if (appName === 'GitHub' || nodeData.icon === 'github') {
+        // Create Repository needs 'name'
+        if (actionId === 'createRepository' || actionId === 'create_repository') {
+            if (migratedParams.title && (migratedParams.name === undefined || migratedParams.name === '')) {
+                migratedParams.name = migratedParams.title;
+            }
+        }
+    }
 
     if (actionDef?.parameters) {
         actionDef.parameters.forEach(p => {

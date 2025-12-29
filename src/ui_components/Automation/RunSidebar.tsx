@@ -16,10 +16,6 @@ interface RunSidebarProps {
     flowId?: string;
 }
 
-
-
-
-
 type StepStatus = 'pending' | 'running' | 'success' | 'error';
 
 interface StepResult {
@@ -39,8 +35,6 @@ interface FlowRun {
 
 export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
-
-
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
     
     // Track if there's an active run
@@ -53,7 +47,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     const [runHistory, setRunHistory] = useState<FlowRun[]>([]);
     const [selectedRun, setSelectedRun] = useState<FlowRun | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [liveRun, setliveRun] = useState(false)
+    const [liveRun, setliveRun] = useState(false);
+    const [runSummaryStatus, setRunSummaryStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
 
     // Initial simple linear sort of nodes for the list
     const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
@@ -95,13 +90,16 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     const handleRunClick = (run: FlowRun) => {
         setSelectedRun(run);
         setView('detail');
+        setRunSummaryStatus('idle');
     };
 
     // Reset run state only when strictly necessary
     const handleViewChange = (newView: 'live' | 'history' | 'detail') => {
-        // Don't clear results if we're just switching between views during an active run
-        // We only clear results when a new run explicitly starts via socket
         setView(newView);
+        // Clear summary status when switching away from live view
+        if (newView !== 'live') {
+            setRunSummaryStatus('idle');
+        }
     };
 
     // Derived results for rendering
@@ -145,6 +143,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                     setResults({});
                     setRunStartTime(new Date());
                     setRunDuration(0);
+                    setRunSummaryStatus('idle');
                     console.log("Run started fresh");
                 }
 
@@ -176,17 +175,31 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
 
            const handleRunComplete = () => {
                 console.log("run complete");
+                
+                // Determine summary status based on results
+                const hasError = Object.values(results).some(r => r.status === 'error');
+                const newStatus = hasError ? 'error' : 'success';
+                
+                // Only set summary status if we're in live view
+                if (view === 'live') {
+                    setRunSummaryStatus(newStatus);
+                }
+
                 setTimeout(() => {
                     setRunStartTime(null);
-                    // Keep expanded step so user can see output
                     setliveRun(false);
+                    // Reset summary after 5 seconds only if still in live view
+                    setTimeout(() => {
+                        if (view === 'live') {
+                            setRunSummaryStatus('idle');
+                        }
+                    }, 5000);
                 }, 1000);
             };
 
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-complete', handleRunComplete);
-
 
             return () => {
                 socket.off('step-run-start', handleStepStart);
@@ -195,7 +208,6 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
             };
         }
     }, [socket, view, sortedNodes, results]);
-
 
     const fetchHistory = async () => {
         if (!flowId) return;
@@ -220,6 +232,40 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
     };
 
+    // Get description text based on current view and state
+    const getDescriptionText = () => {
+        if (view === 'detail' && selectedRun) {
+            return `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`;
+        }
+        
+        if (view === 'history') {
+            return "View past executions";
+        }
+        
+        // Live view
+        if (runSummaryStatus === 'success') {
+            return (
+                <span className="text-green-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                    <Check className="h-3.5 w-3.5" /> Run Successful
+                </span>
+            );
+        }
+        
+        if (runSummaryStatus === 'error') {
+            return (
+                <span className="text-red-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                    <X className="h-3.5 w-3.5" /> Run Failed
+                </span>
+            );
+        }
+        
+        if (hasActiveRun) {
+            return `Running for ${formatDuration(runDuration)}`;
+        }
+        
+        return "Ready for execution";
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent side="left" className="w-full sm:max-w-md">
@@ -228,16 +274,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                         <div>
                             <SheetTitle className="text-xl">Workflow Activity</SheetTitle>
                             <SheetDescription className="mt-1">
-                                {view === 'detail' && selectedRun 
-                                    ? `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`
-                                    : view === 'live'
-                                    ? hasActiveRun
-                                        ? `Running for ${formatDuration(runDuration)}`
-                                        : "Ready for execution"
-                                    : "View past executions"}
+                                {getDescriptionText()}
                             </SheetDescription>
                         </div>
-                        
                     </div>
 
                     {/* Tabs */}
@@ -284,7 +323,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                     </div>
                                 )}
                                 
-                                {runHistory.map(run => (
+                                {runHistory.map((run, index) => (
                                     <div key={run.id} className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer" onClick={() => handleRunClick(run)}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
@@ -292,7 +331,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                                     {run.status === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-sm">Run #{run.id.slice(0, 6)}</p>
+                                                    <p className="font-medium text-sm text-foreground">Run #{runHistory.length - index}</p>
                                                     <p className="text-xs text-muted-foreground">{new Date(run.created_at).toLocaleString()}</p>
                                                 </div>
                                             </div>
@@ -304,7 +343,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                         ) : (
                             // LIVE / DETAIL VIEW
                             <div>
-                                {view === 'live' && !hasActiveRun && (
+                                {view === 'live' && !hasActiveRun && runSummaryStatus === 'idle' && (
                                     <div className="p-4 rounded-lg border bg-muted/30 mb-6">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-primary/10 rounded-md">
@@ -368,7 +407,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                                                         </div>
 
                                                         {expandedStep === node.id && (
-                                                            <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-x-auto">
+                                                            <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto max-h-[500px] max-w-[300px]">
                                                                 <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider">Output</div>
                                                                 {status === 'pending' ? (
                                                                     <span className="text-muted-foreground italic">Waiting to run...</span>

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, ArrowLeft } from "lucide-react";
 import { APP_DEFINITIONS, type AppDefinition, type ActionDefinition } from './ActionDefinitions';
 import { cn } from "@/lib/utils";
+import { AppLogoMap } from './Applogo';
 
 interface StepSelectorProps {
     onSelect: (app: any) => void;
@@ -116,8 +117,12 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                                 onClick={() => handleAppClick(app)}
                                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer group transition-colors"
                             >
-                                <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center shrink-0">
-                                    <app.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                                <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center shrink-0 overflow-hidden">
+                                    {AppLogoMap[app.id] ? (
+                                        <img src={AppLogoMap[app.id]} alt={app.name} className="h-7 w-7 object-contain" />
+                                    ) : (
+                                        <app.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    )}
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="font-medium leading-none mb-1">{app.name}</h4>

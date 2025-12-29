@@ -14,6 +14,8 @@ import AutomationEditor from './AutomationEditor';
 import { API_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
+import { Skeleton } from '@/components/skeleton';
+import Editorloading from '../Utility/Editorloading';
 
 const defaultStartNode: Node[] = [
     { 
@@ -443,8 +445,9 @@ export default function AutomationIndex() {
 
   // Editor Mode
   if (!currentAuto) {
-      // Loading or Error state for Editor
-      return <div className="p-10 flex justify-center">Loading editor...</div>;
+      return (
+          <Editorloading />
+      );
   }
 
   return (

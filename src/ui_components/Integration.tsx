@@ -140,8 +140,13 @@ export default function Integration() {
   };
 
   const handleConnect = (app: IntegrationApp) => {
-    if (user?.id) {
-      window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user.id}`;
+    const returnPath = window.location.pathname; 
+    if (app.id === 'github') {
+      console.log("Connecting GitHub...");
+      window.location.href = `${API_URL}/auth/connect/github?userId=${user?.id}&callbackUrl=${returnPath}`;
+    } else {
+      console.log(`Connecting ${app.name}...`);
+      window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user?.id}&callbackUrl=${returnPath}`;
     }
   };
 

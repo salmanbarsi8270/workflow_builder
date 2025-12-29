@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
-import { Plus, Trash2, Zap, AlertCircle } from 'lucide-react';
+import { Plus, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
 import { cn } from "@/lib/utils";
@@ -67,13 +67,12 @@ export default function CustomEdge({
   selected,
   data
 }: EdgeProps) {
-  const { onAddNode, onDeleteEdge, onEdgeClick } = useAutomationContext();
+  const { onAddNode, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
   
   const sourceNode = nodes.find(n => n.id === source);
   
   const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
-  const isPlaceholder = sourceNode?.data?.isPlaceholder;
   const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
   const hasError = data?.hasError as boolean;
   const label = data?.label as string;
@@ -96,7 +95,7 @@ export default function CustomEdge({
     strokeWidth: EdgeStatusColors[status].width,
     strokeDasharray: EdgeStatusColors[status].dasharray,
     filter: EdgeStatusColors[status].glow,
-    opacity: isPlaceholder ? 0.5 : 1,
+    opacity: 1,
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: 'pointer'
   };
@@ -106,11 +105,6 @@ export default function CustomEdge({
     onAddNode(id);
   };
 
-  const handleDeleteEdge = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDeleteEdge(id);
-  };
-
   const handleEdgeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onEdgeClick) {
@@ -118,51 +112,7 @@ export default function CustomEdge({
     }
   };
 
-  if (isPlaceholder) {
-    return (
-      <>
-        <BaseEdge 
-          path={edgePath} 
-          markerEnd={markerEnd} 
-          style={edgeStyle} 
-          onClick={handleEdgeClick}
-        />
-        {selected && (
-          <EdgeLabelRenderer>
-            <div 
-              style={{ 
-                position: 'absolute', 
-                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-                pointerEvents: 'all' 
-              }} 
-              className="nodrag nopan"
-            >
-              <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 rounded-full hover:bg-primary hover:text-primary-foreground transition-all"
-                  onClick={handleAddNode}
-                  title="Add node"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-all"
-                  onClick={handleDeleteEdge}
-                  title="Delete connection"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </EdgeLabelRenderer>
-        )}
-      </>
-    );
-  }
+  const isPlaceholder = sourceNode?.data?.isPlaceholder;
 
   return (
     <>
@@ -170,7 +120,10 @@ export default function CustomEdge({
       <BaseEdge 
         path={edgePath} 
         markerEnd={markerEnd} 
-        style={edgeStyle} 
+        style={{
+          ...edgeStyle,
+          opacity: isPlaceholder ? 0.5 : 1
+        }} 
         onClick={handleEdgeClick}
         className={cn(
           selected && "ring-2 ring-primary/30",
@@ -178,35 +131,31 @@ export default function CustomEdge({
         )}
       />
       
-      {/* Hover Effects */}
+      {/* Edge Interaction UI */}
       <EdgeLabelRenderer>
-        {/* Add Node Button */}
         <div 
           style={{ 
             position: 'absolute', 
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all' 
           }} 
-          className="nodrag nopan"
+          className="nodrag nopan group"
         >
           <div className={cn(
             "flex items-center gap-1 transition-all duration-300",
             selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
           )}>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={cn(
-                "h-8 w-8 rounded-full border-2 backdrop-blur-sm transition-all duration-300 hover:scale-110",
-                hasError 
-                  ? "border-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground" 
-                  : "border-primary/50 bg-background/80 hover:border-primary hover:bg-primary hover:text-primary-foreground"
-              )}
-              onClick={handleAddNode}
-              title="Insert step here"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border-2 border-primary/20">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 rounded-full transition-all"
+                onClick={handleAddNode}
+                title="Add node"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             
             {/* Edge Label */}
             {label && (
@@ -227,7 +176,7 @@ export default function CustomEdge({
             }}
           >
             <div className={cn(
-              "h-4 w-4 rounded-full flex items-center justify-center border-2 border-background",
+              "h-4 w-4 rounded-full flex items-center justify-center border-2 border-background shadow-sm",
               status === 'running' && "bg-blue-500 animate-pulse",
               status === 'success' && "bg-green-500",
               status === 'error' && "bg-red-500",
@@ -240,16 +189,17 @@ export default function CustomEdge({
         )}
       </EdgeLabelRenderer>
       
-      {/* Edge Selection Outline */}
+      {/* Edge Selection Outline for easier clicking */}
       {selected && (
         <BaseEdge 
           path={edgePath} 
           style={{
             stroke: 'transparent',
-            strokeWidth: 15,
+            strokeWidth: 20,
             strokeLinecap: 'round',
             strokeLinejoin: 'round',
-            pointerEvents: 'stroke'
+            pointerEvents: 'stroke',
+            cursor: 'pointer'
           }}
           onClick={handleEdgeClick}
         />
