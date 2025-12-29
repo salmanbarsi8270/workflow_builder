@@ -4,7 +4,6 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/dialog"
@@ -107,8 +106,10 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                                 </div>
                             ) : selectedConnection ? (
                                 <div className="flex flex-col items-start overflow-hidden">
-                                    <span className="text-[10px] text-muted-foreground uppercase leading-tight">{selectedConnection.name}</span>
-                                    <SelectValue />
+                                    <span className="text-[10px] text-muted-foreground uppercase leading-tight">{appName}</span>
+                                    <span className="truncate w-full text-left">
+                                        {selectedConnection.externalId || selectedConnection.name}
+                                    </span>
                                 </div>
                             ) : (
                                 <span className="text-muted-foreground italic text-sm">Select Connection</span>
@@ -117,7 +118,12 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                         <SelectContent side="bottom" align="start">
                             {connections.map((conn) => (
                                 <SelectItem key={conn.id} value={conn.id}>
-                                    {conn.name}
+                                    <div className="flex flex-col py-0.5">
+                                        <span className="font-medium">{conn.name}</span>
+                                        {conn.externalId && (
+                                            <span className="text-[10px] text-muted-foreground italic">{conn.externalId}</span>
+                                        )}
+                                    </div>
                                 </SelectItem>
                             ))}
                             <Button

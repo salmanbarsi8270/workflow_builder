@@ -60,7 +60,6 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
         // even if they share the same Y position or layout hasn't run.
         return true;
     });
-    console.log("availableNodes", availableNodes);
 
     const handleSelect = (val: string) => {
         onSelect(val);

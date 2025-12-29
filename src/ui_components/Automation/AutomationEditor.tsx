@@ -268,15 +268,16 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         });
     };
 
-    const handleDeleteNode = () => {
-        if (!selectedNodeId) return;
+    const handleDeleteNode = (targetId?: string) => {
+        const idToDelete = targetId || selectedNodeId;
+        if (!idToDelete) return;
 
         // 1. Calculate incoming/outgoing edges
-        const incomingEdge = edges.find(e => e.target === selectedNodeId);
-        const outgoingEdge = edges.find(e => e.source === selectedNodeId);
+        const incomingEdge = edges.find(e => e.target === idToDelete);
+        const outgoingEdge = edges.find(e => e.source === idToDelete);
 
         // Case: Start Node (ID '1')
-        if (selectedNodeId === '1') {
+        if (idToDelete === '1') {
             const nextNodes = nodes.map(node => {
                 if (node.id === '1') {
                     return { ...node, data: { label: 'Select Trigger', isPlaceholder: true } }
@@ -287,7 +288,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             // Apply layout to these next nodes
             const layoutedNodes = onLayout(nextNodes, edges);
             setNodes(layoutedNodes);
-            setSelectedNodeId(null);
+            if (selectedNodeId === idToDelete) setSelectedNodeId(null);
 
             setTimeout(() => {
                 rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
@@ -296,7 +297,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }
 
         // Case: Other nodes
-        let nextEdges = edges.filter(e => e.target !== selectedNodeId && e.source !== selectedNodeId);
+        let nextEdges = edges.filter(e => e.target !== idToDelete && e.source !== idToDelete);
         if (incomingEdge && outgoingEdge) {
             nextEdges.push({
                 id: `e-${incomingEdge.source}-${outgoingEdge.target}`,
@@ -306,14 +307,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             });
         }
 
-        const nextNodes = nodes.filter(n => n.id !== selectedNodeId);
+        const nextNodes = nodes.filter(n => n.id !== idToDelete);
 
         // Calculate layout on the future state
         const layoutedNodes = onLayout(nextNodes, nextEdges);
 
         setEdges(nextEdges);
         setNodes(layoutedNodes);
-        setSelectedNodeId(null);
+        if (selectedNodeId === idToDelete) setSelectedNodeId(null);
 
         setTimeout(() => {
             rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
@@ -527,6 +528,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 nodeTypes={nodeTypes}
                                 edgeTypes={edgeTypes}
                                 nodesDraggable={true}
+                                zoomOnScroll={false}
+                                panOnScroll={true}
+                                zoomOnPinch={true}
+                                zoomActivationKeyCode="Control"
                             >
                                 <Controls />
                                 <Background gap={12} size={1} />
@@ -566,12 +571,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         <NodeContextMenu
                             {...menu}
                             onSwap={() => handleSwapNode(menu.nodeId)}
-                            onDelete={() => {
-                                setSelectedNodeId(menu.nodeId);
-                                // We need to wait for state update or call deletion manually
-                                // Fixed handle delete to use ID directly
-                                setTimeout(() => handleDeleteNode(), 0);
-                            }}
+                            onDelete={() => handleDeleteNode(menu.nodeId)}
                             onClose={() => setMenu(null)}
                         />
                     )}

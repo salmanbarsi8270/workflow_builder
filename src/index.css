@@ -231,3 +231,13 @@
 .soft-pulse {
   animation: soft-pulse 2s ease-in-out infinite;
 }
+
+
+/* global.css */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

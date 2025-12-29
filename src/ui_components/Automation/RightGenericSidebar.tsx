@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,10 +9,12 @@ import { APP_DEFINITIONS } from "./ActionDefinitions";
 import ScheduleForm from "../Utility/ScheduleForm";
 import HTTPForm from "../Utility/HTTPForm";
 import GitHubForm from "../Connections/GitHubForm";
-import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
+import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronLeft, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
 import { AppLogoMap } from "./Applogo";
 import { cn } from "@/lib/utils";
 import { usePiecesMetadata } from "./usePiecesMetadata";
+import { getConnections } from "../api/connectionlist";
+import { useUser } from "@/context/UserContext";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -96,10 +98,68 @@ const getInitialParams = (node: Node) => {
 export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending' }: RightGenericSidebarProps) {
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
     const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
-    const [activeTab, setActiveTab] = useState('configuration');
+    const [activeTab, setActiveTab] = useState("configuration");
+    const tabsListRef = useRef<HTMLDivElement>(null);
+    const [canScroll, setCanScroll] = useState({ left: false, right: false });
+
+    useEffect(() => {
+        const checkScroll = () => {
+            if (tabsListRef.current) {
+                const { scrollLeft, scrollWidth, clientWidth } = tabsListRef.current;
+                setCanScroll({
+                    left: scrollLeft > 0,
+                    right: scrollLeft < scrollWidth - clientWidth - 2 // 2px buffer
+                });
+            }
+        };
+
+        checkScroll();
+        const el = tabsListRef.current;
+        if (el) {
+            el.addEventListener('scroll', checkScroll);
+            const resizeObserver = new ResizeObserver(checkScroll);
+            resizeObserver.observe(el);
+            return () => {
+                el.removeEventListener('scroll', checkScroll);
+                resizeObserver.disconnect();
+            };
+        }
+    }, [selectedNode]);
+
+    const scrollTabs = (direction: 'left' | 'right') => {
+        if (tabsListRef.current) {
+            const amount = 200;
+            tabsListRef.current.scrollBy({
+                left: direction === 'left' ? -amount : amount,
+                behavior: 'smooth'
+            });
+        }
+    };
     const [isDirty, setIsDirty] = useState(false);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const { pieces, loading: metadataLoading } = usePiecesMetadata();
+    const { user } = useUser();
+    const [allConnections, setAllConnections] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchAllConnections = async () => {
+            if (user?.id) {
+                try {
+                    const data = await getConnections(user.id);
+                    setAllConnections(data.data || []);
+                } catch (error) {
+                    console.error("Failed to fetch connections for sidebar", error);
+                }
+            }
+        };
+        fetchAllConnections();
+    }, [user?.id]);
+
+    const activeConnectionInfo = useMemo(() => {
+        const connectionId = localParams.connection;
+        if (!connectionId) return null;
+        return allConnections.find(c => c.id === connectionId);
+    }, [allConnections, localParams.connection]);
 
     useEffect(() => {
         if (selectedNode) {
@@ -259,10 +319,10 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                             <Badge variant="secondary" className="font-normal">
                                 ID: {selectedNode.id}
                             </Badge>
-                            {(selectedNode.data as any).connection && (
-                                <Badge variant="outline" className="flex items-center gap-1">
+                            {activeConnectionInfo && (
+                                <Badge variant="outline" className="flex items-center gap-1 border-green-500/30 bg-green-500/5 text-green-600">
                                     <Shield className="h-3 w-3" />
-                                    Connected
+                                    {activeConnectionInfo.externalId || activeConnectionInfo.name || 'Connected'}
                                 </Badge>
                             )}
                         </div>
@@ -288,18 +348,78 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-auto">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-                        <div className="border-b px-6">
-                            <TabsList className="w-full justify-start h-12 bg-transparent">
-                                <TabsTrigger value="configuration" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Settings className="h-4 w-4 mr-2" />Configuration</TabsTrigger>
-                                <TabsTrigger value="outputs" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Zap className="h-4 w-4 mr-2" />Outputs</TabsTrigger>
-                                <TabsTrigger value="preview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><ExternalLink className="h-4 w-4 mr-2" />Preview</TabsTrigger>
-                                <TabsTrigger value="info" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Info className="h-4 w-4 mr-2" />Info</TabsTrigger>
-                            </TabsList>
-                        </div>
+                <div className="flex-1 min-h-0 container-flex">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                        <div className="border-b px-2 relative group flex items-center">
+                            {canScroll.left && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute left-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
+                                    onClick={() => scrollTabs('left')}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                            )}
+                            
+                            <TabsList
+                                ref={tabsListRef}
+                                className="
+                                    w-full h-12 bg-transparent
+                                    flex justify-start
+                                    overflow-x-auto overflow-y-hidden
+                                    whitespace-nowrap
+                                    no-scrollbar
+                                    px-4
+                                "
+                            >
+    <TabsTrigger
+      value="configuration"
+      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+    >
+      <Settings className="h-4 w-4 mr-2" />
+      Configuration
+    </TabsTrigger>
 
-                        <div className="p-6">
+    <TabsTrigger
+      value="outputs"
+      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+    >
+      <Zap className="h-4 w-4 mr-2" />
+      Outputs
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="preview"
+      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+    >
+      <ExternalLink className="h-4 w-4 mr-2" />
+      Preview
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="info"
+      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+    >
+      <Info className="h-4 w-4 mr-2" />
+      Info
+    </TabsTrigger>
+  </TabsList>
+
+  {canScroll.right && (
+    <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute right-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
+        onClick={() => scrollTabs('right')}
+    >
+        <ChevronRight className="h-4 w-4" />
+    </Button>
+  )}
+</div>
+
+
+                        <div className="p-6 overflow-y-auto">
                             {/* Configuration Tab */}
                             <TabsContent value="configuration" className="space-y-6 m-0">
                                 <div className="space-y-4">

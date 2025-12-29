@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, ArrowLeft } from "lucide-react";
+import { Search, ChevronRight, ArrowLeft, X } from "lucide-react";
 import { APP_DEFINITIONS, type AppDefinition, type ActionDefinition } from './ActionDefinitions';
 import { cn } from "@/lib/utils";
 import { AppLogoMap } from './Applogo';
@@ -16,6 +16,14 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
+    
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
 
     // Filter apps that have at least one action matching the mode
     const filteredApps = APP_DEFINITIONS.filter(app => {
@@ -63,7 +71,6 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
 
     return (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-popover border shadow-2xl rounded-xl z-50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
             <div className="p-4 border-b flex items-center gap-3">
                 {selectedApp && (
                     <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8 -ml-2">
@@ -81,7 +88,11 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                         autoFocus
                     />
                 </div>
-            </div>
+
+                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 ml-2 bg-background hover:bg-red-50">
+                    <X className="h-4 w-4 text-red-500" />
+                </Button>
+            </div>  
 
             {/* Tabs (Only if no app selected) */}
             {!selectedApp && (
