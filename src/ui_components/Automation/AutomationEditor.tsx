@@ -78,9 +78,25 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
+    // We merge existing transient status to prevent auto-save from wiping colors
     useEffect(() => {
         if (initialNodes.length > 0 || initialEdges.length > 0) {
-            setNodes(initialNodes);
+            setNodes(prevNodes => {
+                return initialNodes.map(newNode => {
+                    const existingNode = prevNodes.find(n => n.id === newNode.id);
+                    if (existingNode && existingNode.data) {
+                        return {
+                            ...newNode,
+                            data: {
+                                ...newNode.data,
+                                status: existingNode.data.status,
+                                duration: existingNode.data.duration
+                            }
+                        };
+                    }
+                    return newNode;
+                });
+            });
             setEdges(initialEdges);
         }
     }, [initialNodes, initialEdges, setNodes, setEdges]);
@@ -149,10 +165,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
-                // Clear results after 2.5 seconds so user sees final state briefly
+                // Keep results for 5 seconds so user sees final state in explorer
                 setTimeout(() => {
                     setResults({});
-                }, 2500);
+                }, 5000);
             };
 
             socket.on('step-run-start', handleStepStart);
@@ -583,6 +599,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         nodes={nodes}
                         socket={socket}
                         flowId={flowId}
+                        externalResults={results}
+                        onResultsChange={setResults}
                     />
 
 

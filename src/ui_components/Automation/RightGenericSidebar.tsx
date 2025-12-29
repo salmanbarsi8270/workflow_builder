@@ -13,7 +13,7 @@ import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, Refres
 import { AppLogoMap } from "./Applogo";
 import { cn } from "@/lib/utils";
 import { usePiecesMetadata } from "./usePiecesMetadata";
-import { getConnections } from "../api/connectionlist";
+import { getServices } from "../api/connectionlist";
 import { useUser } from "@/context/UserContext";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -145,8 +145,28 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
         const fetchAllConnections = async () => {
             if (user?.id) {
                 try {
-                    const data = await getConnections(user.id);
-                    setAllConnections(data.data || []);
+                    const data = await getServices(user.id);
+                    const services = data.data || [];
+                    
+                    // Flatten all accounts from all services
+                    const allAccounts: any[] = [];
+                    services.forEach((svc: any) => {
+                        if (svc.accounts && Array.isArray(svc.accounts)) {
+                            svc.accounts.forEach((acc: any) => {
+                                allAccounts.push({
+                                    id: acc.id,
+                                    name: acc.username, // Map username to name for display
+                                    externalId: acc.externalId,
+                                    service: svc.id,
+                                    serviceName: svc.name,
+                                    // Preserve other fields
+                                    ...acc
+                                });
+                            });
+                        }
+                    });
+                    
+                    setAllConnections(allAccounts);
                 } catch (error) {
                     console.error("Failed to fetch connections for sidebar", error);
                 }
@@ -156,10 +176,10 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
     }, [user?.id]);
 
     const activeConnectionInfo = useMemo(() => {
-        const connectionId = localParams.connection;
+        const connectionId = localParams.authId;
         if (!connectionId) return null;
         return allConnections.find(c => c.id === connectionId);
-    }, [allConnections, localParams.connection]);
+    }, [allConnections, localParams.authId]);
 
     useEffect(() => {
         if (selectedNode) {

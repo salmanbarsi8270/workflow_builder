@@ -20,8 +20,8 @@ export default function GoogleSheetForm({ params, onChange, disabled }: { params
                 <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Connection</Label>
                 <ConnectionSelector 
                     appName="Google Sheets" 
-                    value={params.connection || ''} 
-                    onChange={(val) => handleChange('connection', val)} 
+                    value={params.authId || ''} 
+                    onChange={(val) => handleChange('authId', val)} 
                     disabled={disabled}
                 />
             </div>

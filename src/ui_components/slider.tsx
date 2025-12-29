@@ -39,12 +39,13 @@ import {  RoboticIcon, BookOpen02Icon, Settings05Icon, UnfoldMoreIcon, Dashboard
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation } from "react-router-dom"
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, Link } from 'lucide-react'
 import WorkflowDashboard from './Dashboad'
 import Order from './Order'
 import Integration from './Integration'
 import Automation from './Automation'
 import Logout from './Logout'
+import Connections from './Connections'
 import { useUser } from '@/context/UserContext';
 
 export function SidebarIconExample() {
@@ -58,6 +59,8 @@ export function SidebarIconExample() {
         return "Dashboard";
       case "/order":
         return "Order";
+      case "/connections":
+        return "Connections";
       case "/integration":
         return "Integration";
       case "/automation":
@@ -84,6 +87,11 @@ export function SidebarIconExample() {
       title: "Integration",
       url: "/integration",
       icon: <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} />,
+    },
+    {
+      title: "Connections",
+      url: "/connections",
+      icon: <Link size={20} strokeWidth={2} />,
     },
     {
       title: "Automation",
@@ -218,6 +226,7 @@ export function SidebarIconExample() {
         <div className="flex flex-1 flex-col gap-4 p-4">
             {location.pathname === "/" && <WorkflowDashboard />}
             {location.pathname === "/order" && <Order />}
+            {location.pathname === "/connections" && <Connections />}
             {location.pathname === "/integration" && <Integration />}
             {(location.pathname === "/automation" || location.pathname.startsWith("/automation/")) && <Automation />}
         </div>

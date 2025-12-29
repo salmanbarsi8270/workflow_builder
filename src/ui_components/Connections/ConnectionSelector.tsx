@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Plus, Trash2, CheckCircle2 } from "lucide-react"
 import { useUser } from '@/context/UserContext';
-import { getConnections, deleteConnection } from "../api/connectionlist";
+import { getServices, deleteConnection } from "../api/connectionlist";
 import { API_URL } from '../api/apiurl';
 import { toast as sonner } from "sonner";
 
@@ -52,21 +52,39 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
         if (!user?.id) return;
         setIsLocalLoading(true);
         try {
-            const data = await getConnections(user.id);
-            const allApps = Array.isArray(data) ? data : (data.data || []);
+            // Use getServices to get the full list of services and their accounts
+            const data = await getServices(user.id);
+            const allServices = Array.isArray(data) ? data : (data.data || []);
 
-            const relevantApps = allApps.filter((app: any) => {
-                const svc = (app.service || '').toLowerCase();
-                return svc === mappedService || svc.includes(mappedService) || mappedService.includes(svc);
+            // Find the service matching the current appName
+            const matchingService = allServices.find((svc: any) => {
+                const svcId = (svc.id || '').toLowerCase();
+                const svcName = (svc.name || '').toLowerCase();
+                return svcId === mappedService || svcName === appName.toLowerCase() || svcId.includes(mappedService);
             });
 
-            setConnections(relevantApps);
+            if (matchingService && matchingService.accounts) {
+                // Map accounts to the format expected by the selector
+                const serviceAccounts = matchingService.accounts.map((acc: any) => ({
+                    id: acc.id,
+                    name: acc.username, // Use username as the primary display name
+                    externalId: acc.externalId,
+                    // If backend supports alias name in future, we can prioritize it: acc.name || acc.username
+                }));
+                setConnections(serviceAccounts);
 
-            if (relevantApps.length > 0 && !value) {
-                onChange(relevantApps[0].id);
+                if (serviceAccounts.length > 0 && !value) {
+                    // Auto-select first if nothing selected
+                    onChange(serviceAccounts[0].id);
+                }
+            } else {
+                setConnections([]);
             }
         } catch (error) {
             console.error("Failed to fetch connections", error);
+            // Fallback for resiliency? 
+            // If getServices fails, we could try getConnections (legacy) if we imported it, 
+            // but for now let's rely on the main endpoint.
         } finally {
             setIsLocalLoading(false);
         }
