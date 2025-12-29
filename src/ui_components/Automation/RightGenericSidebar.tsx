@@ -352,16 +352,16 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                         <div className="border-b px-2 relative group flex items-center">
                             {canScroll.left && (
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="absolute left-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
                                     onClick={() => scrollTabs('left')}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
                             )}
-                            
+
                             <TabsList
                                 ref={tabsListRef}
                                 className="
@@ -373,50 +373,50 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                                     px-4
                                 "
                             >
-    <TabsTrigger
-      value="configuration"
-      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
-    >
-      <Settings className="h-4 w-4 mr-2" />
-      Configuration
-    </TabsTrigger>
+                                <TabsTrigger
+                                    value="configuration"
+                                    className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                                >
+                                    <Settings className="h-4 w-4 mr-2" />
+                                    Configuration
+                                </TabsTrigger>
 
-    <TabsTrigger
-      value="outputs"
-      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
-    >
-      <Zap className="h-4 w-4 mr-2" />
-      Outputs
-    </TabsTrigger>
+                                <TabsTrigger
+                                    value="outputs"
+                                    className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                                >
+                                    <Zap className="h-4 w-4 mr-2" />
+                                    Outputs
+                                </TabsTrigger>
 
-    <TabsTrigger
-      value="preview"
-      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
-    >
-      <ExternalLink className="h-4 w-4 mr-2" />
-      Preview
-    </TabsTrigger>
+                                <TabsTrigger
+                                    value="preview"
+                                    className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                                >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Preview
+                                </TabsTrigger>
 
-    <TabsTrigger
-      value="info"
-      className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
-    >
-      <Info className="h-4 w-4 mr-2" />
-      Info
-    </TabsTrigger>
-  </TabsList>
+                                <TabsTrigger
+                                    value="info"
+                                    className="shrink-0 rounded-none h-12 data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                                >
+                                    <Info className="h-4 w-4 mr-2" />
+                                    Info
+                                </TabsTrigger>
+                            </TabsList>
 
-  {canScroll.right && (
-    <Button 
-        variant="ghost" 
-        size="icon" 
-        className="absolute right-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
-        onClick={() => scrollTabs('right')}
-    >
-        <ChevronRight className="h-4 w-4" />
-    </Button>
-  )}
-</div>
+                            {canScroll.right && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
+                                    onClick={() => scrollTabs('right')}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
 
 
                         <div className="p-6 overflow-y-auto">

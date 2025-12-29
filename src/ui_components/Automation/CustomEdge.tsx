@@ -53,37 +53,37 @@ const EdgeTypeColors = {
   parallel: '#f59e0b'
 } as const;
 
-export default function CustomEdge({ 
-  id, 
+export default function CustomEdge({
+  id,
   source,
-  sourceX, 
-  sourceY, 
-  targetX, 
-  targetY, 
-  sourcePosition, 
-  targetPosition, 
-  style = {}, 
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
   markerEnd,
   selected,
   data
 }: EdgeProps) {
   const { onAddNode, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
-  
+
   const sourceNode = nodes.find(n => n.id === source);
-  
+
   const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
   const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
   const hasError = data?.hasError as boolean;
   const label = data?.label as string;
-  
+
   // Get SmoothStepPath with 0 border radius for sharp orthogonal straight lines
-  const [edgePath, labelX, labelY] = getSmoothStepPath({ 
-    sourceX, 
-    sourceY, 
-    sourcePosition, 
-    targetX, 
-    targetY, 
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
     targetPosition,
     borderRadius: 0
   });
@@ -117,28 +117,28 @@ export default function CustomEdge({
   return (
     <>
       {/* Main Edge */}
-      <BaseEdge 
-        path={edgePath} 
-        markerEnd={markerEnd} 
+      <BaseEdge
+        path={edgePath}
+        markerEnd={markerEnd}
         style={{
           ...edgeStyle,
           opacity: isPlaceholder ? 0.5 : 1
-        }} 
+        }}
         onClick={handleEdgeClick}
         className={cn(
           selected && "ring-2 ring-primary/30",
           hasError && "animate-pulse"
         )}
       />
-      
+
       {/* Edge Interaction UI */}
       <EdgeLabelRenderer>
-        <div 
-          style={{ 
-            position: 'absolute', 
+        <div
+          style={{
+            position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            pointerEvents: 'all' 
-          }} 
+            pointerEvents: 'all'
+          }}
           className="nodrag nopan group"
         >
           <div className={cn(
@@ -146,9 +146,9 @@ export default function CustomEdge({
             selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
           )}>
             <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border-2 border-primary/20">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-7 w-7 rounded-full transition-all"
                 onClick={handleAddNode}
                 title="Add node"
@@ -156,7 +156,7 @@ export default function CustomEdge({
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            
+
             {/* Edge Label */}
             {label && (
               <div className="px-2 py-1 rounded-md bg-background/90 backdrop-blur-sm border shadow-sm text-xs font-medium min-w-[60px] text-center">
@@ -165,14 +165,14 @@ export default function CustomEdge({
             )}
           </div>
         </div>
-        
+
         {/* Edge Status Indicator */}
         {status !== 'pending' && (
-          <div 
-            style={{ 
-              position: 'absolute', 
+          <div
+            style={{
+              position: 'absolute',
               transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px,${(sourceY + targetY) / 2}px)`,
-              pointerEvents: 'none' 
+              pointerEvents: 'none'
             }}
           >
             <div className={cn(
@@ -188,11 +188,11 @@ export default function CustomEdge({
           </div>
         )}
       </EdgeLabelRenderer>
-      
+
       {/* Edge Selection Outline for easier clicking */}
       {selected && (
-        <BaseEdge 
-          path={edgePath} 
+        <BaseEdge
+          path={edgePath}
           style={{
             stroke: 'transparent',
             strokeWidth: 20,

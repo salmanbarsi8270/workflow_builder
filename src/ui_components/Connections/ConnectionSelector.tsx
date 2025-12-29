@@ -4,6 +4,7 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import {
@@ -176,7 +177,7 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
         <div className="flex items-center gap-2 flex-1 w-full">
             <Select value={value} onValueChange={onChange} disabled={disabled || isLocalLoading}>
                 <SelectTrigger className="h-9 px-2.5 flex-1 bg-background border-input w-full">
-                    <SelectValue>
+                    <SelectValue placeholder={appName}>
                         {isLocalLoading ? (
                             <div className="flex items-center gap-2 text-muted-foreground italic text-xs">
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
