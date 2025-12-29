@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,10 +7,12 @@ import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
 import { APP_DEFINITIONS } from "./ActionDefinitions";
 import ScheduleForm from "../Utility/ScheduleForm";
+import HTTPForm from "../Utility/HTTPForm";
 import GitHubForm from "../Connections/GitHubForm";
 import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
 import { AppLogoMap } from "./Applogo";
 import { cn } from "@/lib/utils";
+import { usePiecesMetadata } from "./usePiecesMetadata";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,6 +25,7 @@ const SpecificForms: Record<string, any> = {
 
 interface RightGenericSidebarProps {
     selectedNode: Node | undefined;
+    nodes: Node[]; // Added this
     onUpdateNode: (label: string, data?: any, immediate?: boolean) => void;
     onDeleteNode: () => void;
     onClose: () => void;
@@ -30,19 +33,19 @@ interface RightGenericSidebarProps {
 }
 
 const getStatusColor = (status?: string) => {
-  switch (status) {
-    case 'running': return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
-    case 'success': return 'text-green-500 bg-green-500/10 border-green-500/20';
-    case 'error': return 'text-red-500 bg-red-500/10 border-red-500/20';
-    case 'warning': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
-    default: return 'text-muted-foreground bg-muted border-border';
-  }
+    switch (status) {
+        case 'running': return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+        case 'success': return 'text-green-500 bg-green-500/10 border-green-500/20';
+        case 'error': return 'text-red-500 bg-red-500/10 border-red-500/20';
+        case 'warning': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+        default: return 'text-muted-foreground bg-muted border-border';
+    }
 };
 
 const getInitialParams = (node: Node) => {
     const nodeData = node.data as any;
     const migratedParams = { ...(nodeData.params || {}) } as any;
-    
+
     // Support migration from old top-level fields to nested params
     const legacyFields = [
         'to', 'subject', 'body',
@@ -90,25 +93,26 @@ const getInitialParams = (node: Node) => {
     return migratedParams;
 };
 
-export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending' }: RightGenericSidebarProps) {
+export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending' }: RightGenericSidebarProps) {
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
     const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
     const [activeTab, setActiveTab] = useState('configuration');
     const [isDirty, setIsDirty] = useState(false);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+    const { pieces, loading: metadataLoading } = usePiecesMetadata();
 
     useEffect(() => {
         if (selectedNode) {
             const currentLabel = selectedNode.data.label as string || '';
             const migrated = getInitialParams(selectedNode);
-            
+
             // Check if data has changed
             const paramsChanged = JSON.stringify(migrated) !== JSON.stringify(localParams);
             const labelChanged = currentLabel !== localLabel;
-            
+
             if (paramsChanged) setLocalParams(migrated);
             if (labelChanged) setLocalLabel(currentLabel);
-            
+
             setIsDirty(false);
             setValidationErrors({});
         }
@@ -118,26 +122,38 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
 
     const appName = selectedNode.data.appName as string;
     const actionId = selectedNode.data.actionId as string;
-    const actionName = selectedNode.data.actionName as string; 
+    const actionName = selectedNode.data.actionName as string;
     const actionIcon = selectedNode.data.icon as string;
-    
-    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === selectedNode.data.icon);
-    const actionDef:any = appDef?.actions.find(a => a.id === actionId);
 
-    let FormComponent = SpecificForms[appName];
-    if (!FormComponent && actionDef?.parameters) {
-        FormComponent = GenericActionForm;
-    }
+    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === selectedNode.data.icon);
+    const actionDef: any = appDef?.actions.find(a => a.id === actionId);
+
+    const FormComponent = useMemo(() => {
+        if (SpecificForms[appName]) {
+            return SpecificForms[appName];
+        }
+
+        switch (selectedNode.data.icon) {
+            case 'sheets':
+            case 'docs':
+            case 'drive':
+                return GenericActionForm;
+            case 'http':
+                return HTTPForm;
+            default:
+                return GenericActionForm;
+        }
+    }, [actionDef?.id, selectedNode.data.icon, appName]);
 
     const validateParams = () => {
         const errors: Record<string, string> = {};
-        
+
         if (!localLabel.trim()) {
             errors.label = "Step label is required";
         }
 
         if (actionDef?.parameters) {
-            actionDef.parameters.forEach((param:any) => {
+            actionDef.parameters.forEach((param: any) => {
                 let isVisible = true;
                 if (param.dependsOn) {
                     const dependentValue = localParams[param.dependsOn.field];
@@ -145,7 +161,7 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                         isVisible = false;
                     }
                 }
-                
+
                 if (isVisible && param.required && !localParams[param.name]) {
                     errors[param.name] = `${param.label} is required`;
                 }
@@ -172,8 +188,8 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
         // Filter out inactive parameters
         if (actionDef?.parameters) {
             const activeParamNames = new Set<string>();
-            
-            actionDef.parameters.forEach((param:any) => {
+
+            actionDef.parameters.forEach((param: any) => {
                 let isVisible = true;
                 if (param.dependsOn) {
                     const dependentValue = localParams[param.dependsOn.field];
@@ -181,7 +197,7 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                         isVisible = false;
                     }
                 }
-                
+
                 if (isVisible) {
                     activeParamNames.add(param.name);
                 } else {
@@ -190,8 +206,8 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
             });
         }
 
-        onUpdateNode(localLabel, {...selectedNode.data, label: localLabel, params: filteredParams }, true);
-        
+        onUpdateNode(localLabel, { ...selectedNode.data, label: localLabel, params: filteredParams }, true);
+
         setIsDirty(false);
         sonner.success("Changes saved successfully");
     };
@@ -277,6 +293,7 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                         <div className="border-b px-6">
                             <TabsList className="w-full justify-start h-12 bg-transparent">
                                 <TabsTrigger value="configuration" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Settings className="h-4 w-4 mr-2" />Configuration</TabsTrigger>
+                                <TabsTrigger value="outputs" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Zap className="h-4 w-4 mr-2" />Outputs</TabsTrigger>
                                 <TabsTrigger value="preview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><ExternalLink className="h-4 w-4 mr-2" />Preview</TabsTrigger>
                                 <TabsTrigger value="info" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12"><Info className="h-4 w-4 mr-2" />Info</TabsTrigger>
                             </TabsList>
@@ -307,9 +324,9 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                                             )}
                                         </div>
                                         <Input value={localLabel} onChange={(e) => {
-                                                setLocalLabel(e.target.value);
-                                                setIsDirty(true);
-                                            }} placeholder="Enter step label" className={cn("transition-all duration-200", validationErrors.label && "border-red-500 focus-visible:ring-red-500")} />
+                                            setLocalLabel(e.target.value);
+                                            setIsDirty(true);
+                                        }} placeholder="Enter step label" className={cn("transition-all duration-200", validationErrors.label && "border-red-500 focus-visible:ring-red-500")} />
                                     </div>
 
                                     <Separator />
@@ -323,10 +340,10 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                                                 </Badge>
                                             )}
                                         </div>
-                                        
+
                                         {FormComponent ? (
                                             <div className="space-y-4">
-                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} />
+                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} nodeId={selectedNode.id} />
                                             </div>
                                         ) : (
                                             <div className="p-8 border border-dashed rounded-lg text-center space-y-3">
@@ -339,6 +356,132 @@ export default function RightGenericSidebar({ selectedNode, onUpdateNode, onDele
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            {/* Outputs Tab */}
+                            <TabsContent value="outputs" className="space-y-6 m-0">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-sm font-medium flex items-center gap-2">
+                                            Step Outputs
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-xs">
+                                                    Data provided by this step for use in subsequent steps
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </Label>
+                                    </div>
+
+                                    {(() => {
+                                        const service = selectedNode.data.icon as string;
+                                        const piece = pieces[service];
+                                        const actionType = actionDef?.type === 'trigger' ? 'triggers' : 'actions';
+                                        const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema;
+
+                                        if (metadataLoading) {
+                                            return <div className="p-4 text-center text-sm text-muted-foreground animate-pulse">Loading schema...</div>;
+                                        }
+
+                                        if (!schema || schema.length === 0) {
+                                            return (
+                                                <div className="p-8 border border-dashed rounded-lg text-center space-y-3">
+                                                    <Zap className="h-12 w-12 mx-auto text-muted-foreground/30" />
+                                                    <div>
+                                                        <p className="font-medium text-muted-foreground">No output schema defined</p>
+                                                        <p className="text-sm text-muted-foreground/70 mt-1">
+                                                            This step may not provide structured output or the schema is currently unavailable.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="rounded-lg border bg-card overflow-hidden">
+                                                <div className="bg-muted/30 px-4 py-2 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                    Available Properties
+                                                </div>
+                                                <div className="divide-y">
+                                                    {schema.map((prop: any) => {
+                                                        const variablePath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}}}`;
+
+                                                        return (
+                                                            <div key={prop.name} className="p-4 hover:bg-muted/10 transition-colors group">
+                                                                <div className="flex items-start justify-between mb-1">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <code className="text-xs font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded w-fit">
+                                                                            {prop.name}
+                                                                        </code>
+                                                                        <Badge variant="outline" className="text-[10px] h-4 px-1 uppercase w-fit">
+                                                                            {prop.type}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="icon"
+                                                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                onClick={() => {
+                                                                                    navigator.clipboard.writeText(variablePath);
+                                                                                    sonner.success("Variable path copied!");
+                                                                                }}
+                                                                            >
+                                                                                <Copy className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>Copy {variablePath}</TooltipContent>
+                                                                    </Tooltip>
+                                                                </div>
+                                                                {prop.description && (
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                                                                        {prop.description}
+                                                                    </p>
+                                                                )}
+                                                                {prop.properties && prop.properties.length > 0 && (
+                                                                    <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
+                                                                        {prop.properties.map((subProp: any) => (
+                                                                            <div key={subProp.name} className="text-[11px] flex items-center justify-between group/sub">
+                                                                                <div>
+                                                                                    <span className="font-semibold text-muted-foreground">{subProp.name}</span>
+                                                                                    <span className="mx-1 text-muted-foreground/50">·</span>
+                                                                                    <span className="text-muted-foreground/70">{subProp.type}</span>
+                                                                                </div>
+                                                                                <button
+                                                                                    className="text-[10px] text-primary hover:underline opacity-0 group-hover/sub:opacity-100"
+                                                                                    onClick={() => {
+                                                                                        const subPath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}.${subProp.name}}}`;
+                                                                                        navigator.clipboard.writeText(subPath);
+                                                                                        sonner.success("Sub-property copied!");
+                                                                                    }}
+                                                                                >
+                                                                                    Copy
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 flex gap-3">
+                                        <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                        <p className="text-xs text-blue-600/80 leading-normal">
+                                            Use these properties in later steps using the syntax: <br />
+                                            <code className="font-mono bg-blue-500/10 px-1 rounded text-blue-700">
+                                                {"{{"}steps.{selectedNode.id}.data.property_name{"}}"}
+                                            </code>
+                                        </p>
                                     </div>
                                 </div>
                             </TabsContent>

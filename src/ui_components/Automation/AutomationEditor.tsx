@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
-import { ReactFlow,
+import {
+    ReactFlow,
     Controls,
     Background,
     useNodesState,
@@ -26,12 +27,12 @@ import RunSidebar from './RunSidebar';
 
 // Define custom types
 const nodeTypes = {
-  custom: CustomNode,
-  end: EndNode,
+    custom: CustomNode,
+    end: EndNode,
 };
 
 const edgeTypes = {
-  custom: CustomEdge,
+    custom: CustomEdge,
 };
 
 interface AutomationEditorProps {
@@ -109,7 +110,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
                     const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                     const noActiveResults = Object.keys(prev).length === 0;
-                    
+
                     if (isFirstNode || noActiveResults) {
                         return {
                             [data.nodeId]: {
@@ -196,7 +197,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Auto-Save Effect
     useEffect(() => {
         if (isLoading || nodes.length === 0) return; // Don't auto-save while still loading or if data is missing
-        
+
         const timeoutId = setTimeout(() => {
             onAutoSave(nodes, edges);
         }, 1000); // 1s debounce
@@ -216,7 +217,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             setSelectedNodeId(node.id); // Track which node to update
         } else {
             setSelectedNodeId(node.id);
-            setAddingNodeOnEdgeId(null); 
+            setAddingNodeOnEdgeId(null);
         }
     };
 
@@ -233,12 +234,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 }
                 return node;
             });
-            
+
             if (immediate) {
                 // Trigger immediate save
                 onAutoSave(updatedNodes, edges);
             }
-            
+
             return updatedNodes;
         });
     };
@@ -252,44 +253,44 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         // Case: Start Node (ID '1')
         if (selectedNodeId === '1') {
-             const nextNodes = nodes.map(node => {
+            const nextNodes = nodes.map(node => {
                 if (node.id === '1') {
                     return { ...node, data: { label: 'Select Trigger', isPlaceholder: true } }
                 }
                 return node;
-             });
+            });
 
-             // Apply layout to these next nodes
-             const layoutedNodes = onLayout(nextNodes, edges);
-             setNodes(layoutedNodes);
-             setSelectedNodeId(null);
+            // Apply layout to these next nodes
+            const layoutedNodes = onLayout(nextNodes, edges);
+            setNodes(layoutedNodes);
+            setSelectedNodeId(null);
 
-             setTimeout(() => {
-                 rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
-             }, 50);
-             return;
+            setTimeout(() => {
+                rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+            }, 50);
+            return;
         }
 
         // Case: Other nodes
         let nextEdges = edges.filter(e => e.target !== selectedNodeId && e.source !== selectedNodeId);
         if (incomingEdge && outgoingEdge) {
-            nextEdges.push({ 
-                id: `e-${incomingEdge.source}-${outgoingEdge.target}`, 
-                source: incomingEdge.source, 
-                target: outgoingEdge.target, 
-                type: 'custom' 
+            nextEdges.push({
+                id: `e-${incomingEdge.source}-${outgoingEdge.target}`,
+                source: incomingEdge.source,
+                target: outgoingEdge.target,
+                type: 'custom'
             });
         }
 
         const nextNodes = nodes.filter(n => n.id !== selectedNodeId);
-        
+
         // Calculate layout on the future state
         const layoutedNodes = onLayout(nextNodes, nextEdges);
-        
+
         setEdges(nextEdges);
         setNodes(layoutedNodes);
         setSelectedNodeId(null);
-        
+
         setTimeout(() => {
             rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
         }, 50);
@@ -318,25 +319,25 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleAppSelect = (app: any) => {
         // Mode 1: Replacing a Placeholder (Start Node)
         if (addingNodeOnEdgeId === 'PLACEHOLDER_MODE' && selectedNodeId) {
-             setNodes((nds) => nds.map(n => {
-                 if (n.id === selectedNodeId) {
-                     return {
-                         ...n,
-                         data: {
-                             label: app.name,
-                             subLabel: app.description,
-                             icon: app.name.toLowerCase() === 'google sheets' ? 'doc' : 'email',
-                             appName: app.name,
-                             ...app,
-                             isPlaceholder: false // No longer placeholder
-                         }
-                     }
-                 }
-                 return n;
-             }));
-             setAddingNodeOnEdgeId(null);
-             setSelectedNodeId(null); // Deselect or keep selected to show sidebar? Let's deselect to show updated view.
-             return;
+            setNodes((nds) => nds.map(n => {
+                if (n.id === selectedNodeId) {
+                    return {
+                        ...n,
+                        data: {
+                            label: app.name,
+                            subLabel: app.description,
+                            icon: app.name.toLowerCase() === 'google sheets' ? 'doc' : 'email',
+                            appName: app.name,
+                            ...app,
+                            isPlaceholder: false // No longer placeholder
+                        }
+                    }
+                }
+                return n;
+            }));
+            setAddingNodeOnEdgeId(null);
+            setSelectedNodeId(null); // Deselect or keep selected to show sidebar? Let's deselect to show updated view.
+            return;
         }
 
         // Mode 2: Inserting between nodes
@@ -347,7 +348,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (!edge) return;
 
         const sourceNode = nodes.find(n => n.id === edge.source);
-        
+
         if (!sourceNode) return;
 
         const newNodeId = Math.random().toString(36).substr(2, 9);
@@ -357,9 +358,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         const newNode: Node = {
             id: newNodeId,
             position: { x: sourceNode.position.x, y: newNodeY },
-            data: { 
-                label: app.name, 
-                subLabel: app.description, 
+            data: {
+                label: app.name,
+                subLabel: app.description,
                 icon: app.name.toLowerCase() === 'google sheets' ? 'doc' : 'email', // Simple mapping
                 appName: app.name, // Store app name for form lookup
                 ...app // Store other app details
@@ -374,9 +375,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         // Shift nodes
         const updatedNodes = nodes.map(node => {
-            if (node.id === sourceNode.id) return node; 
+            if (node.id === sourceNode.id) return node;
             if (node.position.y > sourceNode.position.y) {
-                 return { ...node, position: { ...node.position, y: node.position.y + shiftAmount } };
+                return { ...node, position: { ...node.position, y: node.position.y + shiftAmount } };
             }
             return node;
         });
@@ -394,21 +395,21 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // Simple vertical layout
         const startNode = layoutNodes.find(n => !layoutEdges.some(e => e.target === n.id));
         if (!startNode) return layoutNodes;
-        
+
         const visited = new Set<string>();
         const sortedIds: string[] = [];
-        
+
         const processNode = (nodeId: string) => {
             if (visited.has(nodeId)) return;
             visited.add(nodeId);
             sortedIds.push(nodeId);
-            
+
             const outgoing = layoutEdges.filter(e => e.source === nodeId);
             outgoing.forEach(e => processNode(e.target));
         }
-        
+
         processNode(startNode.id);
-        
+
         const updatedNodes = layoutNodes.map(n => {
             const index = sortedIds.indexOf(n.id);
             if (index === -1) return n;
@@ -421,7 +422,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (!passedNodes) {
             setNodes(updatedNodes);
             setTimeout(() => {
-                 rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
+                rfInstance?.fitView({ padding: 0.2, maxZoom: 1 });
             }, 50);
         }
 
@@ -429,8 +430,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     }, [nodes, edges, rfInstance, setNodes]);
 
     return (
-        <AutomationContext.Provider value={{ 
-            onAddNode: handleAddClick, 
+        <AutomationContext.Provider value={{
+            onAddNode: handleAddClick,
             onDeleteEdge: handleDeleteEdge,
             onEdgeClick: handleEdgeClick
         }}>
@@ -447,16 +448,16 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                            <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
-                                <RefreshCcw className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
-                                <HistoryIcon className="mr-2 h-4 w-4" /> Runs
-                            </Button>
-                            <div className="flex items-center gap-2 mr-2">
-                                <span className="text-sm font-medium text-muted-foreground">Run</span>
-                                <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
-                            </div>
+                        <Button variant="outline" onClick={() => { onLayout(); rfInstance?.fitView({ padding: 0.2, maxZoom: 1 }); }}>
+                            <RefreshCcw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
+                            <HistoryIcon className="mr-2 h-4 w-4" /> Runs
+                        </Button>
+                        <div className="flex items-center gap-2 mr-2">
+                            <span className="text-sm font-medium text-muted-foreground">Run</span>
+                            <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
+                        </div>
                     </div>
                 </div>
 
@@ -489,6 +490,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         <RightGenericSidebar
                             key={selectedNode.id}
                             selectedNode={selectedNode}
+                            nodes={nodes}
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
@@ -497,18 +499,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     )}
 
                     {addingNodeOnEdgeId && (
-                        <StepSelector 
-                            onSelect={handleAppSelect} 
-                            onClose={() => setAddingNodeOnEdgeId(null)} 
+                        <StepSelector
+                            onSelect={handleAppSelect}
+                            onClose={() => setAddingNodeOnEdgeId(null)}
                             mode={addingNodeOnEdgeId === 'PLACEHOLDER_MODE' ? 'trigger' : 'action'}
                         />
                     )}
 
 
-                    <RunSidebar 
-                        isOpen={isRunSidebarOpen} 
-                        onClose={() => setIsRunSidebarOpen(false)} 
-                        nodes={nodes} 
+                    <RunSidebar
+                        isOpen={isRunSidebarOpen}
+                        onClose={() => setIsRunSidebarOpen(false)}
+                        nodes={nodes}
                         socket={socket}
                         flowId={flowId}
                     />
