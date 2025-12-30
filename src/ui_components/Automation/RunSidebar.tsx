@@ -138,9 +138,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
 
     // Socket listeners removed - now handled by parent AutomationEditor for single source of truth
     useEffect(() => {
-        if (socket && !onResultsChange) {
+        if (socket) {
             // Only add listeners if NOT controlled externally (backward compatibility or standalone use)
             const handleStepStart = (data: any) => {
+                console.log("handleStepStart", data);
                 setliveRun(true);
                 const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                 const noActiveResults = Object.keys(results).length === 0;
@@ -157,12 +158,14 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                 }));
             };
             const handleStepFinish = (data: any) => {
+                console.log("handleStepFinish", data);
                 setResults(prev => ({
                     ...prev,
                     [data.nodeId]: { nodeId: data.nodeId, status: data.status, output: data.output, duration: data.duration }
                 }));
             };
             const handleRunComplete = () => {
+                console.log("handleRunComplete");
                 const hasError = Object.values(results).some(r => r.status === 'error');
                 const newStatus = hasError ? 'error' : 'success';
                 if (view === 'live') setRunSummaryStatus(newStatus);

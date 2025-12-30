@@ -739,7 +739,7 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
             </CardContent>
           </Card>
         ) : viewMode === 'grid' ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
             {filteredApps.map((app) => (
               <IntegrationGridCard key={app.id || app.name} app={app} />
             ))}
@@ -752,33 +752,6 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
           </div>
         )}
       </div>
-
-      {/* CTA Section */}
-      {filteredApps.length > 0 && (
-        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="p-8 text-center">
-            <div className="space-y-4 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 p-3 rounded-full bg-primary/10">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold">Need a specific integration?</h3>
-              <p className="text-muted-foreground">
-                Can't find what you're looking for? Request a new integration and our team will prioritize it.
-              </p>
-              <div className="flex flex-wrap gap-3 justify-center pt-4">
-                <Button variant="outline" className="gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  View API Docs
-                </Button>
-                <Button className="gap-2 shadow-lg">
-                  <Plus className="h-4 w-4" />
-                  Request Integration
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -205,9 +205,9 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                             <div className="flex items-center gap-2 overflow-hidden w-full">
                                 <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
                                 <div className="flex flex-col items-start overflow-hidden text-left">
-                                    <span className="text-[10px] text-muted-foreground uppercase leading-none mb-0.5">{selectedConnection.name}</span>
+                                    <span className="text-[10px] text-muted-foreground uppercase leading-none mb-0.5">{selectedConnection.externalId}</span>
                                     <span className="text-xs font-medium truncate w-full">
-                                        {selectedConnection.externalId || selectedConnection.name}
+                                        {selectedConnection.name}
                                     </span>
                                 </div>
                             </div>

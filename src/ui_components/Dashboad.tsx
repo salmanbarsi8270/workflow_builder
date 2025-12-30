@@ -255,7 +255,7 @@ export default function WorkflowDashboard() {
              <div className="grid gap-2">
                 <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/integration')}>Connect New App</Button>
                 <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/automation')}>View Workflows</Button>
-                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/integration')}>Manage Integrations</Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/connections')}>Manage Connections</Button>
                 <Button variant="outline" className="w-full justify-start" onClick={handleNewWorkflow}>Create Workflow</Button>
              </div>
           </CardContent>
