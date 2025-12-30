@@ -41,13 +41,77 @@ interface IntegrationApp {
   featured?: boolean;
 }
 
-const categoryColors: Record<string, { bg: string, text: string }> = {
-  'productivity': { bg: 'bg-gradient-to-br from-blue-500/10 to-cyan-500/10', text: 'text-blue-600 dark:text-blue-400' },
-  'storage': { bg: 'bg-gradient-to-br from-green-500/10 to-emerald-500/10', text: 'text-green-600 dark:text-green-400' },
-  'communication': { bg: 'bg-gradient-to-br from-purple-500/10 to-violet-500/10', text: 'text-purple-600 dark:text-purple-400' },
-  'development': { bg: 'bg-gradient-to-br from-orange-500/10 to-amber-500/10', text: 'text-orange-600 dark:text-orange-400' },
-  'analytics': { bg: 'bg-gradient-to-br from-rose-500/10 to-pink-500/10', text: 'text-rose-600 dark:text-rose-400' },
-  'default': { bg: 'bg-gradient-to-br from-gray-500/10 to-slate-500/10', text: 'text-gray-600 dark:text-gray-400' }
+const categoryColors: Record<string, { bg: string, text: string, border: string }> = {
+  'productivity': { 
+    bg: 'bg-blue-500/10 dark:bg-blue-500/20', 
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-800'
+  },
+  'cloud': { 
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', 
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800'
+  },
+  'communication': { 
+    bg: 'bg-purple-500/10 dark:bg-purple-500/20', 
+    text: 'text-purple-700 dark:text-purple-300',
+    border: 'border-purple-200 dark:border-purple-800'
+  },
+  'development': { 
+    bg: 'bg-orange-500/10 dark:bg-orange-500/20', 
+    text: 'text-orange-700 dark:text-orange-300',
+    border: 'border-orange-200 dark:border-orange-800'
+  },
+  'tools': { 
+    bg: 'bg-rose-500/10 dark:bg-rose-500/20', 
+    text: 'text-rose-700 dark:text-rose-300',
+    border: 'border-rose-200 dark:border-rose-800'
+  },
+  'marketing': { 
+    bg: 'bg-amber-500/10 dark:bg-amber-500/20', 
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-200 dark:border-amber-800'
+  },
+  'crm': { 
+    bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', 
+    text: 'text-indigo-700 dark:text-indigo-300',
+    border: 'border-indigo-200 dark:border-indigo-800'
+  },
+  'social': { 
+    bg: 'bg-sky-500/10 dark:bg-sky-500/20', 
+    text: 'text-sky-700 dark:text-sky-300',
+    border: 'border-sky-200 dark:border-sky-800'
+  },
+  'finance': { 
+    bg: 'bg-green-500/10 dark:bg-green-500/20', 
+    text: 'text-green-700 dark:text-green-300',
+    border: 'border-green-200 dark:border-green-800'
+  },
+  'e-commerce': { 
+    bg: 'bg-violet-500/10 dark:bg-violet-500/20', 
+    text: 'text-violet-700 dark:text-violet-300',
+    border: 'border-violet-200 dark:border-violet-800'
+  },
+  'ai': { 
+    bg: 'bg-cyan-500/10 dark:bg-cyan-500/20', 
+    text: 'text-cyan-700 dark:text-cyan-300',
+    border: 'border-cyan-200 dark:border-cyan-800'
+  },
+  'education': { 
+    bg: 'bg-lime-500/10 dark:bg-lime-500/20', 
+    text: 'text-lime-700 dark:text-lime-300',
+    border: 'border-lime-200 dark:border-lime-800'
+  },
+  'security': { 
+    bg: 'bg-slate-500/10 dark:bg-slate-500/20', 
+    text: 'text-slate-700 dark:text-slate-300',
+    border: 'border-slate-200 dark:border-slate-800'
+  },
+  'default': { 
+    bg: 'bg-gray-500/10 dark:bg-gray-500/20', 
+    text: 'text-gray-700 dark:text-gray-300',
+    border: 'border-gray-200 dark:border-gray-800'
+  }
 };
 
 const StatusIndicator = ({ status, size = "sm" }: { status: IntegrationApp['connectionStatus']; size?: "sm" | "md" }) => {
@@ -124,7 +188,7 @@ const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: Integrati
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
   
   return (
-    <Card className="group hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50 hover:border-primary/30 relative">
+    <Card className="group hover:-translate-y-1 hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50 hover:border-primary/30 relative bg-card/50 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -150,7 +214,10 @@ const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: Integrati
                   <StatusIndicator status={app.connectionStatus} />
                 )}
               </div>
-              <Badge variant="outline" className={colors.text}>
+              <Badge 
+                variant="outline" 
+                className={`${colors.bg} ${colors.text} ${colors.border} border font-medium capitalize`}
+              >
                 {app.category}
               </Badge>
             </div>
@@ -237,17 +304,16 @@ const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: Integrati
           )}
           
           <Button 
-            variant={app.connected ? "outline" : "default"}
-            className={`
-              w-full font-semibold transition-all duration-300
-              ${app.connected 
-                ? 'border-dashed hover:border-primary hover:bg-primary/5' 
-                : 'bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl'
-              }
-            `}
-            onClick={() => onConnect(app)}
-            disabled={connectingApp === app.id}
-          >
+          variant={app.connected ? "outline" : "default"}
+          className={`
+            w-full font-semibold transition-all duration-300 relative overflow-hidden
+            ${app.connected 
+              ? 'border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary' 
+              : 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'}
+          `}
+          onClick={() => onConnect(app)}
+          disabled={connectingApp === app.id}
+        >
             {connectingApp === app.id ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -270,8 +336,8 @@ const IntegrationListItem = ({ app, onConnect, connectingApp }: { app: Integrati
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
-    <Card className="hover:shadow-md transition-all duration-300">
-      <CardContent className="p-6">
+    <Card className="group hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 border-border/50 hover:border-primary/20">
+      <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div className={`
             p-3 rounded-xl ${colors.bg}
@@ -300,7 +366,10 @@ const IntegrationListItem = ({ app, onConnect, connectingApp }: { app: Integrati
             </div>
             
             <div className="flex items-center gap-3 mb-2">
-              <Badge variant="outline" className={colors.text}>
+              <Badge 
+                variant="outline" 
+                className={`${colors.bg} ${colors.text} ${colors.border} border font-medium capitalize`}
+              >
                 {app.category}
               </Badge>
               {app.connected && app.accounts && (

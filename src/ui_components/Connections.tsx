@@ -163,7 +163,9 @@ export default function Connections() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-140px)] animate-in fade-in duration-500">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pr-4 -mr-4 custom-scrollbar space-y-6">
       {/* Header Section */}
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
@@ -252,8 +254,6 @@ export default function Connections() {
         </div>
       </motion.div>
 
-      {/* Main Content Scroll Area */}
-      <div className="flex-1 min-h-[300px] max-h-[550px] overflow-y-auto pr-4 -mr-4 custom-scrollbar">
         <AnimatePresence mode="wait">
         {isLoading ? (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
@@ -364,7 +364,7 @@ export default function Connections() {
 
       {/* Pagination Controls */}
       {filteredAccounts.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t mt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t mt-auto bg-background/50 backdrop-blur-sm sticky bottom-0 z-20">
           <div className="flex items-center gap-4">
             <p className="text-sm text-muted-foreground">
               Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
