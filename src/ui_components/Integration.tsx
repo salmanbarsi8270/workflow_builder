@@ -1,21 +1,20 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, CheckCircle, XCircle, RefreshCw, AlertCircle, Search, X, Loader2, UserCircle, Filter, Grid, List, ChevronDown, ChevronUp, Plus, Star, Zap, TrendingUp, Shield, Globe, MoreVertical, Info } from "lucide-react"
+import { ExternalLink, CheckCircle, RefreshCw, AlertCircle, Search, X, Loader2, UserCircle, Grid, List, Plus, Star, Zap, TrendingUp, Globe, MoreVertical, Info } from "lucide-react"
 import { getServices } from "./api/connectionlist"
 import { useUser } from '@/context/UserContext';
 import { API_URL } from './api/apiurl';
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Separator } from "@/components/ui/separator"
 
 interface ConnectedAccount {
   id: string;
@@ -79,6 +78,300 @@ const StatusIndicator = ({ status, size = "sm" }: { status: IntegrationApp['conn
   );
 };
 
+const StatsCard = ({ title, value, icon: Icon, trend, color }: any) => (
+  <Card className="overflow-hidden border border-border/50 hover:border-primary/30 transition-all duration-300 group">
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground font-medium">{title}</p>
+          <p className="text-3xl font-bold mt-2">{value}</p>
+          {trend && (
+            <div className={`flex items-center gap-1 mt-1 text-xs ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <TrendingUp className={`h-3 w-3 ${trend > 0 ? '' : 'rotate-180'}`} />
+              <span>{Math.abs(trend)}% this month</span>
+            </div>
+          )}
+        </div>
+        <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const IntegrationCardSkeleton = () => (
+  <Card className="overflow-hidden animate-pulse">
+    <CardHeader>
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-12 w-12 rounded-xl" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-16 w-full" />
+    </CardContent>
+    <CardFooter>
+      <Skeleton className="h-10 w-full" />
+    </CardFooter>
+  </Card>
+);
+
+const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: IntegrationApp, onConnect: (app: IntegrationApp) => void, connectingApp: string | null }) => {
+  const colors = categoryColors[app.category || 'default'] || categoryColors.default;
+  
+  return (
+    <Card className="group hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50 hover:border-primary/30 relative">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`
+              ${app.connected ? 'ring-2 ring-primary/20' : 'ring-1 ring-border'} 
+              p-3 rounded-xl ${colors.bg}
+              group-hover:scale-105 transition-transform
+            `}>
+              <img 
+                src={app.icon} 
+                alt={app.name} 
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=6b7280&color=fff`;
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold">{app.name}</CardTitle>
+                {app.connected && (
+                  <StatusIndicator status={app.connectionStatus} />
+                )}
+              </div>
+              <Badge variant="outline" className={colors.text}>
+                {app.category}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pb-3">
+        <CardDescription className="text-sm leading-relaxed line-clamp-2">
+          {app.description}
+        </CardDescription>
+
+        {app.connected && app.accounts && app.accounts.length > 0 && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Connected Accounts</span>
+              <Badge variant="secondary">{app.accounts.length}</Badge>
+            </div>
+            <div className="flex -space-x-2">
+              {app.accounts.slice(0, 3).map((account, index) => (
+                <TooltipProvider key={account.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative">
+                        <div className="w-8 h-8 rounded-full border-2 border-background bg-muted overflow-hidden">
+                          {account.avatarUrl ? (
+                            <img 
+                              src={account.avatarUrl} 
+                              alt={account.username}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <UserCircle className="w-full h-full text-muted-foreground" />
+                          )}
+                        </div>
+                        {index === 2 && app.accounts && app.accounts.length > 3 && (
+                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white">+{app.accounts.length - 3}</span>
+                          </div>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{account.username}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {app.lastSynced && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <RefreshCw className="h-3 w-3" />
+            <span>Synced {new Date(app.lastSynced).toLocaleDateString()}</span>
+          </div>
+        )}
+
+        {app.syncProgress !== undefined && (
+          <div className="mt-3 space-y-2">
+            <div className="flex justify-between text-xs">
+              <span>Syncing...</span>
+              <span>{app.syncProgress}%</span>
+            </div>
+            <Progress value={app.syncProgress} className="h-1.5" />
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="border-t pt-4">
+        <div className="flex flex-col gap-2 w-full">
+          {app.connected && (
+            <Button 
+              variant="outline" 
+              className="w-full group-hover:bg-primary/5 transition-colors font-medium"
+              asChild
+            >
+              <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
+                <UserCircle className="h-4 w-4 mr-2" />
+                Manage Accounts
+              </Link>
+            </Button>
+          )}
+          
+          <Button 
+            variant={app.connected ? "outline" : "default"}
+            className={`
+              w-full font-semibold transition-all duration-300
+              ${app.connected 
+                ? 'border-dashed hover:border-primary hover:bg-primary/5' 
+                : 'bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl'
+              }
+            `}
+            onClick={() => onConnect(app)}
+            disabled={connectingApp === app.id}
+          >
+            {connectingApp === app.id ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                {app.connected ? <Plus className="h-4 w-4 mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+                {app.connected ? "Add Account" : "Connect"}
+              </>
+            )}
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+};
+
+const IntegrationListItem = ({ app, onConnect, connectingApp }: { app: IntegrationApp, onConnect: (app: IntegrationApp) => void, connectingApp: string | null }) => {
+  const colors = categoryColors[app.category || 'default'] || categoryColors.default;
+
+  return (
+    <Card className="hover:shadow-md transition-all duration-300">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <div className={`
+            p-3 rounded-xl ${colors.bg}
+            ${app.connected ? 'ring-2 ring-primary/20' : ''}
+          `}>
+            <img 
+              src={app.icon} 
+              alt={app.name} 
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=6b7280&color=fff`;
+              }}
+            />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-semibold text-lg truncate">{app.name}</h3>
+              {app.featured && (
+                <Star className="h-3 w-3 text-amber-500 fill-current" />
+              )}
+              {app.connected && (
+                <StatusIndicator status={app.connectionStatus} size="md" />
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3 mb-2">
+              <Badge variant="outline" className={colors.text}>
+                {app.category}
+              </Badge>
+              {app.connected && app.accounts && (
+                <Badge variant="secondary">
+                  {app.accounts.length} account{app.accounts.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
+              {app.popularity && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Zap className="h-3 w-3" />
+                  <span>{app.popularity}% popular</span>
+                </div>
+              )}
+            </div>
+            
+            <p className="text-sm text-muted-foreground line-clamp-1">
+              {app.description}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button 
+              variant={app.connected ? "outline" : "default"}
+              size="sm"
+              onClick={() => onConnect(app)}
+              disabled={connectingApp === app.id}
+              className="min-w-[120px]"
+            >
+              {connectingApp === app.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : app.connected ? (
+                "Add Account"
+              ) : (
+                "Connect"
+              )}
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon"
+              asChild
+            >
+              <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
+                <UserCircle className="h-4 w-4" />
+              </Link>
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Info className="h-4 w-4 mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sync Now
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 interface IntegrationProps {
   defaultTab?: string;
 }
@@ -95,7 +388,6 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'popular' | 'name' | 'recent'>('popular');
-  const [expandedApp, setExpandedApp] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConnections();
@@ -236,300 +528,6 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
     return Array.from(categories);
   }, [apps]);
 
-  const StatsCard = ({ title, value, icon: Icon, trend, color }: any) => (
-    <Card className="overflow-hidden border border-border/50 hover:border-primary/30 transition-all duration-300 group">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground font-medium">{title}</p>
-            <p className="text-3xl font-bold mt-2">{value}</p>
-            {trend && (
-              <div className={`flex items-center gap-1 mt-1 text-xs ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                <TrendingUp className={`h-3 w-3 ${trend > 0 ? '' : 'rotate-180'}`} />
-                <span>{Math.abs(trend)}% this month</span>
-              </div>
-            )}
-          </div>
-          <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform`}>
-            <Icon className="h-6 w-6" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const IntegrationCardSkeleton = () => (
-    <Card className="overflow-hidden animate-pulse">
-      <CardHeader>
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-xl" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-16 w-full" />
-      </CardContent>
-      <CardFooter>
-        <Skeleton className="h-10 w-full" />
-      </CardFooter>
-    </Card>
-  );
-
-  const IntegrationGridCard = ({ app }: { app: IntegrationApp }) => (
-    <Card className="group hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50 hover:border-primary/30 relative">
-      {app.featured && (
-        <div className="absolute top-3 right-3 z-10">
-          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
-            <Star className="h-3 w-3 mr-1 fill-current" />
-            Featured
-          </Badge>
-        </div>
-      )}
-      
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`
-              ${app.connected ? 'ring-2 ring-primary/20' : 'ring-1 ring-border'} 
-              p-3 rounded-xl ${categoryColors[app.category || 'default'].bg}
-              group-hover:scale-105 transition-transform
-            `}>
-              <img 
-                src={app.icon} 
-                alt={app.name} 
-                className="w-8 h-8 object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=6b7280&color=fff`;
-                }}
-              />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg font-semibold">{app.name}</CardTitle>
-                {app.connected && (
-                  <StatusIndicator status={app.connectionStatus} />
-                )}
-              </div>
-              <Badge variant="outline" className={categoryColors[app.category || 'default'].text}>
-                {app.category}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pb-3">
-        <CardDescription className="text-sm leading-relaxed line-clamp-2">
-          {app.description}
-        </CardDescription>
-
-        {app.connected && app.accounts && app.accounts.length > 0 && (
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Connected Accounts</span>
-              <Badge variant="secondary">{app.accounts.length}</Badge>
-            </div>
-            <div className="flex -space-x-2">
-              {app.accounts.slice(0, 3).map((account, index) => (
-                <TooltipProvider key={account.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative">
-                        <div className="w-8 h-8 rounded-full border-2 border-background bg-muted overflow-hidden">
-                          {account.avatarUrl ? (
-                            <img 
-                              src={account.avatarUrl} 
-                              alt={account.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <UserCircle className="w-full h-full text-muted-foreground" />
-                          )}
-                        </div>
-                        {index === 2 && app.accounts && app.accounts.length > 3 && (
-                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                            <span className="text-xs text-white">+{app.accounts.length - 3}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{account.username}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {app.lastSynced && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-            <RefreshCw className="h-3 w-3" />
-            <span>Synced {new Date(app.lastSynced).toLocaleDateString()}</span>
-          </div>
-        )}
-
-        {app.syncProgress !== undefined && (
-          <div className="mt-3 space-y-2">
-            <div className="flex justify-between text-xs">
-              <span>Syncing...</span>
-              <span>{app.syncProgress}%</span>
-            </div>
-            <Progress value={app.syncProgress} className="h-1.5" />
-          </div>
-        )}
-      </CardContent>
-      
-      <CardFooter className="border-t pt-4">
-        <div className="flex flex-col gap-2 w-full">
-          {app.connected && (
-            <Button 
-              variant="outline" 
-              className="w-full group-hover:bg-primary/5 transition-colors font-medium"
-              asChild
-            >
-              <a href={`/connections?search=${encodeURIComponent(app.name)}`}>
-                <UserCircle className="h-4 w-4 mr-2" />
-                Manage Accounts
-              </a>
-            </Button>
-          )}
-          
-          <Button 
-            variant={app.connected ? "outline" : "default"}
-            className={`
-              w-full font-semibold transition-all duration-300
-              ${app.connected 
-                ? 'border-dashed hover:border-primary hover:bg-primary/5' 
-                : 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl'
-              }
-            `}
-            onClick={() => handleConnect(app)}
-            disabled={connectingApp === app.id}
-          >
-            {connectingApp === app.id ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                {app.connected ? <Plus className="h-4 w-4 mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
-                {app.connected ? "Add Account" : "Connect"}
-              </>
-            )}
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-
-  const IntegrationListItem = ({ app }: { app: IntegrationApp }) => (
-    <Card className="hover:shadow-md transition-all duration-300">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <div className={`
-            p-3 rounded-xl ${categoryColors[app.category || 'default'].bg}
-            ${app.connected ? 'ring-2 ring-primary/20' : ''}
-          `}>
-            <img 
-              src={app.icon} 
-              alt={app.name} 
-              className="w-8 h-8 object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=6b7280&color=fff`;
-              }}
-            />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-semibold text-lg truncate">{app.name}</h3>
-              {app.featured && (
-                <Star className="h-3 w-3 text-amber-500 fill-current" />
-              )}
-              {app.connected && (
-                <StatusIndicator status={app.connectionStatus} size="md" />
-              )}
-            </div>
-            
-            <div className="flex items-center gap-3 mb-2">
-              <Badge variant="outline" className={categoryColors[app.category || 'default'].text}>
-                {app.category}
-              </Badge>
-              {app.connected && app.accounts && (
-                <Badge variant="secondary">
-                  {app.accounts.length} account{app.accounts.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
-              {app.popularity && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Zap className="h-3 w-3" />
-                  <span>{app.popularity}% popular</span>
-                </div>
-              )}
-            </div>
-            
-            <p className="text-sm text-muted-foreground line-clamp-1">
-              {app.description}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Button 
-              variant={app.connected ? "outline" : "default"}
-              size="sm"
-              onClick={() => handleConnect(app)}
-              disabled={connectingApp === app.id}
-              className="min-w-[120px]"
-            >
-              {connectingApp === app.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : app.connected ? (
-                "Add Account"
-              ) : (
-                "Connect"
-              )}
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="icon"
-              asChild
-            >
-              <a href={`/connections?search=${encodeURIComponent(app.name)}`}>
-                <UserCircle className="h-4 w-4" />
-              </a>
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Info className="h-4 w-4 mr-2" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Sync Now
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -538,11 +536,11 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
+              <div className="p-2 rounded-xl bg-linear-to-br from-primary/20 to-primary/10">
                 <Globe className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   Integrations Marketplace
                 </h1>
                 <p className="text-muted-foreground">
@@ -712,7 +710,7 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <IntegrationCardSkeleton key={i} />
             ))}
@@ -741,13 +739,23 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
         ) : viewMode === 'grid' ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
             {filteredApps.map((app) => (
-              <IntegrationGridCard key={app.id || app.name} app={app} />
+              <IntegrationGridCard 
+                key={app.id || app.name} 
+                app={app} 
+                onConnect={handleConnect}
+                connectingApp={connectingApp}
+              />
             ))}
           </div>
         ) : (
           <div className="space-y-3">
             {filteredApps.map((app) => (
-              <IntegrationListItem key={app.id || app.name} app={app} />
+              <IntegrationListItem 
+                key={app.id || app.name} 
+                app={app} 
+                onConnect={handleConnect}
+                connectingApp={connectingApp}
+              />
             ))}
           </div>
         )}

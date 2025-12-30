@@ -24,16 +24,6 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
         handleChange(field, currentValue + variable);
     };
 
-    const handleNumberChange = (field: string, value: string, min: number = 1, max?: number) => {
-        let num = Number(value);
-        if (isNaN(num)) return;
-        
-        // Clamp to min/max
-        if (num < min) num = min;
-        if (max !== undefined && num > max) num = max;
-        
-        handleChange(field, num);
-    };
 
     return (
         <div className="flex flex-col gap-4">
