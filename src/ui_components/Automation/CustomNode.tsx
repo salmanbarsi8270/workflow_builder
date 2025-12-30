@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe } from "lucide-react"; 
+import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe } from "lucide-react";
 import { calculateNodeProgress, shouldShowProgress as getShouldShowProgress } from './nodeUtils';
 import { AppLogoMap } from './Applogo';
 
@@ -13,38 +13,38 @@ const IconMap: Record<string, any> = {
   'webhook': Zap,
   'schedule': Clock,
   'form': FileText,
-  
+
   // Actions
   'action': Monitor,
   'send': Mail,
   'notify': AlertCircle,
   'delay': Clock,
   'condition': AlertTriangle,
-  
+
   // Google Services
   'gmail': Mail,
   'sheets': FileText,
   'docs': FileText,
   'drive': HardDrive,
   'calendar': Clock,
-  
+
   // Communication
   'email': Mail,
   'slack': MessageSquare,
   'sms': Smartphone,
   'notification': Bell,
-  
+
   // File Operations
   'file': FileText,
   'document': FileText,
   'upload': Upload,
   'download': Download,
-  
+
   // Database
   'database': Database,
   'api': Globe,
   'web': Globe,
-  
+
   // Default fallback
   'default': Zap
 };
@@ -126,7 +126,7 @@ const StatusIcon = ({ status, size = "sm" }: { status: StatusType; size?: "sm" |
     md: "h-4 w-4",
     lg: "h-5 w-5"
   };
-  
+
   switch (status) {
     case 'running':
       return <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-500`} />;
@@ -162,11 +162,11 @@ const StatusIcon = ({ status, size = "sm" }: { status: StatusType; size?: "sm" |
 // Progress indicator component
 const ProgressIndicator = ({ progress }: { progress?: number }) => {
   if (progress === undefined) return null;
-  
+
   return (
     <div className="mt-2">
       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-        <div 
+        <div
           className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500 ease-out"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
@@ -188,7 +188,7 @@ const CustomNode = ({ data, selected }: NodeProps) => {
   const customColor = data.customColor as string;
   const progress = calculateNodeProgress(data);
   const showProgress = getShouldShowProgress(data);
-  
+
   // Get color configuration
   const colorConfig = StatusColors[status] || StatusColors.pending;
 
@@ -211,11 +211,11 @@ const CustomNode = ({ data, selected }: NodeProps) => {
   if (isPlaceholder) {
     return (
       <div className="relative group">
-        <div 
+        <div
           className={cn(
             "w-[280px] h-[86px] flex items-center justify-center border-2 border-dashed rounded-xl bg-gradient-to-br from-muted/20 to-muted/40 hover:from-muted/30 hover:to-muted/50 transition-all cursor-pointer backdrop-blur-sm",
-            selected 
-              ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10" 
+            selected
+              ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
               : "border-muted-foreground/30 hover:border-primary/50"
           )}
         >
@@ -224,10 +224,10 @@ const CustomNode = ({ data, selected }: NodeProps) => {
             <span>Select Trigger</span>
           </div>
         </div>
-        <Handle 
-          type="source" 
-          position={Position.Bottom} 
-          className="!w-3 !h-3 !bg-muted-foreground/30 !-bottom-1.5 !border-2 !border-background" 
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!w-3 !h-3 !bg-muted-foreground/30 !-bottom-1.5 !border-2 !border-background"
         />
       </div>
     );
@@ -243,13 +243,13 @@ const CustomNode = ({ data, selected }: NodeProps) => {
         )} />
       )}
       {customColor && (
-        <div 
+        <div
           className="absolute -inset-2 rounded-xl blur-xl opacity-30 transition-opacity"
           style={customStyles.glow}
         />
       )}
-      
-      <Card 
+
+      <Card
         className={cn(
           "w-[280px] p-4 shadow-lg border-2 transition-all duration-300 relative z-10 backdrop-blur-sm",
           selected ? "border-primary ring-2 ring-primary/20 scale-[1.02]" : (!customColor && colorConfig.border),
@@ -265,7 +265,7 @@ const CustomNode = ({ data, selected }: NodeProps) => {
         {/* Header with Icon and Title */}
         <div className="flex items-start gap-4">
           {/* Icon Container */}
-          <div 
+          <div
             className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110",
               !customColor && colorConfig.bg
@@ -273,27 +273,27 @@ const CustomNode = ({ data, selected }: NodeProps) => {
             style={customStyles.bg}
           >
             {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt={iconKey} 
+              <img
+                src={logoUrl}
+                alt={iconKey}
                 className={cn(
                   "h-6 w-6 object-contain transition-all duration-300",
                   status === 'running' ? "animate-pulse" : ""
-                )} 
+                )}
               />
             ) : (
-              <Icon 
+              <Icon
                 className={cn(
                   "h-6 w-6 transition-all duration-300",
                   status === 'running' ? "animate-pulse" : "",
                   !customColor && colorConfig.icon
-                )} 
+                )}
                 style={customStyles.icon}
               />
             )}
           </div>
 
-          
+
           {/* Content */}
           <div className="flex flex-col overflow-hidden flex-1 min-w-0">
             {/* Title and Status */}
@@ -306,17 +306,17 @@ const CustomNode = ({ data, selected }: NodeProps) => {
                 <ChevronDown className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer" />
               </div>
             </div>
-            
+
             {/* Subtitle */}
             <span className="text-xs text-muted-foreground truncate mb-2">
               {data.subLabel as string || "Configure this step"}
             </span>
-            
+
             {/* Tags/Categories */}
             {Array.isArray(data.tags) && data.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {(data.tags as string[]).slice(0, 2).map((tag, index) => (
-                  <span 
+                  <span
                     key={index}
                     className="px-1.5 py-0.5 text-[10px] rounded-md bg-muted/50 text-muted-foreground"
                   >
@@ -332,10 +332,10 @@ const CustomNode = ({ data, selected }: NodeProps) => {
             )}
           </div>
         </div>
-        
+
         {/* Progress Bar (conditional) */}
         {showProgress && <ProgressIndicator progress={progress} />}
-        
+
         {/* Execution Time */}
         {!!data.duration && (
           <div className="mt-2 pt-2 border-t border-border">
@@ -345,38 +345,38 @@ const CustomNode = ({ data, selected }: NodeProps) => {
             </div>
           </div>
         )}
-        
+
         {/* Handles */}
-        <Handle 
-          type="target" 
-          position={Position.Top} 
+        <Handle
+          type="target"
+          position={Position.Top}
           className={cn(
             "!w-3 !h-3 !top-[-6px] !border-2 !border-background transition-all duration-300",
             !customColor && `!${colorConfig.handle}`
-          )} 
+          )}
           style={customStyles.handle}
         />
-        <Handle 
-          type="source" 
-          position={Position.Bottom} 
+        <Handle
+          type="source"
+          position={Position.Bottom}
           className={cn(
             "!w-3 !h-3 !bottom-[-6px] !border-2 !border-background transition-all duration-300",
             !customColor && `!${colorConfig.handle}`
-          )} 
+          )}
           style={customStyles.handle}
         />
 
-        
+
         {/* Right-side handle for branching */}
         {!!data.hasBranch && (
-          <Handle 
-            type="source" 
-            position={Position.Right} 
+          <Handle
+            type="source"
+            position={Position.Right}
             id="branch"
             className={cn(
               "!w-3 !h-3 !right-[-6px] !border-2 !border-background transition-all duration-300",
               !customColor && `!${colorConfig.handle}`
-            )} 
+            )}
             style={customStyles.handle}
           />
         )}

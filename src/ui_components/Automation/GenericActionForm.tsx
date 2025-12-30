@@ -8,9 +8,8 @@ import { useState, useEffect } from "react";
 import { type Node } from "@xyflow/react";
 import { usePiecesMetadata } from "./usePiecesMetadata";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Database, Search } from "lucide-react";
+import { Database, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
 interface GenericActionFormProps {
@@ -27,6 +26,16 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
     const { pieces } = usePiecesMetadata();
     const [search, setSearch] = useState("");
     const [open, setOpen] = useState(false);
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+    const toggle = (id: string) => {
+        setExpanded(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }
 
     // Filter: 
     // 1. Not placeholder
@@ -42,9 +51,14 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
         return actionDef?.type === 'trigger';
     };
 
+    // Find the current node to get its position
+    const currentNode = normalizedCurrentNodeId
+        ? nodes.find(n => String(n.id) === normalizedCurrentNodeId)
+        : null;
+
     const availableNodes = nodes.filter(n => {
         const nodeId = String(n.id);
-        
+
         // Always exclude the node being currently configured and the end node
         if (nodeId === normalizedCurrentNodeId || nodeId === 'end') return false;
 
@@ -56,8 +70,12 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
         // Exclude placeholders otherwise
         if (n.data?.isPlaceholder) return false;
 
-        // We removed position-based exclusion to ensure all configured previous steps are visible
-        // even if they share the same Y position or layout hasn't run.
+        // Only show nodes that appear BEFORE the current node (smaller Y position)
+        // This ensures proper data flow: each step can only access data from previous steps
+        if (currentNode && n.position.y >= currentNode.position.y) {
+            return false;
+        }
+
         return true;
     });
 
@@ -101,38 +119,57 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
                             const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema || [];
 
                             const nodeLabel = (node.data.label as string) || '';
-                            if (search && !nodeLabel.toLowerCase().includes(search.toLowerCase())) return null;
+                            const lowerSearch = search.toLowerCase();
+                            const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
+
+                            const filteredSchema = schema.filter((prop: any) => {
+                                if (!search) return true;
+                                return matchesNodeLabel ||
+                                    prop.name.toLowerCase().includes(lowerSearch) ||
+                                    prop.type.toLowerCase().includes(lowerSearch);
+                            });
+
+                            if (!matchesNodeLabel && filteredSchema.length === 0 && search) return null;
+
+                            const isExpanded = expanded.has(node.id) || (!!search && filteredSchema.length > 0);
 
                             return (
-                                <div key={node.id} className="mb-2">
-                                    <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                                        {nodeLabel || 'Step'}
-                                        <Badge variant="outline" className="ml-auto text-[8px] h-3 px-1">ID: {node.id}</Badge>
+                                <div key={node.id} className="mb-2 border rounded-md overflow-hidden bg-background">
+                                    <div
+                                        className="px-3 py-2 text-xs font-medium bg-muted/30 hover:bg-muted/50 cursor-pointer flex items-center justify-between transition-colors"
+                                        onClick={() => toggle(node.id)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                                            <span className="truncate max-w-[150px]">{nodeLabel || 'Step'}</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[8px] h-3 px-1 ml-2 shrink-0">ID: {node.id}</Badge>
                                     </div>
-                                    <div className="space-y-0.5">
-                                        {schema.length === 0 ? (
-                                            <button
-                                                onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}
-                                                className="w-full text-left px-4 py-1.5 text-xs hover:bg-muted rounded transition-colors flex items-center justify-between"
-                                            >
-                                                <span>Full Object</span>
-                                                <span className="text-[10px] text-muted-foreground">any</span>
-                                            </button>
-                                        ) : (
-                                            schema.map((prop: any) => (
+
+                                    {isExpanded && (
+                                        <div className="divide-y border-t bg-card/50">
+                                            {filteredSchema.length === 0 ? (
                                                 <button
-                                                    key={prop.name}
-                                                    onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}
-                                                    className="w-full text-left px-4 py-1.5 text-xs hover:bg-muted rounded transition-colors flex items-center justify-between group"
+                                                    onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}
+                                                    className="w-full text-left px-8 py-2 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between"
                                                 >
-                                                    <span className="group-hover:text-primary transition-colors">{prop.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground capitalize">{prop.type}</span>
+                                                    <span>Full Object</span>
+                                                    <span className="text-[10px] text-muted-foreground">any</span>
                                                 </button>
-                                            ))
-                                        )}
-                                    </div>
-                                    <Separator className="mt-2 opacity-50" />
+                                            ) : (
+                                                filteredSchema.map((prop: any) => (
+                                                    <button
+                                                        key={prop.name}
+                                                        onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}
+                                                        className="w-full text-left px-8 py-2 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between group"
+                                                    >
+                                                        <span className="truncate">{prop.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground capitalize shrink-0 ml-2">{prop.type}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })
@@ -205,6 +242,15 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
 
     const appName = data.appName || 'App';
 
+    const checkIsTrigger = () => {
+        const actionId = data.actionId;
+        const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === data.icon);
+        const actionDef = appDef?.actions.find(a => a.id === actionId);
+        return actionDef?.type === 'trigger';
+    };
+
+    const isTrigger = checkIsTrigger();
+
     return (
         <div className="flex flex-col gap-4">
             {parameters.map(param => {
@@ -222,7 +268,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
                                 {param.label} {param.required && <span className="text-red-500">*</span>}
                             </Label>
-                            {(param.type === 'string' || param.type === 'number' || param.type === 'array' || param.type === 'object' || param.type === 'select') && (
+                            {(param.type === 'string' || param.type === 'number' || param.type === 'array' || param.type === 'object' || param.type === 'select') && !isTrigger && (
                                 <VariablePicker
                                     nodes={nodes}
                                     onSelect={(v) => handleVariableSelect(param.name, v)}
