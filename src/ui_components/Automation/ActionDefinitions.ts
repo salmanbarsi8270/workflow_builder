@@ -2,13 +2,14 @@ import { Mail, FileSpreadsheet, Clock, HardDrive, FileText, Github, Globe } from
 
 export interface ActionParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select' | 'object';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select' | 'object' | 'dynamic-select';
   label: string;
   description?: string;
   required?: boolean;
   default?: any;
   options?: { label: string, value: string }[];
-  dependsOn?: { field: string, value: any };
+  dependsOn?: string[] | { field: string, value: any };
+  dynamicOptions?: { action: string, dependsOn?: string[] };
 }
 
 export interface PropertyMetadata {
@@ -111,18 +112,11 @@ export const APP_DEFINITIONS: AppDefinition[] = [
              { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true },
              { 
                name: 'folder', 
-               type: 'select', 
+               type: 'dynamic-select', 
                label: 'Folder', 
                default: 'INBOX',
                required: true,
-               options: [
-                 { label: 'Inbox', value: 'INBOX' },
-                 { label: 'Sent', value: 'SENT' },
-                 { label: 'Starred', value: 'STARRED' },
-                 { label: 'Important', value: 'IMPORTANT' },
-                 { label: 'Trash', value: 'TRASH' },
-                 { label: 'Spam', value: 'SPAM' }
-               ]
+               dynamicOptions: { action: 'listLabels' }
              },
              { name: 'q', type: 'string', label: 'Search Query', description: 'Optional. e.g. "from:boss@example.com"' }
         ],
@@ -168,6 +162,21 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         ]
       },
       {
+        id: 'listLabels',
+        name: 'List Labels',
+        description: 'Lists all available Gmail labels.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Gmail Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'labels', type: 'array', items: { name: 'label', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
+        ]
+      },
+      {
         id: 'getMessage',
         name: 'Get Message',
         description: 'Get a specific message by its ID.',
@@ -201,9 +210,33 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'The sheet name or range (e.g., Sheet1!A1).', required: true },
+            { 
+              name: 'spreadsheetId', 
+              type: 'dynamic-select', 
+              label: 'Spreadsheet', 
+              description: 'The spreadsheet to append to.', 
+              required: true,
+              dynamicOptions: { action: 'listSpreadsheets' }
+            },
+            { 
+              name: 'range', 
+              type: 'dynamic-select', 
+              label: 'Sheet', 
+              description: 'The sheet to append to.', 
+              required: true,
+              dynamicOptions: { action: 'listSheets', dependsOn: ['spreadsheetId'] }
+            },
             { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"]).', required: true }
+        ],
+        outputSchema: [
+          { name: 'spreadsheetId', type: 'string' },
+          { name: 'tableRange', type: 'string' },
+          { name: 'updates', type: 'object', properties: [
+            { name: 'updatedRange', type: 'string' },
+            { name: 'updatedRows', type: 'number' },
+            { name: 'updatedColumns', type: 'number' },
+            { name: 'updatedCells', type: 'number' }
+          ]}
         ]
       },
       { 
@@ -213,9 +246,26 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'The sheet name or range (e.g., Sheet1!A1).', required: true },
-            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row (e.g., ["Data 1", "Data 2"]).', required: true }
+            { 
+              name: 'spreadsheetId', 
+              type: 'dynamic-select', 
+              label: 'Spreadsheet', 
+              description: 'The spreadsheet to append to.', 
+              required: true,
+              dynamicOptions: { action: 'listSpreadsheets' }
+            },
+            { name: 'range', type: 'string', label: 'Sheet Name', description: 'The sheet name (will be created if missing).', required: true },
+            { name: 'values', type: 'array', label: 'Values', description: 'List of values for the row.', required: true }
+        ],
+        outputSchema: [
+          { name: 'spreadsheetId', type: 'string' },
+          { name: 'tableRange', type: 'string' },
+          { name: 'updates', type: 'object', properties: [
+            { name: 'updatedRange', type: 'string' },
+            { name: 'updatedRows', type: 'number' },
+            { name: 'updatedColumns', type: 'number' },
+            { name: 'updatedCells', type: 'number' }
+          ]}
         ]
       },
       { 
@@ -225,8 +275,23 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
-            { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', description: 'The ID of the spreadsheet.', required: true },
-            { name: 'range', type: 'string', label: 'Range', description: 'The range to read (e.g., Sheet1!A1:B10).', required: true },
+            { 
+              name: 'spreadsheetId', 
+              type: 'dynamic-select', 
+              label: 'Spreadsheet', 
+              required: true,
+              dynamicOptions: { action: 'listSpreadsheets' }
+            },
+            { 
+              name: 'range', 
+              type: 'dynamic-select', 
+              label: 'Sheet', 
+              required: true,
+              dynamicOptions: { action: 'listSheets', dependsOn: ['spreadsheetId'] }
+            },
+        ],
+        outputSchema: [
+          { name: 'values', type: 'array', items: { name: 'row', type: 'array', items: { name: 'cell', type: 'string' } } }
         ]
       },
       { 
@@ -237,6 +302,37 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
             { name: 'title', type: 'string', label: 'Title', description: 'Title of the new spreadsheet.', required: true }
+        ]
+      },
+      {
+        id: 'listSpreadsheets',
+        name: 'List Spreadsheets',
+        description: 'Lists all available spreadsheets.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'files', type: 'array', items: { name: 'file', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
+        ]
+      },
+      {
+        id: 'listSheets',
+        name: 'List Sheets',
+        description: 'Lists all sheets in a spreadsheet.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Google Sheets Connection', required: true },
+          { name: 'spreadsheetId', type: 'string', label: 'Spreadsheet ID', required: true }
+        ],
+        outputSchema: [
+          { name: 'sheets', type: 'array', items: { name: 'sheet', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
         ]
       }
     ]
@@ -249,13 +345,21 @@ export const APP_DEFINITIONS: AppDefinition[] = [
     category: 'app',
     actions: [
       { 
-        id: 'listFiles', 
-        name: 'List Files', 
-        description: 'Lists files in the user\'s Drive.', 
+        id: 'uploadFile', 
+        name: 'Upload File', 
+        description: 'Uploads a file to Google Drive.', 
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Drive Connection', required: true },
-            { name: 'pageSize', type: 'number', label: 'Page Size', description: 'Number of files to return', default: 10 }
+            { name: 'filename', type: 'string', label: 'Filename', required: true },
+            { name: 'content', type: 'string', label: 'Content', required: true },
+            { 
+              name: 'parent', 
+              type: 'dynamic-select', 
+              label: 'Parent Folder', 
+              description: 'Optional parent folder ID.',
+              dynamicOptions: { action: 'listFolders' }
+            }
         ]
       },
       { 
@@ -265,7 +369,33 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
             { name: 'connection', type: 'connection', label: 'Google Drive Connection', required: true },
-            { name: 'name', type: 'string', label: 'Folder Name', description: 'Name of the new folder', required: true }
+            { name: 'name', type: 'string', label: 'Folder Name', description: 'Name of the new folder', required: true },
+            { 
+              name: 'parent', 
+              type: 'dynamic-select', 
+              label: 'Parent Folder', 
+              description: 'Optional parent folder ID.',
+              dynamicOptions: { action: 'listFolders' }
+            }
+        ],
+        outputSchema: [
+          { name: 'id', type: 'string' },
+          { name: 'name', type: 'string' }
+        ]
+      },
+      {
+        id: 'listFolders',
+        name: 'List Folders',
+        description: 'Lists all available folders in Google Drive.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Google Drive Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'folders', type: 'array', items: { name: 'folder', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
         ]
       }
     ]
@@ -293,9 +423,33 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         description: 'Appends text to an existing document.', 
         type: 'action',
         parameters: [
-             { name: 'connection', type: 'connection', label: 'Google Docs Connection', required: true },
-             { name: 'documentId', type: 'string', label: 'Document ID', required: true },
-             { name: 'text', type: 'string', label: 'Text', description: 'The text content to append', required: true }
+            { name: 'connection', type: 'connection', label: 'Google Docs Connection', required: true },
+            { 
+              name: 'documentId', 
+              type: 'dynamic-select', 
+              label: 'Document', 
+              required: true,
+              dynamicOptions: { action: 'listDocs' }
+            },
+            { name: 'text', type: 'string', label: 'Text', description: 'The text content to append', required: true }
+        ],
+        outputSchema: [
+          { name: 'documentId', type: 'string' }
+        ]
+      },
+      {
+        id: 'listDocs',
+        name: 'List Documents',
+        description: 'Lists all available Google Docs.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Google Docs Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'docs', type: 'array', items: { name: 'doc', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
         ]
       }
     ]
@@ -326,7 +480,14 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
-          { name: 'repository', type: 'string', label: 'Repository', description: 'e.g. owner/repo', required: true }
+          { 
+            name: 'repository', 
+            type: 'dynamic-select', 
+            label: 'Repository', 
+            description: 'The repository to use.', 
+            required: true,
+            dynamicOptions: { action: 'listRepos' }
+          },
         ]
       },
       {
@@ -371,7 +532,14 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
-          { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
+          { 
+            name: 'repository', 
+            type: 'dynamic-select', 
+            label: 'Repository', 
+            description: 'The repository to use.', 
+            required: true,
+            dynamicOptions: { action: 'listRepos' }
+          },
           { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to close', required: true }
         ]
       },
@@ -382,7 +550,14 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
-          { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
+          { 
+            name: 'repository', 
+            type: 'dynamic-select', 
+            label: 'Repository', 
+            description: 'The repository to use.', 
+            required: true,
+            dynamicOptions: { action: 'listRepos' }
+          },
           { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to reopen', required: true }
         ]
       },
@@ -393,7 +568,14 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
-          { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
+          { 
+            name: 'repository', 
+            type: 'dynamic-select', 
+            label: 'Repository', 
+            description: 'The repository to use.', 
+            required: true,
+            dynamicOptions: { action: 'listRepos' }
+          },
           { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to lock', required: true }
         ]
       },
@@ -404,8 +586,54 @@ export const APP_DEFINITIONS: AppDefinition[] = [
         type: 'action',
         parameters: [
           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
-          { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
+          { 
+            name: 'repository', 
+            type: 'dynamic-select', 
+            label: 'Repository', 
+            description: 'The repository to use.', 
+            required: true,
+            dynamicOptions: { action: 'listRepos' }
+          },
           { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to unlock', required: true }
+        ]
+      },
+      {
+        id: 'listRepos',
+        name: 'List Repositories',
+        description: 'Lists all available GitHub repositories.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'repos', type: 'array', items: { name: 'repo', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
+        ]
+      }
+    ]
+  },
+  {
+    id: 'microsoft',
+    name: 'Microsoft',
+    description: 'Connect to Microsoft services (Outlook, OneDrive).',
+    icon: Globe,
+    category: 'app',
+    actions: [
+      {
+        id: 'listFolders',
+        name: 'List Folders',
+        description: 'Lists mail or drive folders.',
+        type: 'action',
+        parameters: [
+          { name: 'connection', type: 'connection', label: 'Microsoft Connection', required: true }
+        ],
+        outputSchema: [
+          { name: 'folders', type: 'array', items: { name: 'folder', type: 'object', properties: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' }
+          ]}}
         ]
       }
     ]
@@ -436,4 +664,4 @@ export const APP_DEFINITIONS: AppDefinition[] = [
       }
     ]
   }
-];
+]

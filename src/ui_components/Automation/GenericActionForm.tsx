@@ -230,9 +230,117 @@ interface GenericActionFormProps {
     nodeId?: string;
 }
 
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/context/UserContext";
+import { API_URL } from "../api/apiurl";
+import axios from "axios";
+
+const DynamicSelect = ({
+    param,
+    value,
+    onChange,
+    disabled,
+    userId,
+    connectionId,
+    allParams,
+    service
+}: {
+    param: ActionParameter,
+    value: any,
+    onChange: (val: any) => void,
+    disabled?: boolean,
+    userId: string,
+    connectionId: string,
+    allParams: any,
+    service: string
+}) => {
+    const [options, setOptions] = useState<{ label: string, value: any }[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const dynamicOptions = param.dynamicOptions!;
+
+    // Determine if we have all required dependencies
+    const dependencies = dynamicOptions.dependsOn || [];
+    const missingDependencies = dependencies.some(dep => !allParams[dep]);
+
+    useEffect(() => {
+        if (!userId || !connectionId || missingDependencies) {
+            setOptions([]);
+            return;
+        }
+
+        const fetchOptions = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await axios.post(`${API_URL}/api/pieces/options`, {
+                    userId,
+                    service,
+                    actionName: dynamicOptions.action,
+                    params: {
+                        authId: connectionId,
+                        ...allParams
+                    }
+                });
+
+                if (res.data.success) {
+                    setOptions(res.data.options);
+                } else {
+                    setError(res.data.error || "Failed to load options");
+                }
+            } catch (err: any) {
+                setError(err.message || "Failed to load options");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOptions();
+    }, [userId, connectionId, service, dynamicOptions.action, ...dependencies.map(dep => allParams[dep])]);
+
+    if (!connectionId) return <div className="text-[10px] text-muted-foreground italic p-2 border rounded-md bg-muted/20">Please select a connection first</div>;
+    if (missingDependencies) return <div className="text-[10px] text-muted-foreground italic p-2 border rounded-md bg-muted/20">Please select {dependencies.join(' and ')} first</div>;
+
+    return (
+        <Select
+            value={value || ''}
+            onValueChange={onChange}
+            disabled={disabled || loading}
+        >
+            <SelectTrigger className={error ? "border-red-500" : ""}>
+                <SelectValue placeholder={loading ? "Loading..." : (param.description || `Select ${param.label}`)} />
+            </SelectTrigger>
+            <SelectContent>
+                {options.length === 0 && !loading && (
+                    <div className="p-2 text-center text-xs text-muted-foreground">No options found</div>
+                )}
+                {options.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+            {error && <p className="text-[10px] text-red-500 mt-1">{error}</p>}
+        </Select>
+    );
+};
+
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, errors = {}, nodeId }: GenericActionFormProps) {
+    const { user } = useUser();
+    const userId = user?.id || '';
+
     const handleChange = (field: string, value: any) => {
-        onChange({ ...params, [field]: value });
+        const updated = { ...params, [field]: value };
+
+        // Clear dependent fields if the parent changes
+        parameters.forEach(p => {
+            if (p.dynamicOptions?.dependsOn?.includes(field)) {
+                delete updated[p.name];
+            }
+        });
+
+        onChange(updated);
     };
 
     const handleVariableSelect = (field: string, variable: string) => {
@@ -241,6 +349,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
     };
 
     const appName = data.appName || 'App';
+    const service = data.icon || data.appName?.toLowerCase().replace(/\s+/g, '') || '';
 
     const checkIsTrigger = () => {
         const actionId = data.actionId;
@@ -287,6 +396,19 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 value={params[param.name] || ''}
                                 onChange={(val) => handleChange(param.name, val)}
                                 disabled={disabled}
+                            />
+                        )}
+
+                        {param.type === 'dynamic-select' && (
+                            <DynamicSelect
+                                param={param}
+                                value={params[param.name] || ''}
+                                onChange={(val) => handleChange(param.name, val)}
+                                disabled={disabled}
+                                userId={userId}
+                                connectionId={params['connection'] || params['authId'] || ''}
+                                allParams={params}
+                                service={service}
                             />
                         )}
 
