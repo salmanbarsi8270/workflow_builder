@@ -60,6 +60,12 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
             const matchingService = allServices.find((svc: any) => {
                 const svcId = (svc.id || '').toLowerCase();
                 const svcName = (svc.name || '').toLowerCase();
+
+                // Strict check for Google Drive to avoid matching 'microsft-onedrive' or 'onedrive'
+                if (mappedService === 'drive') {
+                    return svcId === 'drive' || svcName === 'google drive';
+                }
+
                 return svcId === mappedService || svcName === appName.toLowerCase() || svcId.includes(mappedService);
             });
 
@@ -221,7 +227,7 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                         Connected Accounts
                     </div>
                     {connections.map((conn) => (
-                        <div key={conn.id} className="group relative flex items-center pr-8 hover:bg-muted/50 rounded-sm">
+                        <div key={conn.id} className="relative flex items-center pr-8 hover:bg-muted/50 rounded-sm">
                             <SelectItem value={conn.id} className="flex-1 cursor-pointer focus:bg-transparent">
                                 <div className="flex flex-col py-0.5">
                                     <span className="text-xs font-medium leading-none mb-0.5">{conn.name}</span>
@@ -231,8 +237,10 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                                 </div>
                             </SelectItem>
                             <button
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors z-50"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors z-50 pointer-events-auto"
+                                style={{ pointerEvents: 'auto' }}
                                 onClick={(e) => handleDelete(conn.id, e)}
+                                onPointerDown={(e) => e.stopPropagation()}
                             >
                                 <Trash2 className="h-3 w-3" />
                             </button>

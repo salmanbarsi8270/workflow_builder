@@ -147,7 +147,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                 try {
                     const data = await getServices(user.id);
                     const services = data.data || [];
-                    
+
                     // Flatten all accounts from all services
                     const allAccounts: any[] = [];
                     services.forEach((svc: any) => {
@@ -165,7 +165,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                             });
                         }
                     });
-                    
+
                     setAllConnections(allAccounts);
                 } catch (error) {
                     console.error("Failed to fetch connections for sidebar", error);

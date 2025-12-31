@@ -362,7 +362,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
 
     return (
         <div className="flex flex-col gap-4">
-            {parameters.map(param => {
+            {parameters.map((param: any) => {
                 // Check conditional visibility
                 if (param.dependsOn) {
                     const dependentValue = params[param.dependsOn.field];
@@ -422,7 +422,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                     <SelectValue placeholder={param.description || "Select an option"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {param.options?.map(opt => (
+                                    {param.options?.map((opt: any) => (
                                         <SelectItem key={opt.value} value={opt.value}>
                                             {opt.label}
                                         </SelectItem>
