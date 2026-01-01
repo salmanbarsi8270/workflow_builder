@@ -179,7 +179,7 @@ const ProgressIndicator = ({ progress }: { progress?: number }) => {
   );
 };
 
-const CustomNode = ({ data, selected }: NodeProps) => {
+const CustomNode = ({ id, data, selected }: NodeProps) => {
   const iconKey = (data.icon as string) || (data.piece as string) || 'default';
   const logoUrl = AppLogoMap[iconKey];
   const Icon = IconMap[iconKey] || Zap;
@@ -206,31 +206,62 @@ const CustomNode = ({ data, selected }: NodeProps) => {
   };
 
   const customStyles = getCustomStyles();
+  const isStartNode = id === '1';
 
 
   if (isPlaceholder) {
-    return (
-      <div className="relative group">
-        <div
-          className={cn(
-            "w-[280px] h-[86px] flex items-center justify-center border-2 border-dashed rounded-xl bg-gradient-to-br from-muted/20 to-muted/40 hover:from-muted/30 hover:to-muted/50 transition-all cursor-pointer backdrop-blur-sm",
-            selected
-              ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
-              : "border-muted-foreground/30 hover:border-primary/50"
-          )}
-        >
-          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-medium group-hover:scale-105 transition-transform">
-            <PlusIcon className="h-5 w-5" />
-            <span>Select Trigger</span>
+    if (isStartNode) {
+      // Large Card for Trigger Placeholder
+      return (
+        <div className="relative group w-[280px]">
+          <div
+            className={cn(
+              "w-full h-[86px] flex items-center justify-center border-2 border-dashed rounded-xl bg-gradient-to-br from-muted/20 to-muted/40 hover:from-muted/30 hover:to-muted/50 transition-all cursor-pointer backdrop-blur-sm",
+              selected
+                ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
+                : "border-muted-foreground/30 hover:border-primary/50"
+            )}
+          >
+            <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-medium group-hover:scale-105 transition-transform">
+              <PlusIcon className="h-5 w-5" />
+              <span>{data.label as string || "Select Trigger"}</span>
+            </div>
           </div>
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            className="!w-3 !h-3 !bg-muted-foreground/30 !-bottom-1.5 !border-2 !border-background"
+          />
         </div>
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!w-3 !h-3 !bg-muted-foreground/30 !-bottom-1.5 !border-2 !border-background"
-        />
-      </div>
-    );
+      );
+    } else {
+      // Small Button for Action/Merge Placeholder
+      return (
+        <div className="relative group w-[280px] flex justify-center">
+          <Handle
+            type="target"
+            position={Position.Top}
+            className="!w-3 !h-3 !bg-muted-foreground/30 !-top-1.5 !border-2 !border-background opacity-0"
+          />
+
+          <div
+            className={cn(
+              "h-10 w-10 rounded-full flex items-center justify-center border-2 border-dashed border-muted-foreground/30 bg-background hover:border-primary hover:bg-primary/5 transition-all cursor-pointer shadow-sm",
+              selected && "border-primary ring-2 ring-primary/20"
+            )}
+            title={data.label as string || "Add Step"}
+          >
+            <PlusIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          </div>
+
+          <Handle
+            type="source"
+            position={Position.Bottom}
+            className="!w-3 !h-3 !bg-muted-foreground/30 !-bottom-1.5 !border-2 !border-background opacity-0"
+          />
+        </div>
+      );
+    }
   }
 
   return (

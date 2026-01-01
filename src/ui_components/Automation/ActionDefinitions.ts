@@ -39,6 +39,32 @@ export interface AppDefinition {
 }
 
 export const APP_DEFINITIONS: AppDefinition[] = [
+  // --- Logic ---
+  {
+    id: 'logic',
+    name: 'Logic',
+    description: 'Control flow logic.',
+    icon: HardDrive, // Placeholder icon
+    category: 'utility',
+    actions: [
+      { 
+        id: 'condition', 
+        name: 'Condition', 
+        description: 'Branch the flow based on a condition.', 
+        type: 'action',
+        parameters: [
+             { 
+               name: 'condition', 
+               type: 'string', 
+               label: 'Expression', 
+               description: 'e.g. {{step.1.output}} == "true"',
+               required: true 
+             }
+        ]
+      }
+    ]
+  },
+
   // --- Utilities ---
   {
     id: 'schedule',

@@ -26,7 +26,7 @@ const defaultStartNode: Node[] = [
     },
     {
         id: 'end',
-        position: { x: 100, y: 300 },
+        position: { x: 210, y: 250 },
         data: { label: 'End' },
         type: 'end'
     }
