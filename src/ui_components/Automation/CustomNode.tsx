@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe } from "lucide-react";
+import { Zap, Monitor, Mail, FileText, ChevronDown, PlusIcon, Clock, HardDrive, Loader2, Check, X, AlertCircle, Pause, AlertTriangle, MessageSquare, Smartphone, Bell, Upload, Download, Database, Globe, Slash } from "lucide-react";
 import { calculateNodeProgress, shouldShowProgress as getShouldShowProgress } from './nodeUtils';
 import { AppLogoMap } from './Applogo';
 
@@ -113,6 +113,15 @@ const StatusColors = {
     glow: "shadow-[0_0_15px_rgba(6,182,212,0.2)]",
     handle: "bg-cyan-500",
     shadow: "shadow-cyan-500/10"
+  },
+  skipped: {
+    border: "border-zinc-300 dark:border-zinc-700",
+    bg: "bg-zinc-100 dark:bg-zinc-800/50",
+    text: "text-zinc-500 dark:text-zinc-400",
+    icon: "text-zinc-400 dark:text-zinc-500",
+    glow: "",
+    handle: "bg-zinc-400",
+    shadow: ""
   }
 } as const;
 
@@ -154,6 +163,14 @@ const StatusIcon = ({ status, size = "sm" }: { status: StatusType; size?: "sm" |
           <Pause className="h-2/3 w-2/3 text-white" strokeWidth={4} />
         </div>
       );
+
+    case 'skipped':
+      return (
+        <div className={`${sizeClasses[size]} rounded-full bg-zinc-400 flex items-center justify-center`}>
+          <Slash className="h-2/3 w-2/3 text-white" strokeWidth={3} />
+        </div>
+      );
+
     default:
       return null;
   }

@@ -23,6 +23,7 @@ import CustomNode from './CustomNode';
 import EndNode from './EndNode';
 import CustomEdge from './CustomEdge';
 import ConditionNode from './ConditionNode';
+import ParallelNode from './ParallelNode';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
@@ -33,7 +34,7 @@ const nodeTypes = {
     custom: CustomNode,
     condition: ConditionNode,
     end: EndNode,
-
+    parallel: ParallelNode, 
 };
 
 const edgeTypes = {
@@ -55,7 +56,7 @@ interface AutomationEditorProps {
     flowId?: string;
 }
 
-export type StepStatus = 'pending' | 'running' | 'success' | 'error';
+export type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
 
 export interface StepResult {
     nodeId: string;
@@ -139,7 +140,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
                     const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                     const noActiveResults = Object.keys(prev).length === 0;
-
+                    
                     if (isFirstNode || noActiveResults) {
                         return {
                             [data.nodeId]: {
@@ -175,10 +176,30 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
-                // Keep results for 5 seconds so user sees final state in explorer
+                // Mark nodes that didn't run as skipped
+                setResults(prev => {
+                    const next = { ...prev };
+                    const allNodes = nodesRef.current;
+                    
+                    allNodes.forEach(node => {
+                        if (node.type === 'end' || node.data.isPlaceholder) return;
+                        
+                        if (!next[node.id]) {
+                            next[node.id] = {
+                                nodeId: node.id,
+                                status: 'skipped',
+                                output: null,
+                                duration: 0
+                            };
+                        }
+                    });
+                    return next;
+                });
+
+                // Clear results after 2.5 seconds so user sees final state briefly
                 setTimeout(() => {
                     setResults({});
-                }, 5000);
+                }, 2500);
             };
 
             socket.on('step-run-start', handleStepStart);
@@ -1129,8 +1150,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         nodes={nodes}
                         socket={socket}
                         flowId={flowId}
-                        externalResults={results}
-                        onResultsChange={setResults}
                     />
 
 

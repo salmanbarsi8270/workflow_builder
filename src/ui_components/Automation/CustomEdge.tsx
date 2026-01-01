@@ -2,6 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNode
 import { Plus, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
+import { getNodeStatusColor, shouldShowEdgeButton } from './nodeUtils';
 import { cn } from "@/lib/utils";
 
 // Edge Status Colors
@@ -41,6 +42,12 @@ const EdgeStatusColors = {
     width: 2,
     dasharray: '10,5',
     glow: 'drop-shadow(0_0_8px_rgba(139,92,246,0.3))'
+  },
+  skipped: {
+    stroke: '#e4e4e7', // zinc-200
+    width: 2,
+    dasharray: '5,5',
+    glow: ''
   }
 } as const;
 
@@ -58,6 +65,7 @@ export default function CustomEdge({
   source,
   sourceX,
   sourceY,
+  target,
   targetX,
   targetY,
   sourcePosition,
@@ -71,6 +79,9 @@ export default function CustomEdge({
   const nodes = useNodes();
 
   const sourceNode = nodes.find(n => n.id === source);
+  const targetNode = nodes.find(n => n.id === target);
+
+  const showPlusButton = shouldShowEdgeButton(sourceNode, targetNode);
 
   const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
   const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
@@ -143,19 +154,21 @@ export default function CustomEdge({
         >
           <div className={cn(
             "flex items-center gap-1 transition-all duration-300",
-            selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
+            // selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
           )}>
-            <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border-2 border-primary/20">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full transition-all"
-                onClick={handleAddNode}
-                title="Add node"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            {showPlusButton && (
+              <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border-2 border-primary/20">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full transition-all"
+                  onClick={handleAddNode}
+                  title="Add node"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
             {/* Edge Label */}
             {label && (

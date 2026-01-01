@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Zap } from "lucide-react";
+import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Zap, Slash } from "lucide-react";
 import { type Node } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import { API_URL } from '../api/apiurl';
@@ -14,11 +14,9 @@ interface RunSidebarProps {
     nodes: Node[];
     socket?: any;
     flowId?: string;
-    externalResults?: Record<string, StepResult>;
-    onResultsChange?: React.Dispatch<React.SetStateAction<Record<string, StepResult>>>;
 }
 
-type StepStatus = 'pending' | 'running' | 'success' | 'error';
+type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
 
 interface StepResult {
     nodeId: string;
@@ -35,14 +33,10 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, externalResults, onResultsChange }: RunSidebarProps) {
-    const [resultsState, setResultsState] = useState<Record<string, StepResult>>({});
-    
-    // Use external results if provided, otherwise fallback to local state (for detail view)
-    const results = externalResults || resultsState;
-    const setResults = onResultsChange || setResultsState;
+export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
+    const [results, setResults] = useState<Record<string, StepResult>>({});
     const [expandedStep, setExpandedStep] = useState<string | null>(null);
-
+    
     // Track if there's an active run
     const [hasActiveRun, setHasActiveRun] = useState(false);
     const [runStartTime, setRunStartTime] = useState<Date | null>(null);
@@ -58,14 +52,14 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
 
     // Initial simple linear sort of nodes for the list
     const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-
+    
     // Track active run status
     useEffect(() => {
-        const activeRun = Object.values(results).some(result =>
+        const activeRun = Object.values(results).some(result => 
             result.status === 'running' || result.status === 'success'
         );
         setHasActiveRun(activeRun);
-
+        
         // Track run duration
         if (Object.values(results).some(r => r.status === 'running')) {
             if (!runStartTime) {
@@ -112,10 +106,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
     const displayResults = view === 'detail' && selectedRun ? (() => {
         const mapped: Record<string, StepResult> = {};
         const runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
-
+        
         sortedNodes.forEach(node => {
             let stepData = runRes && runRes[node.id];
-
+            
             if (!stepData && runRes) {
                 const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
                 const foundKey = triggerKeys.find(k => runRes[k]);
@@ -127,8 +121,15 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
             if (stepData) {
                 mapped[node.id] = {
                     nodeId: node.id,
-                    status: 'success',
-                    output: stepData.data,
+                    status: stepData.status || 'success',
+                    output: stepData.data || stepData.output,
+                    duration: stepData.duration || 0 
+                };
+            } else {
+                mapped[node.id] = {
+                    nodeId: node.id,
+                    status: 'skipped',
+                    output: null,
                     duration: 0
                 };
             }
@@ -136,59 +137,105 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
         return mapped;
     })() : results;
 
-    // Socket listeners removed - now handled by parent AutomationEditor for single source of truth
     useEffect(() => {
         if (socket) {
-            // Only add listeners if NOT controlled externally (backward compatibility or standalone use)
             const handleStepStart = (data: any) => {
-                console.log("handleStepStart", data);
                 setliveRun(true);
+                
+                // If this is the trigger node (usually first node) or we have no results, start fresh
                 const isFirstNode = sortedNodes[0]?.id === data.nodeId;
                 const noActiveResults = Object.keys(results).length === 0;
+
                 if (isFirstNode || noActiveResults) {
                     setResults({});
                     setRunStartTime(new Date());
                     setRunDuration(0);
                     setRunSummaryStatus('idle');
+                    console.log("Run started fresh");
                 }
+
                 if (view !== 'live') setView('live');
-                setResults((prev) => ({
-                    ...prev,
-                    [data.nodeId]: { nodeId: data.nodeId, status: 'running', output: null, duration: 0 }
-                }));
-            };
-            const handleStepFinish = (data: any) => {
-                console.log("handleStepFinish", data);
+
                 setResults(prev => ({
                     ...prev,
-                    [data.nodeId]: { nodeId: data.nodeId, status: data.status, output: data.output, duration: data.duration }
+                    [data.nodeId]: {
+                        nodeId: data.nodeId,
+                        status: 'running',
+                        output: null,
+                        duration: 0
+                    }
                 }));
             };
-            const handleRunComplete = () => {
-                console.log("handleRunComplete");
+
+            const handleStepFinish = (data: any) => {
+                console.log("run finish");
+                setResults(prev => ({
+                    ...prev,
+                    [data.nodeId]: {
+                        nodeId: data.nodeId,
+                        status: data.status,
+                        output: data.output,
+                        duration: data.duration
+                    }
+                }));
+            };
+
+           const handleRunComplete = () => {
+                console.log("run complete");
+
+                // Mark nodes that didn't run as skipped
+                setResults(prev => {
+                    const next = { ...prev };
+                    nodes.forEach(node => {
+                        if (node.type === 'end' || node.data.isPlaceholder) return;
+                        if (!next[node.id]) {
+                            next[node.id] = {
+                                nodeId: node.id,
+                                status: 'skipped', // Type cast if needed, but StepStatus now includes skipped
+                                output: null,
+                                duration: 0
+                            } as any; // Cast to avoid strict type issues if local StepStatus def is outdated 
+                        }
+                    });
+                    return next;
+                });
+                
+                // Determine summary status based on results
                 const hasError = Object.values(results).some(r => r.status === 'error');
                 const newStatus = hasError ? 'error' : 'success';
-                if (view === 'live') setRunSummaryStatus(newStatus);
+                
+                // Only set summary status if we're in live view
+                if (view === 'live') {
+                    setRunSummaryStatus(newStatus);
+                }
+
                 setTimeout(() => {
                     setRunStartTime(null);
                     setliveRun(false);
-                    setTimeout(() => { if (view === 'live') setRunSummaryStatus('idle'); }, 5000);
+                    // Reset summary after 5 seconds only if still in live view
+                    setTimeout(() => {
+                        if (view === 'live') {
+                            setRunSummaryStatus('idle');
+                        }
+                    }, 5000);
                 }, 1000);
             };
+
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-complete', handleRunComplete);
+
             return () => {
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
                 socket.off('run-complete', handleRunComplete);
             };
         }
-    }, [socket, view, sortedNodes, results, onResultsChange]);
+    }, [socket, view, sortedNodes, results]);
 
     const fetchHistory = async () => {
         if (!flowId) return;
-
+        
         setIsLoadingHistory(true);
         try {
             const res = await fetch(`${API_URL}/api/flows/${flowId}/runs`);
@@ -203,28 +250,6 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
         }
     };
 
-    const retryRun = async (runId: string) => {
-        try {
-            const res = await fetch(`${API_URL}/api/runs/${runId}/retry`, {
-                method: 'POST'
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                // Determine if this run is more recent than current live view
-                // Actually, just switch to live view and let the socket updates take over
-                setView('live');
-                setResults({}); // Clear current results to show new run
-                setRunStartTime(new Date());
-                setHasActiveRun(true);
-            } else {
-                console.error("Retry failed:", data.error);
-            }
-        } catch (err) {
-            console.error("Failed to retry run", err);
-        }
-    };
-
     const formatDuration = (ms: number) => {
         if (ms < 1000) return `${ms}ms`;
         if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
@@ -236,11 +261,11 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
         if (view === 'detail' && selectedRun) {
             return `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`;
         }
-
+        
         if (view === 'history') {
             return "View past executions";
         }
-
+        
         // Live view
         if (runSummaryStatus === 'success') {
             return (
@@ -249,7 +274,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                 </span>
             );
         }
-
+        
         if (runSummaryStatus === 'error') {
             return (
                 <span className="text-red-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
@@ -257,17 +282,17 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                 </span>
             );
         }
-
+        
         if (hasActiveRun) {
             return `Running for ${formatDuration(runDuration)}`;
         }
-
+        
         return "Ready for execution";
     };
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="left" className="w-full sm:max-w-md h-full flex flex-col p-0">
+            <SheetContent side="left" className="w-full sm:max-w-md">
                 <SheetHeader className="p-6 border-b">
                     <div className="flex items-center justify-between">
                         <div>
@@ -299,20 +324,11 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                 </SheetHeader>
 
                 <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
+                    <div className="px-6 space-y-6">
                         {view === 'detail' && (
-                            <div className="flex items-center justify-between mb-2">
-                                <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 pl-0">
-                                    <ArrowLeft className="h-4 w-4 mr-1" /> Back to History
-                                </Button>
-
-                                {selectedRun && selectedRun.status !== 'success' && selectedRun.status !== 'running' && (
-                                    <Button size="sm" variant="outline" onClick={() => retryRun(selectedRun.id)} className="h-8 gap-2 border-orange-200 hover:bg-orange-50 text-orange-700 hover:text-orange-800">
-                                        <RefreshCcw className="h-3.5 w-3.5" />
-                                        Retry from Failure
-                                    </Button>
-                                )}
-                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 w-8 p-0 m-0 mb-2">
+                                <ArrowLeft className="h-4 w-4" /> Back
+                            </Button>
                         )}
                         {view === 'history' ? (
                             <div className="space-y-4">
@@ -322,7 +338,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                                         <p className="text-sm text-muted-foreground">Loading past runs...</p>
                                     </div>
                                 )}
-
+                                
                                 {!isLoadingHistory && runHistory.length === 0 && (
                                     <div className="text-center py-12">
                                         <HistoryIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -330,7 +346,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                                         <p className="text-sm text-muted-foreground">This workflow hasn't recorded any past executions yet.</p>
                                     </div>
                                 )}
-
+                                
                                 {runHistory.map((run, index) => (
                                     <div key={run.id} className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer" onClick={() => handleRunClick(run)}>
                                         <div className="flex items-center justify-between">
@@ -380,7 +396,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                                         {sortedNodes.map((node, index) => {
                                             const result = displayResults[node.id];
                                             const status = result?.status || 'pending';
-
+                                            
                                             return (
                                                 <div key={node.id} className="ml-6 relative">
                                                     {/* Badge */}
@@ -389,27 +405,38 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                                                         status === 'pending' && "border-muted text-muted-foreground",
                                                         status === 'running' && "border-blue-500 text-blue-500",
                                                         status === 'success' && "border-green-500 bg-green-500 text-white",
-                                                        status === 'error' && "border-red-500 bg-red-500 text-white"
+                                                        status === 'error' && "border-red-500 bg-red-500 text-white",
+                                                        status === 'skipped' && "border-zinc-300 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800"
                                                     )}>
                                                         {status === 'pending' && <span className="text-xs">{index + 1}</span>}
                                                         {status === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
                                                         {status === 'success' && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
                                                         {status === 'error' && <X className="h-3.5 w-3.5" strokeWidth={3} />}
+                                                        {status === 'skipped' && <Slash className="h-3 w-3" />}
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <div className={cn("flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/50", expandedStep === node.id && "ring-2 ring-primary/20 border-primary")} onClick={() => setExpandedStep(expandedStep === node.id ? null : node.id)}>
+                                                        <div className={cn(
+                                                            "flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/50", 
+                                                            expandedStep === node.id && "ring-2 ring-primary/20 border-primary",
+                                                            status === 'skipped' && "opacity-60 bg-muted/20 hover:border-border cursor-default"
+                                                        )} onClick={() => status !== 'skipped' && setExpandedStep(expandedStep === node.id ? null : node.id)}>
                                                             <div className="flex items-center gap-3">
-                                                                <span className="font-medium text-sm">{node.data.label as string}</span>
+                                                                <span className={cn("font-medium text-sm", status === 'skipped' && "text-muted-foreground line-through decoration-zinc-400/50")}>{node.data.label as string}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
                                                                 {status === 'success' && (
                                                                     <span className="text-xs text-muted-foreground">{formatDuration(result.duration)}</span>
                                                                 )}
-                                                                {expandedStep === node.id ? (
-                                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                                                ) : (
-                                                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                                {status === 'skipped' && (
+                                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 border border-muted-foreground/20 px-1.5 py-0.5 rounded">Skipped</span>
+                                                                )}
+                                                                {status !== 'skipped' && (
+                                                                    expandedStep === node.id ? (
+                                                                        <ChevronDown className="h-4 w-4 text-muted-foreground"/>
+                                                                    ) : (
+                                                                        <ChevronRight className="h-4 w-4 text-muted-foreground"/>
+                                                                    )
                                                                 )}
                                                             </div>
                                                         </div>
@@ -424,6 +451,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, ext
                                                                         <Loader2 className="h-3 w-3 animate-spin" />
                                                                         Processing...
                                                                     </span>
+                                                                ) : status === 'skipped' ? (
+                                                                    <span className="text-muted-foreground italic">Step was skipped during execution</span>
                                                                 ) : result?.output ? (
                                                                     <pre className="text-foreground whitespace-pre-wrap">
                                                                         {JSON.stringify(result.output, null, 2)}
