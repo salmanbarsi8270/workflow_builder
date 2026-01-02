@@ -213,6 +213,16 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                                         </Badge>
                                       ))}
                                     </div>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-3 mt-1">
+                                      <span className="flex items-center gap-1">
+                                        <Layers className="h-3 w-3" />
+                                        {item.nodes?.length || 0} nodes
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <PlayCircle className="h-3 w-3" />
+                                        {item.triggerCount || 0} runs
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </TableCell>
