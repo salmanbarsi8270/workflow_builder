@@ -137,7 +137,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
             </div>
           </CardHeader>
 
-          <CardContent className="p-0">
+          <CardContent className="p-0 h-[calc(91vh-260px)]">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
