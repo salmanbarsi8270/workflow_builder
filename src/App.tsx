@@ -42,11 +42,6 @@ export function App() {
                             <SidebarIconExample />
                         </RequireAuth>
                     } />
-                    <Route path="/order" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
                     <Route path="/integration" element={
                         <RequireAuth>
                             <SidebarIconExample />

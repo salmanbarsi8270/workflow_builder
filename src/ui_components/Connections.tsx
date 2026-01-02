@@ -120,7 +120,7 @@ export default function Connections() {
   const [selectedService, setSelectedService] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   // Get unique services for filter
   const services = Array.from(new Set(accounts.map(acc => acc.serviceName)));
@@ -334,11 +334,11 @@ export default function Connections() {
           </div>
 
           <div className="flex items-center border rounded-lg bg-background/50 backdrop-blur-sm p-1 gap-1">
-            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
-              <List className="h-4 w-4" />
-            </Button>
             <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
               <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+              <List className="h-4 w-4" />
             </Button>
           </div>
         </div>

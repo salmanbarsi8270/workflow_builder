@@ -247,7 +247,20 @@ export default function WorkflowDashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+        {isLoading ? (
+          <Card className="col-span-3">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+        ) : (
+          <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
@@ -260,6 +273,7 @@ export default function WorkflowDashboard() {
              </div>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   )
