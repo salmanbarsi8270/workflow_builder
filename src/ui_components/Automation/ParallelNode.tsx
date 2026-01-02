@@ -1,3 +1,4 @@
+
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from "@/lib/utils";
@@ -9,13 +10,15 @@ const StatusColors = {
     success: "border-green-500",
     error: "border-red-500",
     running: "border-blue-500",
-    skipped: "border-zinc-200 opacity-70",
 } as const;
 
 const ParallelNode = ({ data, selected }: NodeProps) => {
     const status = (data.status as keyof typeof StatusColors) || 'pending';
     const label = (data.label as string) || "Parallel";
     const subLabel = (data.subLabel as string) || "Execute in parallel";
+
+    // Branch rendering is now handled by the edges in AutomationEditor logic.
+    // ParallelNode serves as the visual anchor.
 
     return (
         <div className="relative group">
@@ -35,8 +38,8 @@ const ParallelNode = ({ data, selected }: NodeProps) => {
                 {/* Header with Icon and Title */}
                 <div className="flex items-start gap-4">
                     {/* Icon Container */}
-                    <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
-                        <GitFork className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <GitFork className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                     </div>
 
                     {/* Content */}
@@ -49,12 +52,14 @@ const ParallelNode = ({ data, selected }: NodeProps) => {
                 </div>
             </div>
 
-            {/* Output Handle - specifically named 'parallel-output' matching user logs */}
+
+            {/* Output Handles - Dynamic based on branches */}
+            {/* Single Shared Output Handle */}
             <Handle
                 type="source"
                 position={Position.Bottom}
                 id="parallel-output"
-                className="!w-3 !h-3 !bottom-[-6px] !border-2 !border-background !bg-muted-foreground/30"
+                className="!w-3 !h-3 !-bottom-[6px] !border-2 !border-background !bg-muted-foreground/30 z-50"
             />
         </div>
     );

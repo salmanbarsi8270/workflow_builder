@@ -16,7 +16,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
-    
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -28,14 +28,14 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     // Filter apps that have at least one action matching the mode
     const filteredApps = APP_DEFINITIONS.filter(app => {
         const hasMatchingAction = app.actions.some(action => action.type === mode);
-        const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             app.description.toLowerCase().includes(searchTerm.toLowerCase());
-        
+        const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            app.description.toLowerCase().includes(searchTerm.toLowerCase());
+
         return app.category === activeTab && hasMatchingAction && matchesSearch;
     });
 
     // Actions Filter: If App Selected
-    const filteredActions = selectedApp?.actions.filter(action => 
+    const filteredActions = selectedApp?.actions.filter(action =>
         action.type === mode &&
         action.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -48,7 +48,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
 
     const handleActionClick = (action: ActionDefinition) => {
         if (!selectedApp) return;
-        
+
         // Construct the node data
         onSelect({
             name: `${selectedApp.name}_${action.id}`, // Combined name (e.g. Google Sheets_appendRowSmart)
@@ -56,10 +56,10 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
             action: action.id, // e.g. appendRowSmart
             appName: selectedApp.name,
             description: action.description,
-            icon: selectedApp.id, 
+            icon: selectedApp.id,
             actionId: action.id,
-            actionName: action.name, 
-            isPlaceholder: false 
+            actionName: action.name,
+            isPlaceholder: false
         });
         onClose();
     };
@@ -77,12 +77,12 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                 )}
-                
+
                 <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <Input
                         placeholder={selectedApp ? `Search ${selectedApp.name} actions...` : "Search apps..."}
-                        className="pl-9 bg-muted/50 border-none focus-visible:ring-1" 
+                        className="pl-9 bg-muted/50 border-none focus-visible:ring-1"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         autoFocus
@@ -92,12 +92,12 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                 <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 ml-2 bg-background hover:bg-red-50">
                     <X className="h-4 w-4 text-red-500" />
                 </Button>
-            </div>  
+            </div>
 
             {/* Tabs (Only if no app selected) */}
             {!selectedApp && (
                 <div className="flex border-b">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('app')}
                         className={cn(
                             "flex-1 py-3 text-sm font-medium transition-colors border-b-2",
@@ -106,7 +106,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                     >
                         Apps
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('utility')}
                         className={cn(
                             "flex-1 py-3 text-sm font-medium transition-colors border-b-2",
@@ -123,7 +123,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                 {!selectedApp ? (
                     <div className="grid grid-cols-1 gap-1">
                         {filteredApps.map(app => (
-                            <div 
+                            <div
                                 key={app.id}
                                 onClick={() => handleAppClick(app)}
                                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer group transition-colors"
@@ -154,7 +154,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                             Actions / Triggers
                         </div>
                         {filteredActions?.map(action => (
-                            <div 
+                            <div
                                 key={action.id}
                                 onClick={() => handleActionClick(action)}
                                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer group transition-colors"
@@ -169,7 +169,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                                 </div>
                             </div>
                         ))}
-                         {filteredActions?.length === 0 && (
+                        {filteredActions?.length === 0 && (
                             <div className="p-8 text-center text-muted-foreground text-sm">
                                 No actions found matching your search.
                             </div>
@@ -177,7 +177,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                     </div>
                 )}
             </div>
-            
+
             <div className="p-2 border-t bg-muted/20 text-xs text-center text-muted-foreground">
                 Press <kbd className="px-1 py-0.5 rounded bg-background border font-mono">Esc</kbd> to close
             </div>
