@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from "@/lib/utils";
-import { GitFork, Clock } from "lucide-react";
+import { GitFork } from "lucide-react";
 
 // Status Colors same as CustomNode for consistency
 const StatusColors = {
@@ -16,7 +16,6 @@ const ParallelNode = ({ data, selected }: NodeProps) => {
     const status = (data.status as keyof typeof StatusColors) || 'pending';
     const label = (data.label as string) || "Parallel";
     const subLabel = (data.subLabel as string) || "Execute in parallel";
-    const showProgress = status === 'running';
 
     return (
         <div className="relative group">

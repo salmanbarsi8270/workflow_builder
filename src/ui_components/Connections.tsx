@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, ChevronRight, ChevronLeft, Filter, Sparkles, Zap, ChevronLast, ChevronFirst, Globe, Plus } from "lucide-react"
+import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, ChevronRight, ChevronLeft, Filter, Sparkles, Zap, ChevronLast, ChevronFirst, Globe, Plus, LayoutGrid, List } from "lucide-react"
 import { getServices, deleteConnection } from "./api/connectionlist"
 import { useUser } from '@/context/UserContext';
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,7 +24,86 @@ interface ConnectedAccount {
   lastUsed?: string;
   permissions?: string[];
   isPublic?: boolean;
+  category?: string;
 }
+
+const categoryColors: Record<string, { bg: string, text: string, border: string }> = {
+  'productivity': { 
+    bg: 'bg-blue-500/10 dark:bg-blue-500/20', 
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-800'
+  },
+  'cloud': { 
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', 
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800'
+  },
+  'storage': { 
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', 
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800'
+  },
+  'communication': { 
+    bg: 'bg-purple-500/10 dark:bg-purple-500/20', 
+    text: 'text-purple-700 dark:text-purple-300',
+    border: 'border-purple-200 dark:border-purple-800'
+  },
+  'development': { 
+    bg: 'bg-orange-500/10 dark:bg-orange-500/20', 
+    text: 'text-orange-700 dark:text-orange-300',
+    border: 'border-orange-200 dark:border-orange-800'
+  },
+  'tools': { 
+    bg: 'bg-rose-500/10 dark:bg-rose-500/20', 
+    text: 'text-rose-700 dark:text-rose-300',
+    border: 'border-rose-200 dark:border-rose-800'
+  },
+  'marketing': { 
+    bg: 'bg-amber-500/10 dark:bg-amber-500/20', 
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-200 dark:border-amber-800'
+  },
+  'crm': { 
+    bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', 
+    text: 'text-indigo-700 dark:text-indigo-300',
+    border: 'border-indigo-200 dark:border-indigo-800'
+  },
+  'social': { 
+    bg: 'bg-sky-500/10 dark:bg-sky-500/20', 
+    text: 'text-sky-700 dark:text-sky-300',
+    border: 'border-sky-200 dark:border-sky-800'
+  },
+  'finance': { 
+    bg: 'bg-green-500/10 dark:bg-green-500/20', 
+    text: 'text-green-700 dark:text-green-300',
+    border: 'border-green-200 dark:border-green-800'
+  },
+  'e-commerce': { 
+    bg: 'bg-violet-500/10 dark:bg-violet-500/20', 
+    text: 'text-violet-700 dark:text-violet-300',
+    border: 'border-violet-200 dark:border-violet-800'
+  },
+  'ai': { 
+    bg: 'bg-cyan-500/10 dark:bg-cyan-500/20', 
+    text: 'text-cyan-700 dark:text-cyan-300',
+    border: 'border-cyan-200 dark:border-cyan-800'
+  },
+  'education': { 
+    bg: 'bg-lime-500/10 dark:bg-lime-500/20', 
+    text: 'text-lime-700 dark:text-lime-300',
+    border: 'border-lime-200 dark:border-lime-800'
+  },
+  'security': { 
+    bg: 'bg-slate-500/10 dark:bg-slate-500/20', 
+    text: 'text-slate-700 dark:text-slate-300',
+    border: 'border-slate-200 dark:border-slate-800'
+  },
+  'default': { 
+    bg: 'bg-gray-500/10 dark:bg-gray-500/20', 
+    text: 'text-gray-700 dark:text-gray-300',
+    border: 'border-gray-200 dark:border-gray-800'
+  }
+};
 
 type SortType = 'date' | 'name' | 'service';
 
@@ -41,6 +120,7 @@ export default function Connections() {
   const [selectedService, setSelectedService] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Get unique services for filter
   const services = Array.from(new Set(accounts.map(acc => acc.serviceName)));
@@ -90,7 +170,8 @@ export default function Connections() {
                   status: randomStatus,
                   lastUsed: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
                   permissions: ['read', 'write', 'admin'].slice(0, Math.floor(Math.random() * 3) + 1),
-                  isPublic: Math.random() > 0.5
+                  isPublic: Math.random() > 0.5,
+                  category: service.category || 'default'
                 });
               });
             }
@@ -245,11 +326,20 @@ export default function Connections() {
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-4 pt-4">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-medium">
               <Shield className="h-3 w-3" />
               {accounts.length} Total Accounts
             </div>
+          </div>
+
+          <div className="flex items-center border rounded-lg bg-background/50 backdrop-blur-sm p-1 gap-1">
+            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+              <List className="h-4 w-4" />
+            </Button>
+            <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </motion.div>
@@ -296,14 +386,15 @@ export default function Connections() {
             </div>
           </motion.div>
         ) : (
-          <motion.div key="list" layout className="space-y-3">
+          <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-3" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}>
             {paginatedAccounts.map((account) => (
-              <motion.div key={account.id} layout initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                <Card className="overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300 group">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
+              <motion.div key={account.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
+                <Card className="overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300 group h-full">
+                  <CardContent className="p-4 h-full">
+                    <div className={`flex ${viewMode === 'list' ? 'items-center gap-4' : 'flex-col gap-4'}`}>
+
                       {/* Service Icon */}
-                      <div className="relative shrink-0">
+                      {viewMode === 'list' && (<div className="relative shrink-0">
                         <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                           <img src={account.serviceIcon} alt={account.serviceName} className="w-7 h-7 object-contain" 
                           onError={(e) => {
@@ -312,25 +403,37 @@ export default function Connections() {
                             }}
                           />
                         </div>
-                      </div>
+                      </div>)}
 
                       {/* Account Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
+                          {viewMode === 'grid' && (
+                            <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                              <img src={account.serviceIcon} alt={account.serviceName} className="w-7 h-7 object-contain" 
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=6b7280&color=fff`;
+                                  }}
+                              />
+                            </div>
+                          )}
                           <h4 className="font-semibold text-base truncate">{account.username}</h4>
-                          <span className="px-2 py-0.5 rounded-full border text-xs font-medium">
+                          <span className={`px-2 py-0.5 rounded-full border text-xs font-medium ${(categoryColors[account.category || 'default'] || categoryColors.default).bg} ${(categoryColors[account.category || 'default'] || categoryColors.default).text} ${(categoryColors[account.category || 'default'] || categoryColors.default).border}`}>
                             {account.serviceName}
                           </span>
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <UserCircle className="h-3.5 w-3.5" />
-                            <span className="truncate">{account.externalId}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>Connected {new Date(account.connectedAt).toLocaleDateString()}</span>
+                        <div className={`flex mt-4 flex-wrap ${viewMode === 'list' ? 'items-center gap-x-4' : 'flex-col items-start gap-y-2'} gap-y-1 text-sm text-muted-foreground`}>
+                          <div className='flex gap-x-4'>
+                            <div className="flex items-center gap-1.5">
+                              <UserCircle className="h-3.5 w-3.5" />
+                              <span className="truncate">{account.externalId}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span>Connected {new Date(account.connectedAt).toLocaleDateString()}</span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Zap className="h-3.5 w-3.5" />
@@ -340,7 +443,8 @@ export default function Connections() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center">
+                      <div className={`flex items-center ${viewMode === 'grid' ? 'mt-2 pt-4 border-t w-full justify-end' : ''}`}>
+
                         <Button variant="ghost" className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 px-3" onClick={() => handleDelete(account.id, account.username)} disabled={deletingId === account.id}>
                           {deletingId === account.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

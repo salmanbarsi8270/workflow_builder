@@ -1,0 +1,293 @@
+import { useState } from "react";
+import { type Node } from "@xyflow/react";
+import { usePiecesMetadata } from "./usePiecesMetadata";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Database, Search, ChevronRight, ChevronDown, Zap, Code, Variable, Copy, Hash, List, Type, Calendar, Clock, Mail, User, FileText, Image, DollarSign, Globe, CheckCircle2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { APP_DEFINITIONS } from "./ActionDefinitions";
+
+interface VariablePickerProps {
+  onSelect: (val: string) => void;
+  nodes: Node[];
+  currentNodeId?: string;
+}
+
+export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePickerProps) => {
+  const { pieces } = usePiecesMetadata();
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const toggle = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const normalizedCurrentNodeId = currentNodeId ? String(currentNodeId) : null;
+
+  const checkIsTrigger = (node: Node) => {
+    const appName = node.data?.appName;
+    const actionId = node.data?.actionId;
+    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === node.data?.icon);
+    const actionDef = appDef?.actions.find(a => a.id === actionId);
+    return actionDef?.type === 'trigger';
+  };
+
+  const currentNode = normalizedCurrentNodeId
+    ? nodes.find(n => String(n.id) === normalizedCurrentNodeId)
+    : null;
+
+  const availableNodes = nodes.filter(n => {
+    const nodeId = String(n.id);
+    if (nodeId === normalizedCurrentNodeId || nodeId === 'end') return false;
+    const isTrigger = checkIsTrigger(n);
+    if (isTrigger) return true;
+    if (n.data?.isPlaceholder) return false;
+    if (currentNode && n.position.y >= currentNode.position.y) return false;
+    return true;
+  });
+
+  const handleSelect = (val: string) => {
+    onSelect(val);
+    setOpen(false);
+  };
+
+  const clearSearch = () => setSearch("");
+
+  const getNodeIcon = (icon: string) => {
+    const iconMap: Record<string, React.ReactNode> = {
+      'mail': <Mail className="h-3.5 w-3.5" />,
+      'user': <User className="h-3.5 w-3.5" />,
+      'file': <FileText className="h-3.5 w-3.5" />,
+      'image': <Image className="h-3.5 w-3.5" />,
+      'dollar': <DollarSign className="h-3.5 w-3.5" />,
+      'globe': <Globe className="h-3.5 w-3.5" />,
+      'calendar': <Calendar className="h-3.5 w-3.5" />,
+      'clock': <Clock className="h-3.5 w-3.5" />,
+    };
+    return iconMap[icon] || <Zap className="h-3.5 w-3.5" />;
+  };
+
+  const getTypeIcon = (type: string) => {
+    const iconMap: Record<string, React.ReactNode> = {
+      'string': <Type className="h-3 w-3" />,
+      'number': <Hash className="h-3 w-3" />,
+      'boolean': <CheckCircle2 className="h-3 w-3" />,
+      'array': <List className="h-3 w-3" />,
+      'object': <Database className="h-3 w-3" />,
+    };
+    return iconMap[type] || <Variable className="h-3 w-3" />;
+  };
+
+  return (
+    <TooltipProvider>
+      <Popover open={open} onOpenChange={setOpen}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-2 px-3 border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary shadow-sm hover:shadow">
+                <Database className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Insert Variable</span>
+                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] font-bold">
+                  {availableNodes.length}
+                </Badge>
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>Insert data from previous steps</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <PopoverContent className="w-96 p-0 border-2 shadow-xl" align="end">
+          <Card className="border-0 shadow-none">
+            <CardHeader className="pb-3">
+            <div className="flex items-center justify-end">
+                <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full">
+                    <X className="h-4 w-4 text-red-500" />
+                </button>
+            </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Available Variables
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Select data from previous workflow steps
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewMode('list')}>
+                    <List className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setViewMode('grid')}>
+                    <Database className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Search variables by name or type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm bg-background/50" />
+                {search && (
+                  <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" onClick={clearSearch} >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="max-h-[400px] overflow-auto p-2">
+                <AnimatePresence>
+                  {availableNodes.length === 0 ? (
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 text-center space-y-3">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
+                        <Database className="h-6 w-6 text-primary/60" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">No variables available</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {nodes.length <= 1 ? "Add more workflow steps to use their data here." : "Configure previous steps to expose data for use."}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    availableNodes.map((node) => {
+                      const icon = node.data.icon as string;
+                      const actionId = node.data.actionId as string;
+                      const isTrigger = checkIsTrigger(node);
+                      const pathNodeId = isTrigger ? 'trigger' : node.id;
+
+                      const piece = pieces[icon];
+                      const actionType = isTrigger ? 'triggers' : 'actions';
+                      const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema || [];
+
+                      const nodeLabel = (node.data.label as string) || node.id;
+                      const lowerSearch = search.toLowerCase();
+                      const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
+
+                      const filteredSchema = schema.filter((prop: any) => {
+                        if (!search) return true;
+                        return matchesNodeLabel ||
+                          prop.name.toLowerCase().includes(lowerSearch) ||
+                          prop.type.toLowerCase().includes(lowerSearch);
+                      });
+
+                      if (!matchesNodeLabel && filteredSchema.length === 0 && search) return null;
+
+                      const isExpanded = expanded.has(node.id) || (!!search && filteredSchema.length > 0);
+
+                      return (
+                        <motion.div key={node.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-2 border rounded-lg overflow-hidden bg-linear-to-br from-card to-card/50 hover:from-accent/5 hover:to-accent/5 transition-all duration-200">
+                          <div className="px-3 py-2.5 hover:bg-accent/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle(node.id)}>
+                            <div className="flex items-center gap-3">
+                              <div className={cn("p-1.5 rounded-md", isTrigger ? "bg-linear-to-br from-amber-500/10 to-amber-500/5" : "bg-linear-to-br from-primary/10 to-primary/5")}>
+                                {getNodeIcon(icon)}
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium truncate max-w-[120px]">
+                                    {nodeLabel}
+                                  </span>
+                                  {isTrigger && (
+                                    <Badge variant="outline" className="text-[8px] h-4 px-1.5 bg-amber-500/10 text-amber-600 border-amber-200">
+                                      Trigger
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                  <span className="flex items-center gap-0.5">
+                                    <Code className="h-2.5 w-2.5" />
+                                    {schema.length} props
+                                  </span>
+                                  <span>•</span>
+                                  <span>ID: {node.id}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[8px] h-5 px-1.5 font-medium bg-primary/10 text-primary">
+                                {filteredSchema.length || schema.length} vars
+                              </Badge>
+                              {isExpanded ? (
+                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                            </div>
+                          </div>
+
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t bg-linear-to-b from-background/50 to-background/20">
+                                <div className="p-1.5">
+                                  <div className="mb-2 px-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                        Available Properties
+                                      </span>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
+                                            <Copy className="h-2.5 w-2.5" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left">
+                                          <p className="text-xs">Copy full object</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  </div>
+                                  
+                                  {filteredSchema.length === 0 ? (
+                                    <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`) }>
+                                      <Database className="h-3 w-3 mr-2" />
+                                      Insert Full Data Object
+                                      <Badge variant="outline" className="ml-auto text-[10px]">any</Badge>
+                                    </Button>
+                                  ) : (
+                                    filteredSchema.map((prop: any, idx: number) => (
+                                      <Button key={`${prop.name}-${idx}`} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10 group mb-0.5 last:mb-0" onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}>
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <div className="p-1 rounded bg-primary/5 group-hover:bg-primary/10">
+                                            {getTypeIcon(prop.type)}
+                                          </div>
+                                          <span className="truncate font-medium">{prop.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 ml-auto">
+                                          <Badge variant="outline" className="text-[10px] capitalize font-normal opacity-70 group-hover:opacity-100">{prop.type}</Badge>
+                                          <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                      </Button>
+                                    ))
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
+        </PopoverContent>
+      </Popover>
+    </TooltipProvider>
+  );
+};
