@@ -35,6 +35,7 @@ const nodeTypes = {
     condition: ConditionNode,
     parallel: ParallelNode,
     end: EndNode,
+
 };
 
 const edgeTypes = {
@@ -56,7 +57,7 @@ interface AutomationEditorProps {
     flowId?: string;
 }
 
-export type StepStatus = 'pending' | 'running' | 'success' | 'error';
+export type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
 
 export interface StepResult {
     nodeId: string;
@@ -176,10 +177,30 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
-                // Keep results for 5 seconds so user sees final state in explorer
+                // Mark nodes that didn't run as skipped
+                setResults(prev => {
+                    const next = { ...prev };
+                    const allNodes = nodesRef.current;
+
+                    allNodes.forEach(node => {
+                        if (node.type === 'end' || node.data.isPlaceholder) return;
+
+                        if (!next[node.id]) {
+                            next[node.id] = {
+                                nodeId: node.id,
+                                status: 'skipped',
+                                output: null,
+                                duration: 0
+                            };
+                        }
+                    });
+                    return next;
+                });
+
+                // Clear results after 2.5 seconds so user sees final state briefly
                 setTimeout(() => {
                     setResults({});
-                }, 5000);
+                }, 2500);
             };
 
             socket.on('step-run-start', handleStepStart);
@@ -1435,8 +1456,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         nodes={nodes}
                         socket={socket}
                         flowId={flowId}
-                        externalResults={results}
-                        onResultsChange={setResults}
                     />
 
 

@@ -1,23 +1,58 @@
-
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Split, Check, X } from "lucide-react";
+import { Split, Check, X, Loader2, Slash } from "lucide-react";
 
-
-// Status Colors same as CustomNode for consistency
+// Matches CustomNode StatusColors
 const StatusColors = {
-    pending: "border-border",
-    success: "border-green-500",
-    error: "border-red-500",
-    running: "border-blue-500",
+  pending: {
+    border: "border-border",
+    bg: "bg-muted/50",
+    text: "text-muted-foreground",
+    icon: "text-muted-foreground",
+    glow: "",
+    shadow: ""
+  },
+  running: {
+    border: "border-blue-500",
+    bg: "bg-blue-100 dark:bg-blue-900/20",
+    text: "text-blue-600 dark:text-blue-400",
+    icon: "text-blue-600 dark:text-blue-400",
+    glow: "shadow-[0_0_15px_rgba(59,130,246,0.3)]",
+    shadow: "shadow-blue-500/10"
+  },
+  success: {
+    border: "border-green-500",
+    bg: "bg-green-100 dark:bg-green-900/20",
+    text: "text-green-600 dark:text-green-400",
+    icon: "text-green-600 dark:text-green-400",
+    glow: "shadow-[0_0_15px_rgba(34,197,94,0.2)]",
+    shadow: "shadow-green-500/10"
+  },
+  error: {
+    border: "border-red-500",
+    bg: "bg-red-100 dark:bg-red-900/20",
+    text: "text-red-600 dark:text-red-400",
+    icon: "text-red-600 dark:text-red-400",
+    glow: "shadow-[0_0_15px_rgba(239,68,68,0.2)]",
+    shadow: "shadow-red-500/10"
+  },
+  skipped: {
+    border: "border-zinc-300 dark:border-zinc-700",
+    bg: "bg-zinc-100 dark:bg-zinc-800/50",
+    text: "text-zinc-500 dark:text-zinc-400",
+    icon: "text-zinc-400 dark:text-zinc-500",
+    glow: "",
+    shadow: ""
+  }
 } as const;
 
 const ConditionNode = ({ data, selected }: NodeProps) => {
     const status = (data.status as keyof typeof StatusColors) || 'pending';
-    const label = (data.label as string) || "Logic"; // Default to "Logic"
+    const label = (data.label as string) || "Logic";
     const subLabel = (data.subLabel as string) || "Check condition";
+    const colorConfig = StatusColors[status];
 
     return (
         <div className="relative group">
@@ -28,17 +63,34 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                 className="!w-3 !h-3 !top-[-6px] !border-2 !border-background !bg-muted-foreground/30"
             />
 
-            <div
+            <Card
                 className={cn(
-                    "w-[280px] p-4 shadow-sm border rounded-xl bg-card transition-all duration-300 relative z-10 group-hover:shadow-md",
-                    selected ? "border-amber-500 ring-1 ring-amber-500" : StatusColors[status]
+                    "w-[280px] p-4 shadow-lg border-2 transition-all duration-300 relative z-10 backdrop-blur-sm",
+                    "bg-card/95 hover:bg-card",
+                    selected ? "border-amber-500 ring-2 ring-amber-500/20 scale-[1.02]" : colorConfig.border,
+                    colorConfig.shadow,
+                    status === 'running' && "ring-2 ring-blue-500/20"
                 )}
+                style={{
+                    boxShadow: status !== 'pending' && status !== 'skipped' ? colorConfig.glow : undefined
+                }}
             >
-                {/* Header with Icon and Title - Restored per user request */}
                 <div className="flex items-start gap-4">
                     {/* Icon Container */}
-                    <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                        <Split className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <div className={cn(
+                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
+                        status === 'pending' ? "bg-amber-100 dark:bg-amber-900/30" : colorConfig.bg
+                    )}>
+                        {status === 'running' ? (
+                             <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        ) : status === 'skipped' ? (
+                             <Slash className={cn("h-6 w-6", colorConfig.icon)} />
+                        ) : (
+                             <Split className={cn(
+                                "h-6 w-6", 
+                                status === 'pending' ? "text-amber-600 dark:text-amber-400" : colorConfig.icon
+                             )} />
+                        )}
                     </div>
 
                     {/* Content */}
@@ -49,11 +101,9 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                         <span className="text-xs text-muted-foreground truncate mb-2">{subLabel}</span>
                     </div>
                 </div>
-            </div>
+            </Card>
 
-
-            {/* Output Handles - Tabs merged with card */}
-            {/* Accepted (True) Handle */}
+            {/* Output Handles */}
             <div className="absolute -bottom-[22px] left-1/4 -translate-x-1/2 flex flex-col items-center z-50">
                 <Handle
                     type="source"
@@ -61,13 +111,15 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                     id="true"
                     className="!w-3 !h-3 !relative !transform-none !left-auto !top-auto !bg-transparent !border-0 opacity-0 z-50"
                 />
-                <div className="flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm">
+                <div className={cn(
+                    "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",
+                    selected && "border-amber-500/50"
+                )}>
                     <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
                     <span className="text-[10px] font-medium text-muted-foreground">Accepted</span>
                 </div>
             </div>
 
-            {/* Rejected (False) Handle */}
             <div className="absolute -bottom-[22px] left-3/4 -translate-x-1/2 flex flex-col items-center z-50">
                 <Handle
                     type="source"
@@ -75,7 +127,10 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                     id="false"
                     className="!w-3 !h-3 !relative !transform-none !left-auto !top-auto !bg-transparent !border-0 opacity-0 z-50"
                 />
-                <div className="flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm">
+                <div className={cn(
+                    "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",
+                    selected && "border-amber-500/50"
+                )}>
                     <X className="h-3 w-3 text-red-600 dark:text-red-400" />
                     <span className="text-[10px] font-medium text-muted-foreground">Rejected</span>
                 </div>
@@ -86,5 +141,4 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
 };
 
 export default memo(ConditionNode);
-
 

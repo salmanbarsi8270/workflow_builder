@@ -44,3 +44,30 @@ export const getNodeIcon = (iconType: string) => {
   
   return IconMap[iconType as keyof typeof IconMap] || IconMap.default;
 };
+
+export const shouldShowEdgeButton = (sourceNode: any, targetNode: any): boolean => {
+  if (!sourceNode || !targetNode) return false;
+
+  // ❌ Never show + on condition branches
+  if (sourceNode.type === 'condition') {
+    return false;
+  }
+
+  // ✅ Show + on merge placeholder (Green circle)
+  if (targetNode.data?.isMergePlaceholder) {
+    return true;
+  }
+
+  // ✅ Show + on End node (to allow adding before end)
+  if (targetNode.type === 'end') {
+    return true;
+  }
+
+  // ❌ Hide for other placeholders (like True/False branch starts)
+  if (targetNode.data?.isPlaceholder) {
+    return false;
+  }
+
+  // ✅ Show for normal nodes (Standard flow)
+  return true;
+};

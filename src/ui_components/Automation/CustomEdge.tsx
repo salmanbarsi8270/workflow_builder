@@ -2,6 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNode
 import { Plus, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
+import { getNodeStatusColor, shouldShowEdgeButton } from './nodeUtils';
 import { cn } from "@/lib/utils";
 
 // Edge Status Colors
@@ -41,6 +42,12 @@ const EdgeStatusColors = {
     width: 2,
     dasharray: '10,5',
     glow: 'drop-shadow(0_0_8px_rgba(139,92,246,0.3))'
+  },
+  skipped: {
+    stroke: '#e4e4e7', // zinc-200
+    width: 2,
+    dasharray: '5,5',
+    glow: ''
   }
 } as const;
 
@@ -58,6 +65,7 @@ export default function CustomEdge({
   source,
   sourceX,
   sourceY,
+  target,
   targetX,
   targetY,
   sourcePosition,
@@ -66,7 +74,7 @@ export default function CustomEdge({
   markerEnd,
   selected,
   data,
-  target
+
 }: EdgeProps) {
   const { onAddNode, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
