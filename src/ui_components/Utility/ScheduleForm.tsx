@@ -28,12 +28,16 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
     return (
         <div className="flex flex-col gap-4">
              {triggerType === 'schedule' && (
+                 <>
                  <div className="grid gap-2">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval Type</Label>
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                        Interval Type <span className="text-red-500">*</span>
+                    </Label>
                     <Select 
                         value={params.intervalType || 'minutes'} 
                         onValueChange={(val) => handleChange('intervalType', val)}
                         disabled={disabled}
+                        required
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Select interval type" />
@@ -42,6 +46,81 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                             <SelectItem value="minutes">Minutes</SelectItem>
                             <SelectItem value="hours">Hours</SelectItem>
                             <SelectItem value="days">Days</SelectItem>
+                            <SelectItem value="once">Once (Specific Date/Time)</SelectItem>
+                            <SelectItem value="daily">Daily (Specific Time)</SelectItem>
+                            <SelectItem value="weekly">Weekly (Specific Day/Time)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                 </div>
+
+                  {(params.intervalType === 'once') && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                                Execution Date <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                type="date" 
+                                required
+                                value={params.executionDate || ''}
+                                onChange={(e) => handleChange('executionDate', e.target.value)}
+                                disabled={disabled}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                                Execution Time <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                type="time" 
+                                required
+                                value={params.executionTime || ''}
+                                onChange={(e) => handleChange('executionTime', e.target.value)}
+                                disabled={disabled}
+                            />
+                        </div>
+                    </div>
+                 )}
+                 </>
+             )}
+
+             {(params.intervalType === 'daily' || params.intervalType === 'weekly') && (
+                 <div className="grid gap-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                        Execution Time <span className="text-red-500">*</span>
+                    </Label>
+                    <Input 
+                        type="time" 
+                        required
+                        value={params.executionTime || ''}
+                        onChange={(e) => handleChange('executionTime', e.target.value)}
+                        disabled={disabled}
+                    />
+                 </div>
+             )}
+
+             {params.intervalType === 'weekly' && (
+                 <div className="grid gap-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                        Day of Week <span className="text-red-500">*</span>
+                    </Label>
+                    <Select 
+                        value={params.dayOfWeek || 'monday'} 
+                        onValueChange={(val) => handleChange('dayOfWeek', val)}
+                        disabled={disabled}
+                        required
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="monday">Monday</SelectItem>
+                            <SelectItem value="tuesday">Tuesday</SelectItem>
+                            <SelectItem value="wednesday">Wednesday</SelectItem>
+                            <SelectItem value="thursday">Thursday</SelectItem>
+                            <SelectItem value="friday">Friday</SelectItem>
+                            <SelectItem value="saturday">Saturday</SelectItem>
+                            <SelectItem value="sunday">Sunday</SelectItem>
                         </SelectContent>
                     </Select>
                  </div>
@@ -50,7 +129,9 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
              {(!params.intervalType || params.intervalType === 'minutes') && (
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Minutes)</Label>
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                            Interval (Minutes) <span className="text-red-500">*</span>
+                        </Label>
                     </div>
                     <Input 
                         type="text" 
@@ -58,6 +139,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         value={params.intervalMinutes || ''}
                         onChange={(e) => handleChange('intervalMinutes', e.target.value)}
                         disabled={disabled}
+                        required
                     />
                     <p className="text-xs text-muted-foreground">Valid value between 1 to 59.</p>
                  </div>
@@ -66,7 +148,9 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
              {params.intervalType === 'hours' && (
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Hours)</Label>
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                            Interval (Hours) <span className="text-red-500">*</span>
+                        </Label>
                         <VariablePicker
                             nodes={nodes}
                             onSelect={(v) => handleVariableSelect('intervalHours', v)}
@@ -79,6 +163,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         value={params.intervalHours || ''}
                         onChange={(e) => handleChange('intervalHours', e.target.value)}
                         disabled={disabled}
+                        required
                     />
                  </div>
              )}
@@ -86,7 +171,9 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
              {params.intervalType === 'days' && (
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Interval (Days)</Label>
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                            Interval (Days) <span className="text-red-500">*</span>
+                        </Label>
                         <VariablePicker
                             nodes={nodes}
                             onSelect={(v) => handleVariableSelect('intervalDay', v)}
@@ -99,6 +186,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         value={params.intervalDay || ''}
                         onChange={(e) => handleChange('intervalDay', e.target.value)}
                         disabled={disabled}
+                        required
                     />
                  </div>
              )}

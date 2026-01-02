@@ -41,6 +41,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     value={params.method || 'GET'}
                     onValueChange={(val) => handleChange('method', val)}
                     disabled={disabled}
+                    required
                 >
                     <SelectTrigger>
                         <SelectValue placeholder="Select Method" />
@@ -58,7 +59,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
             {/* URL */}
             <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
                         URL <span className="text-red-500">*</span>
                     </Label>
                     <VariablePicker
@@ -72,14 +73,15 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     onChange={(e) => handleChange('url', e.target.value)}
                     placeholder="https://api.example.com/v1/resource"
                     disabled={disabled}
+                    required
                 />
             </div>
 
             {/* Headers */}
             <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
-                        Headers (JSON)
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                        Headers (JSON) <span className="text-red-500">*</span>
                     </Label>
                     <VariablePicker
                         nodes={nodes}
@@ -93,6 +95,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     placeholder='{ "Content-Type": "application/json" }'
                     className="font-mono text-xs min-h-[100px]"
                     disabled={disabled}
+                    required
                 />
             </div>
 
@@ -100,8 +103,8 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
             {(params.method !== 'GET' && params.method !== 'DELETE') && (
                 <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
-                            Body (JSON)
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                            Body (JSON) <span className="text-red-500">*</span>
                         </Label>
                         <VariablePicker
                             nodes={nodes}
@@ -115,6 +118,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                         placeholder='{ "key": "value" }'
                         className="font-mono text-xs min-h-[150px]"
                         disabled={disabled}
+                        required
                     />
                 </div>
             )}

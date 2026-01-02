@@ -3,19 +3,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
-import {
-    ReactFlow,
-    Controls,
-    MiniMap,
-    Background,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    type Connection,
-    type Node,
-    type Edge,
-    ReactFlowProvider,
-    Position
+import { ReactFlow, Controls, MiniMap, Background, useNodesState, useEdgesState, addEdge, type Connection, type Node, type Edge, ReactFlowProvider, Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -25,6 +13,7 @@ import EndNode from './EndNode';
 import CustomEdge from './CustomEdge';
 import ConditionNode from './ConditionNode';
 import ParallelNode from './ParallelNode';
+import WaitNode from './Nodes/WaitNode';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
@@ -36,6 +25,7 @@ const nodeTypes = {
     custom: CustomNode,
     condition: ConditionNode,
     parallel: ParallelNode,
+    wait: WaitNode,
     end: EndNode,
 
 };
@@ -817,6 +807,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleAppSelect = (app: any) => {
         const isCondition = app.actionId === 'condition';
         const isParallel = app.actionId === 'parallel';
+        const isWait = app.actionId === 'wait';
 
         // --- Local State for this execution ---
         let isPlaceholderLogicMode = false;
@@ -849,7 +840,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 appName: app.name,
                                 ...app,
                                 isPlaceholder: false
-                            }
+                            },
+                            type: isWait ? 'wait' : n.type // Check if we should update type too for replacement
                         }
                     }
                     return n;
@@ -875,7 +867,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             appName: app.name,
                             ...app,
                             isPlaceholder: false
-                        }
+                        },
+                        type: isWait ? 'wait' : n.type // Update type if swapping to wait
                     }
                 }
                 return n;
@@ -914,7 +907,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Default branches for parallel if not present
                 branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
             },
-            type: isCondition ? 'condition' : isParallel ? 'parallel' : 'custom'
+            type: isCondition ? 'condition' : isParallel ? 'parallel' : isWait ? 'wait' : 'custom'
         };
 
         const newEdges = [];
@@ -1432,6 +1425,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
                             nodeStatus={(selectedNode.data as any).status}
+                            isLocked={automationStatus}
                         />
                     )}
 
