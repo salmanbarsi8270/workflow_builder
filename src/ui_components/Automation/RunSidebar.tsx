@@ -2,13 +2,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash, GitFork, GitMerge, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash } from "lucide-react";
 import { type Node, type Edge } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import { API_URL } from '../api/apiurl';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 interface RunSidebarProps {
     isOpen: boolean;
@@ -37,7 +36,7 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flowId, onViewRun }: RunSidebarProps) {
+export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onViewRun }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
@@ -237,7 +236,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
                 }, 1000);
             };
 
-            const handleFlowFailed = (data: any) => {
+            const handleFlowFailed = (_data: any) => {
                 setRunSummaryStatus('error');
                 setliveRun(false);
             };

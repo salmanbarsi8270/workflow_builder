@@ -1,5 +1,5 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
-import { Plus, Zap, AlertCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
 import { cn } from "@/lib/utils";
