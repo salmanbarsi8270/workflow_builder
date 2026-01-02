@@ -180,42 +180,86 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (
     );
 };
 
-const ArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
-    const [localValue, setLocalValue] = useState(Array.isArray(value) ? JSON.stringify(value) : (value || ''));
+import { Plus, Trash2 } from "lucide-react";
 
-    // Sync if value changes from outside (e.g. from a different node selection)
+// Robust String Array Input
+const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
+    // Parse value into array of strings
+    const parseValue = (val: any): string[] => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') {
+            try { return JSON.parse(val.replace(/'/g, '"')); } catch { return []; }
+        }
+        return [];
+    };
+
+    const [items, setItems] = useState<string[]>(parseValue(value));
+
+    // Sync from parent props
     useEffect(() => {
-        const strValue = Array.isArray(value) ? JSON.stringify(value) : (value || '');
-        if (strValue !== localValue) {
-            try {
-                // Only update if the parsed local value is truly different
-                const parsedLocal = JSON.parse(localValue);
-                if (JSON.stringify(parsedLocal) !== strValue) {
-                    setLocalValue(strValue);
-                }
-            } catch {
-                setLocalValue(strValue);
-            }
+        const parsed = parseValue(value);
+        if (JSON.stringify(parsed) !== JSON.stringify(items)) {
+            setItems(parsed);
         }
     }, [value]);
 
-    const handleBlur = () => {
-        try {
-            const parsed = JSON.parse(localValue);
-            onChange(parsed);
-        } catch {
-            onChange(localValue);
-        }
+    const handleUpdate = (newItems: string[]) => {
+        setItems(newItems);
+        onChange(newItems);
+    };
+
+    const addItem = () => {
+        const newItems = [...items, `Branch ${items.length + 1}`];
+        handleUpdate(newItems);
+    };
+
+    const removeItem = (index: number) => {
+        const newItems = items.filter((_, i) => i !== index);
+        handleUpdate(newItems);
+    };
+
+    const updateItem = (index: number, val: string) => {
+        const newItems = [...items];
+        newItems[index] = val;
+        handleUpdate(newItems);
     };
 
     return (
-        <Input
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            disabled={disabled}
-        />
+        <div className="flex flex-col gap-2">
+            {items.map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                    <Input
+                        value={item}
+                        onChange={(e) => updateItem(index, e.target.value)}
+                        placeholder={`Item ${index + 1}`}
+                        disabled={disabled}
+                        className="flex-1 h-8 text-xs"
+                    />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeItem(index)}
+                        disabled={disabled}
+                    >
+                        <Trash2 className="h-3 w-3" />
+                    </Button>
+                </div>
+            ))}
+            <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs border-dashed gap-2 text-muted-foreground"
+                onClick={addItem}
+                disabled={disabled}
+            >
+                <Plus className="h-3 w-3" />
+                Add Item
+            </Button>
+            <p className="text-[10px] text-muted-foreground italic mt-1">
+                {placeholder}
+            </p>
+        </div>
     );
 };
 
@@ -461,7 +505,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                         )}
 
                         {param.type === 'array' && (
-                            <ArrayInput
+                            <StringArrayInput
                                 value={params[param.name]}
                                 onChange={(val) => handleChange(param.name, val)}
                                 placeholder={param.description + " (e.g. [\"data1\", \"data2\"])"}

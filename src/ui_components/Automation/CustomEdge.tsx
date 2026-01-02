@@ -65,20 +65,22 @@ export default function CustomEdge({
   style = {},
   markerEnd,
   selected,
-  data
+  data,
+  target
 }: EdgeProps) {
   const { onAddNode, onEdgeClick } = useAutomationContext();
   const nodes = useNodes();
 
   const sourceNode = nodes.find(n => n.id === source);
+  const targetNode = nodes.find(n => n.id === target);
 
   const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
   const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
   const hasError = data?.hasError as boolean;
   const label = data?.label as string;
 
-  // Get SmoothStepPath with 0 border radius for sharp orthogonal straight lines
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  // Calculate Path
+  let [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
@@ -87,6 +89,20 @@ export default function CustomEdge({
     targetPosition,
     borderRadius: 0
   });
+
+  // CUSTOM PATH: For nodes entering a Merge Node (Convergence Point)
+  // We force a "Merge Bus" line at targetY - 40 to ensure symmetry
+  const isTargetMerge = targetNode?.data?.isMergeNode;
+  if (isTargetMerge) {
+    const mergeY = targetY - 40; // Consistent horizontal level for all branches
+    edgePath = `M ${sourceX},${sourceY} L ${sourceX},${mergeY} L ${targetX},${mergeY} L ${targetX},${targetY}`;
+
+    // Position label/button on the vertical segment coming from source
+    // Use dynamic offset to ensure we never hit the "elbow" (at offset 40)
+    const verticalSegmentLength = Math.max(0, (targetY - 40) - sourceY);
+    labelX = sourceX;
+    labelY = sourceY + Math.min(25, verticalSegmentLength * 0.7);
+  }
 
   // Calculate edge style based on status and type
   const edgeStyle = {
@@ -99,6 +115,17 @@ export default function CustomEdge({
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: 'pointer'
   };
+
+  // Override Label Position logic - ONLY for branching nodes (Parallel/Condition)
+  // These need specialized placement (+75) to sit inside the branch column.
+  // Sequential steps return to their "old place" (Centered).
+  let finalLabelX = labelX;
+  let finalLabelY = labelY;
+
+  if (sourceNode?.type === 'parallel' || sourceNode?.type === 'condition') {
+    finalLabelX = targetX;
+    finalLabelY = sourceY + 65;
+  }
 
   const handleAddNode = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -113,6 +140,14 @@ export default function CustomEdge({
   };
 
   const isPlaceholder = sourceNode?.data?.isPlaceholder;
+  const distanceY = Math.abs(targetY - sourceY);
+
+  // Don't show add button if the edge is too short (prevents "collapse" aka overlap with nodes)
+  // OR if either side is a Branch Placeholder (the "Add Step" cards inside branches).
+  // This allows buttons on edges leading to Merge Points or End Nodes while avoiding
+  // redundancy on the construction cards.
+  const isBranchPlaceholder = sourceNode?.data?.isBranchPlaceholder || targetNode?.data?.isBranchPlaceholder;
+  const showAddButton = distanceY > 45 && !isBranchPlaceholder;
 
   return (
     <>
@@ -136,34 +171,41 @@ export default function CustomEdge({
         <div
           style={{
             position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${finalLabelX}px,${finalLabelY}px)`,
             pointerEvents: 'all'
           }}
-          className="nodrag nopan group"
+          className="nodrag nopan group flex flex-col items-center gap-1"
         >
-          <div className={cn(
-            "flex items-center gap-1 transition-all duration-300",
-            selected ? "opacity-100 scale-100" : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
-          )}>
-            <div className="flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-lg border-2 border-primary/20">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full transition-all"
-                onClick={handleAddNode}
-                title="Add node"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+          {/* Edge Label - Always Visible */}
+          {label && (
+            <div className={cn(
+              "px-2 py-0.5 rounded-md bg-background border shadow-sm text-[10px] font-medium text-muted-foreground whitespace-nowrap transition-all",
+              "border-border/50"
+            )}>
+              {label}
             </div>
+          )}
 
-            {/* Edge Label */}
-            {label && (
-              <div className="px-2 py-1 rounded-md bg-background/90 backdrop-blur-sm border shadow-sm text-xs font-medium min-w-[60px] text-center">
-                {label}
+          {/* Add Button - Visible on Hover/Select logic */}
+          {showAddButton && (
+            <div className={cn(
+              "transition-all duration-200",
+              selected ? "opacity-100 scale-100" : "opacity-50 scale-90 group-hover:opacity-100 group-hover:scale-100",
+              !label && "opacity-50 scale-90 group-hover:opacity-100 group-hover:scale-100"
+            )}>
+              <div className="flex items-center gap-1 bg-secondary/90 backdrop-blur-sm rounded-full p-1 shadow-sm border border-muted-foreground/40">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                  onClick={handleAddNode}
+                  title={`Insert step before ${targetNode?.data?.label || 'next node'}`}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Edge Status Indicator */}
@@ -189,17 +231,17 @@ export default function CustomEdge({
         )}
       </EdgeLabelRenderer>
 
-      {/* Edge Selection Outline for easier clicking */}
+      {/* Edge Selection Outline for easier clicking - Reduced width */}
       {selected && (
         <BaseEdge
           path={edgePath}
           style={{
             stroke: 'transparent',
-            strokeWidth: 20,
+            strokeWidth: 12, // Reduced from 20 to prevent overlap
             strokeLinecap: 'round',
             strokeLinejoin: 'round',
             pointerEvents: 'stroke',
-            cursor: 'pointer'
+            cursor: 'pointer' // Keeping pointer cursor for clickability
           }}
           onClick={handleEdgeClick}
         />

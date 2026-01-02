@@ -61,6 +61,22 @@ export const APP_DEFINITIONS: AppDefinition[] = [
                required: true 
              }
         ]
+      },
+      { 
+        id: 'parallel', 
+        name: 'Parallel', 
+        description: 'Execute multiple branches in parallel.', 
+        type: 'action',
+        parameters: [
+             { 
+               name: 'branches', 
+               type: 'array', 
+               label: 'Branches', 
+               description: 'Define the branches to execute.',
+               required: true,
+               default: ['Branch 1', 'Branch 2']
+             }
+        ]
       }
     ]
   },
