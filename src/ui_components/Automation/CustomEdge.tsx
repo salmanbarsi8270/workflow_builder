@@ -216,27 +216,10 @@ export default function CustomEdge({
           )}
         </div>
 
-        {/* Edge Status Indicator */}
-        {status !== 'pending' && (
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px,${(sourceY + targetY) / 2}px)`,
-              pointerEvents: 'none'
-            }}
-          >
-            <div className={cn(
-              "h-4 w-4 rounded-full flex items-center justify-center border-2 border-background shadow-sm",
-              status === 'running' && "bg-blue-500 animate-pulse",
-              status === 'success' && "bg-green-500",
-              status === 'error' && "bg-red-500",
-              status === 'warning' && "bg-amber-500"
-            )}>
-              {status === 'running' && <Zap className="h-2 w-2 text-white" />}
-              {status === 'error' && <AlertCircle className="h-2 w-2 text-white" />}
-            </div>
-          </div>
-        )}
+        {/* Edge Status Indicator - REMOVED to reduce clutter (Lighting Problem) */}
+        {/* status !== 'pending' && (
+          <div ... > ... </div>
+      ) */}
       </EdgeLabelRenderer>
 
       {/* Edge Selection Outline for easier clicking - Reduced width */}

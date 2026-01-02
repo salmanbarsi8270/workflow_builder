@@ -1,22 +1,26 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useMemo } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Zap, Slash } from "lucide-react";
-import { type Node } from '@xyflow/react';
+import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash, GitFork, GitMerge, Clock, AlertTriangle } from "lucide-react";
+import { type Node, type Edge } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import { API_URL } from '../api/apiurl';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface RunSidebarProps {
     isOpen: boolean;
     onClose: () => void;
     nodes: Node[];
+    edges: Edge[];
     socket?: any;
     flowId?: string;
+    onViewRun?: (run: FlowRun) => void;
 }
 
-type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
+type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped' | 'waiting' | 'rejected';
 
 interface StepResult {
     nodeId: string;
@@ -33,11 +37,11 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: RunSidebarProps) {
+export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flowId, onViewRun }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
-    const [expandedStep, setExpandedStep] = useState<string | null>(null);
-    
-    // Track if there's an active run
+    const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+
+    // Track active run status
     const [hasActiveRun, setHasActiveRun] = useState(false);
     const [runStartTime, setRunStartTime] = useState<Date | null>(null);
     const [runDuration, setRunDuration] = useState<number>(0);
@@ -50,27 +54,31 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
     const [liveRun, setliveRun] = useState(false);
     const [runSummaryStatus, setRunSummaryStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
 
-    // Initial simple linear sort of nodes for the list
-    const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-    
+    // --- FLAT LIST BUILDER ---
+    // Simple topological sort approximation using Y position
+    const visualSteps = useMemo(() => {
+        if (!nodes || nodes.length === 0) return [];
+        return [...nodes]
+            .filter(n => !n.data.isPlaceholder && n.id !== '1' && n.type !== 'end') // Filter out placeholders and trigger/end
+            .sort((a, b) => {
+                // Sort by Y first, then X (for parallel branches on same row)
+                if (Math.abs(a.position.y - b.position.y) > 50) {
+                    return a.position.y - b.position.y;
+                }
+                return a.position.x - b.position.x;
+            });
+    }, [nodes]);
+
     // Track active run status
     useEffect(() => {
-        const activeRun = Object.values(results).some(result => 
-            result.status === 'running' || result.status === 'success'
-        );
-        setHasActiveRun(activeRun);
-        
+        const isRunning = Object.values(results).some(r => r.status === 'running');
+        setHasActiveRun(isRunning);
+
         // Track run duration
-        if (Object.values(results).some(r => r.status === 'running')) {
-            if (!runStartTime) {
-                setRunStartTime(new Date());
-            }
-        } else if (runStartTime && Object.values(results).every(r => r.status !== 'running')) {
-            const endTime = new Date();
-            const duration = endTime.getTime() - runStartTime.getTime();
-            setRunDuration(duration);
+        if (isRunning && !runStartTime) {
+            setRunStartTime(new Date());
         }
-    }, [results, runStartTime]);
+    }, [results]);
 
     // Update run duration timer
     useEffect(() => {
@@ -93,65 +101,63 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         setRunSummaryStatus('idle');
     };
 
-    // Reset run state only when strictly necessary
     const handleViewChange = (newView: 'live' | 'history' | 'detail') => {
         setView(newView);
-        // Clear summary status when switching away from live view
-        if (newView !== 'live') {
-            setRunSummaryStatus('idle');
-        }
+        if (newView !== 'live') setRunSummaryStatus('idle');
     };
 
     // Derived results for rendering
-    const displayResults = view === 'detail' && selectedRun ? (() => {
-        const mapped: Record<string, StepResult> = {};
-        const runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
-        
-        sortedNodes.forEach(node => {
-            let stepData = runRes && runRes[node.id];
-            
-            if (!stepData && runRes) {
-                const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
-                const foundKey = triggerKeys.find(k => runRes[k]);
-                if (foundKey && sortedNodes.indexOf(node) === 0) {
-                    stepData = runRes[foundKey];
-                }
-            }
+    const displayResults = useMemo(() => {
+        if (view === 'detail' && selectedRun) {
+            const mapped: Record<string, StepResult> = {};
+            const runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
 
-            if (stepData) {
-                mapped[node.id] = {
-                    nodeId: node.id,
-                    status: stepData.status || 'success',
-                    output: stepData.data || stepData.output,
-                    duration: stepData.duration || 0 
-                };
-            } else {
-                mapped[node.id] = {
-                    nodeId: node.id,
-                    status: 'skipped',
-                    output: null,
-                    duration: 0
-                };
-            }
-        });
-        return mapped;
-    })() : results;
+            nodes.forEach(node => {
+                // Try specific lookup
+                let stepData = runRes && runRes[node.id];
+
+                // Trigger fallback
+                if (!stepData && runRes) {
+                    const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
+                    const foundKey = triggerKeys.find(k => runRes[k]);
+                    // Check if this node is the trigger?
+                    if (foundKey && (node.type === 'trigger' || (node.data.actionId === foundKey) || node.id === '1')) {
+                        stepData = runRes[foundKey];
+                    }
+                }
+
+                if (stepData) {
+                    mapped[node.id] = {
+                        nodeId: node.id,
+                        status: stepData.status || 'success',
+                        output: stepData.data || stepData.output || stepData, // Handles varied backend formats
+                        duration: stepData.duration || 0
+                    };
+                } else {
+                    mapped[node.id] = {
+                        nodeId: node.id,
+                        status: 'skipped',
+                        output: null,
+                        duration: 0
+                    };
+                }
+            });
+            return mapped;
+        }
+        return results;
+    }, [view, selectedRun, results, nodes]);
 
     useEffect(() => {
         if (socket) {
             const handleStepStart = (data: any) => {
                 setliveRun(true);
-                
-                // If this is the trigger node (usually first node) or we have no results, start fresh
-                const isFirstNode = sortedNodes[0]?.id === data.nodeId;
-                const noActiveResults = Object.keys(results).length === 0;
 
-                if (isFirstNode || noActiveResults) {
+                // Clear on trigger start
+                if (data.nodeId === '1') {
                     setResults({});
                     setRunStartTime(new Date());
                     setRunDuration(0);
                     setRunSummaryStatus('idle');
-                    console.log("Run started fresh");
                 }
 
                 if (view !== 'live') setView('live');
@@ -168,7 +174,6 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
             };
 
             const handleStepFinish = (data: any) => {
-                console.log("run finish");
                 setResults(prev => ({
                     ...prev,
                     [data.nodeId]: {
@@ -180,10 +185,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                 }));
             };
 
-           const handleRunComplete = () => {
-                console.log("run complete");
-
-                // Mark nodes that didn't run as skipped
+            const handleRunComplete = (data: any) => {
+                console.log("Run Complete", data);
+                // Mark skipped
                 setResults(prev => {
                     const next = { ...prev };
                     nodes.forEach(node => {
@@ -191,51 +195,53 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
                         if (!next[node.id]) {
                             next[node.id] = {
                                 nodeId: node.id,
-                                status: 'skipped', // Type cast if needed, but StepStatus now includes skipped
+                                status: 'skipped',
                                 output: null,
                                 duration: 0
-                            } as any; // Cast to avoid strict type issues if local StepStatus def is outdated 
+                            };
                         }
                     });
                     return next;
                 });
-                
-                // Determine summary status based on results
+
+                const status = (data && data.status) ? (data.status === 'failed' ? 'error' : 'success') : 'success';
+                // Check local results too
                 const hasError = Object.values(results).some(r => r.status === 'error');
-                const newStatus = hasError ? 'error' : 'success';
-                
-                // Only set summary status if we're in live view
-                if (view === 'live') {
-                    setRunSummaryStatus(newStatus);
-                }
+                const finalStatus = hasError ? 'error' : status;
+
+                if (view === 'live') setRunSummaryStatus(finalStatus);
 
                 setTimeout(() => {
                     setRunStartTime(null);
                     setliveRun(false);
-                    // Reset summary after 5 seconds only if still in live view
                     setTimeout(() => {
-                        if (view === 'live') {
-                            setRunSummaryStatus('idle');
-                        }
+                        if (view === 'live') setRunSummaryStatus('idle');
                     }, 5000);
                 }, 1000);
+            };
+
+            const handleFlowFailed = (data: any) => {
+                setRunSummaryStatus('error');
+                setliveRun(false);
             };
 
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-complete', handleRunComplete);
+            socket.on('flow-failed', handleFlowFailed);
 
             return () => {
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
                 socket.off('run-complete', handleRunComplete);
+                socket.off('flow-failed', handleFlowFailed);
             };
         }
-    }, [socket, view, sortedNodes, results]);
+    }, [socket, view, nodes]);
+
 
     const fetchHistory = async () => {
         if (!flowId) return;
-        
         setIsLoadingHistory(true);
         try {
             const res = await fetch(`${API_URL}/api/flows/${flowId}/runs`);
@@ -256,221 +262,169 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId }: R
         return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
     };
 
-    // Get description text based on current view and state
     const getDescriptionText = () => {
         if (view === 'detail' && selectedRun) {
-            return `Run Details • ${new Date(selectedRun.created_at).toLocaleString()}`;
-        }
-        
-        if (view === 'history') {
-            return "View past executions";
-        }
-        
-        // Live view
-        if (runSummaryStatus === 'success') {
             return (
-                <span className="text-green-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                    <Check className="h-3.5 w-3.5" /> Run Successful
-                </span>
+                <div className="flex items-center justify-between w-full">
+                    <span>Run Details • {new Date(selectedRun.created_at).toLocaleString()}</span>
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => onViewRun?.(selectedRun)}>
+                        View
+                    </Button>
+                </div>
             );
         }
-        
-        if (runSummaryStatus === 'error') {
-            return (
-                <span className="text-red-500 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
-                    <X className="h-3.5 w-3.5" /> Run Failed
-                </span>
-            );
-        }
-        
-        if (hasActiveRun) {
-            return `Running for ${formatDuration(runDuration)}`;
-        }
-        
+        if (view === 'history') return "View past executions";
+        if (runSummaryStatus === 'success') return <span className="text-green-500 font-semibold flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Run Successful</span>;
+        if (runSummaryStatus === 'error') return <span className="text-red-500 font-semibold flex items-center gap-1.5"><X className="h-3.5 w-3.5" /> Run Failed</span>;
+        if (hasActiveRun) return `Running for ${formatDuration(runDuration)}`;
         return "Ready for execution";
+    };
+
+    const toggleStep = (id: string) => {
+        setExpandedSteps(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }
+
+    const renderStep = (node: Node, index: number) => {
+        const result = displayResults[node.id];
+        const status = result?.status || 'pending';
+        const isExpanded = expandedSteps.has(node.id);
+        const label = node.data.label as string || node.id;
+        // Icons could be determined by node type, kept simple here
+
+        return (
+            <div key={node.id} className="relative mb-3">
+                <div className="absolute top-3 bottom-0 left-[11px] w-px bg-border -z-10 last:hidden" />
+
+                <div className="group">
+                    {/* Status Badge */}
+                    <div className={cn(
+                        "absolute left-0 top-2 h-6 w-6 rounded-full border-2 flex items-center justify-center bg-background z-10 transition-colors",
+                        status === 'pending' && "border-muted text-muted-foreground bg-muted/10",
+                        status === 'running' && "border-blue-500 text-blue-500 bg-blue-50",
+                        status === 'success' && "border-green-500 bg-green-500 text-white",
+                        status === 'error' && "border-red-500 bg-red-500 text-white",
+                        status === 'skipped' && "border-zinc-300 bg-zinc-100 text-zinc-400 opacity-50",
+                        status === 'waiting' && "border-amber-500 bg-amber-500 text-white animate-pulse"
+                    )}>
+                        {status === 'pending' && <span className="text-[10px]">{index + 1}</span>}
+                        {status === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {status === 'success' && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                        {status === 'error' && <X className="h-3.5 w-3.5" strokeWidth={3} />}
+                        {status === 'skipped' && <Slash className="h-3 w-3" />}
+                        {status === 'waiting' && <span className="text-[10px]">||</span>}
+                    </div>
+
+                    <div className="ml-9 space-y-2">
+                        {/* Main Step Card */}
+                        <div
+                            className={cn(
+                                "flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer",
+                                isExpanded && "ring-1 ring-primary border-primary bg-accent/5",
+                                status === 'skipped' && "opacity-60 bg-muted/20 hover:border-border cursor-default",
+                                status === 'running' && "border-blue-200 shadow-sm"
+                            )}
+                            onClick={() => status !== 'skipped' && toggleStep(node.id)}
+                        >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <span className={cn("font-medium text-sm truncate", status === 'skipped' && "line-through text-muted-foreground")}>
+                                    {label}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                                {status === 'success' && <span className="text-xs text-muted-foreground tabular-nums">{formatDuration(result.duration)}</span>}
+                                {status === 'waiting' && <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-amber-100 text-amber-700 hover:bg-amber-100">WAITING</Badge>}
+                                {status !== 'skipped' && (
+                                    isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Expanded Content (Output) */}
+                        {isExpanded && (
+                            <div className="animate-in slide-in-from-top-1 fade-in duration-200">
+                                {(result?.output || status === 'running' || status === 'pending') && (
+                                    <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto max-h-[300px]">
+                                        <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Output Payload</div>
+                                        {status === 'running' ? (
+                                            <div className="flex items-center gap-2 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" /> Executing...</div>
+                                        ) : status === 'pending' ? (
+                                            <span className="text-muted-foreground italic">Waiting to start...</span>
+                                        ) : (
+                                            <pre>{JSON.stringify(result?.output, null, 2) || '{}'}</pre>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="left" className="w-full sm:max-w-md">
-                <SheetHeader className="p-6 border-b">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <SheetTitle className="text-xl">Workflow Activity</SheetTitle>
-                            <SheetDescription className="mt-1">
-                                {getDescriptionText()}
-                            </SheetDescription>
-                        </div>
-                    </div>
+            <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col gap-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <SheetHeader className="p-6 border-b shrink-0">
+                    <SheetTitle className="text-xl flex items-center gap-2">
+                        {view === 'detail' && (
+                            <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8 mr-1" onClick={() => handleViewChange('history')}>
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        Workflow Activity
+                        {liveRun && <Badge variant="destructive" className="animate-pulse px-1.5 h-5 text-[10px]">LIVE</Badge>}
+                    </SheetTitle>
+                    <SheetDescription>{getDescriptionText()}</SheetDescription>
 
-                    {/* Tabs */}
                     {view !== 'detail' && (
                         <div className="flex gap-2 mt-4">
-                            <Button variant={view === 'live' ? 'default' : 'outline'} size="sm" onClick={() => handleViewChange('live')} className="flex-1 gap-2">
-                                <RefreshCcw className={cn("h-4 w-4", liveRun && "animate-spin")} />
-                                Current Run
-                                {liveRun && (
-                                    <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 animate-pulse">
-                                        ●
-                                    </Badge>
-                                )}
+                            <Button variant={view === 'live' ? 'secondary' : 'ghost'} size="sm" onClick={() => handleViewChange('live')} className="flex-1">
+                                <RefreshCcw className={cn("h-3.5 w-3.5 mr-2", liveRun && "animate-spin")} /> Current
                             </Button>
-                            <Button variant={view === 'history' ? 'default' : 'outline'} size="sm" onClick={() => { handleViewChange('history'); fetchHistory(); }} className="flex-1 gap-2">
-                                <HistoryIcon className="h-4 w-4" />
-                                History
+                            <Button variant={view === 'history' ? 'secondary' : 'ghost'} size="sm" onClick={() => { handleViewChange('history'); fetchHistory(); }} className="flex-1">
+                                <HistoryIcon className="h-3.5 w-3.5 mr-2" /> History
                             </Button>
                         </div>
                     )}
                 </SheetHeader>
 
-                <ScrollArea className="flex-1">
-                    <div className="px-6 space-y-6">
-                        {view === 'detail' && (
-                            <Button variant="ghost" size="sm" onClick={() => handleViewChange('history')} className="h-8 w-8 p-0 m-0 mb-2">
-                                <ArrowLeft className="h-4 w-4" /> Back
-                            </Button>
-                        )}
-                        {view === 'history' ? (
-                            <div className="space-y-4">
-                                {isLoadingHistory && (
-                                    <div className="flex flex-col items-center justify-center py-12">
-                                        <Loader2 className="h-8 w-8 animate-spin mb-3 text-muted-foreground" />
-                                        <p className="text-sm text-muted-foreground">Loading past runs...</p>
-                                    </div>
-                                )}
-                                
-                                {!isLoadingHistory && runHistory.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <HistoryIcon className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                        <h3 className="text-lg font-semibold mb-2">No History Found</h3>
-                                        <p className="text-sm text-muted-foreground">This workflow hasn't recorded any past executions yet.</p>
-                                    </div>
-                                )}
-                                
-                                {runHistory.map((run, index) => (
-                                    <div key={run.id} className="p-4 rounded-lg border bg-card hover:border-primary hover:shadow-sm transition-all cursor-pointer" onClick={() => handleRunClick(run)}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", run.status === 'success' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600")}>
-                                                    {run.status === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-sm text-foreground">Run #{runHistory.length - index}</p>
-                                                    <p className="text-xs text-muted-foreground">{new Date(run.created_at).toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ScrollArea className="h-[calc(100vh-8rem)] px-6 py-6">
+                    {view === 'history' ? (
+                        <div className="space-y-3">
+                            {isLoadingHistory && <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />Loading...</div>}
+                            {!isLoadingHistory && runHistory.length === 0 && <div className="text-center py-8 text-muted-foreground">No run history found.</div>}
+                            {runHistory.map((run, i) => (
+                                <div key={run.id} onClick={() => handleRunClick(run)} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors group">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("h-2 w-2 rounded-full", run.status === 'success' ? 'bg-green-500' : 'bg-red-500')} />
+                                        <div className="grid gap-0.5">
+                                            <span className="text-sm font-medium">Run #{runHistory.length - i}</span>
+                                            <span className="text-xs text-muted-foreground">{new Date(run.created_at).toLocaleString()}</span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            // LIVE / DETAIL VIEW
-                            <div>
-                                {view === 'live' && !hasActiveRun && runSummaryStatus === 'idle' && (
-                                    <div className="p-4 rounded-lg border bg-muted/30 mb-6">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-primary/10 rounded-md">
-                                                <Zap className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-semibold mb-1">No Active Run</h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Waiting for execution to start. Live updates will appear here once the workflow is triggered.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {sortedNodes.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <Play className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                        <h3 className="text-lg font-semibold mb-2">No Steps Configured</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Add nodes to your builder to start seeing execution logs here.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="relative border-l-2 border-muted ml-3 space-y-6">
-                                        {sortedNodes.map((node, index) => {
-                                            const result = displayResults[node.id];
-                                            const status = result?.status || 'pending';
-                                            
-                                            return (
-                                                <div key={node.id} className="ml-6 relative">
-                                                    {/* Badge */}
-                                                    <div className={cn(
-                                                        "absolute -left-[31px] top-0 h-6 w-6 rounded-full border-2 flex items-center justify-center bg-background z-10",
-                                                        status === 'pending' && "border-muted text-muted-foreground",
-                                                        status === 'running' && "border-blue-500 text-blue-500",
-                                                        status === 'success' && "border-green-500 bg-green-500 text-white",
-                                                        status === 'error' && "border-red-500 bg-red-500 text-white",
-                                                        status === 'skipped' && "border-zinc-300 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800"
-                                                    )}>
-                                                        {status === 'pending' && <span className="text-xs">{index + 1}</span>}
-                                                        {status === 'running' && <Loader2 className="h-3 w-3 animate-spin" />}
-                                                        {status === 'success' && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                                                        {status === 'error' && <X className="h-3.5 w-3.5" strokeWidth={3} />}
-                                                        {status === 'skipped' && <Slash className="h-3 w-3" />}
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <div className={cn(
-                                                            "flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer hover:border-primary/50", 
-                                                            expandedStep === node.id && "ring-2 ring-primary/20 border-primary",
-                                                            status === 'skipped' && "opacity-60 bg-muted/20 hover:border-border cursor-default"
-                                                        )} onClick={() => status !== 'skipped' && setExpandedStep(expandedStep === node.id ? null : node.id)}>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className={cn("font-medium text-sm", status === 'skipped' && "text-muted-foreground line-through decoration-zinc-400/50")}>{node.data.label as string}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                {status === 'success' && (
-                                                                    <span className="text-xs text-muted-foreground">{formatDuration(result.duration)}</span>
-                                                                )}
-                                                                {status === 'skipped' && (
-                                                                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 border border-muted-foreground/20 px-1.5 py-0.5 rounded">Skipped</span>
-                                                                )}
-                                                                {status !== 'skipped' && (
-                                                                    expandedStep === node.id ? (
-                                                                        <ChevronDown className="h-4 w-4 text-muted-foreground"/>
-                                                                    ) : (
-                                                                        <ChevronRight className="h-4 w-4 text-muted-foreground"/>
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {expandedStep === node.id && (
-                                                            <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto max-h-[500px] max-w-[300px]">
-                                                                <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider">Output</div>
-                                                                {status === 'pending' ? (
-                                                                    <span className="text-muted-foreground italic">Waiting to run...</span>
-                                                                ) : status === 'running' ? (
-                                                                    <span className="text-blue-500 flex items-center gap-2">
-                                                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                                                        Processing...
-                                                                    </span>
-                                                                ) : status === 'skipped' ? (
-                                                                    <span className="text-muted-foreground italic">Step was skipped during execution</span>
-                                                                ) : result?.output ? (
-                                                                    <pre className="text-foreground whitespace-pre-wrap">
-                                                                        {JSON.stringify(result.output, null, 2)}
-                                                                    </pre>
-                                                                ) : (
-                                                                    <span className="text-muted-foreground italic">No output data available</span>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 group-hover:opacity-100" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="relative pb-12">
+                            {visualSteps.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Play className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                                    <p>Ready to run.</p>
+                                </div>
+                            ) : (
+                                visualSteps.map((node, idx) => renderStep(node, idx))
+                            )}
+                        </div>
+                    )}
                 </ScrollArea>
             </SheetContent>
         </Sheet>
