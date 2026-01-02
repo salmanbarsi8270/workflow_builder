@@ -8,7 +8,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { VariablePicker } from "../Automation/GenericActionForm"
+import { VariablePicker } from "../Automation/VariablePicker"
 import { type Node } from "@xyflow/react"
 
 interface HTTPFormProps {

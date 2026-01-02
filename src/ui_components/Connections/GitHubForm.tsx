@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast as sonner } from "sonner";
 import { useUser } from "@/context/UserContext";
 import { type Node } from "@xyflow/react";
-import { VariablePicker } from "../Automation/GenericActionForm";
+import { VariablePicker } from "../Automation/VariablePicker";
 
 interface GitHubFormProps {
     data: any;
