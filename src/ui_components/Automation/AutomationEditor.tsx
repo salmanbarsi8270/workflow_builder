@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import {
     ReactFlow,
     Controls,
+    MiniMap,
     Background,
     useNodesState,
     useEdgesState,
@@ -27,6 +28,7 @@ import ParallelNode from './ParallelNode';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
+import RunHistoryViewer from './RunHistoryViewer';
 import NodeContextMenu from './NodeContextMenu';
 
 // Define custom types
@@ -80,6 +82,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [viewingRun, setViewingRun] = useState<any | null>(null);
 
     const [addingNodeOnEdgeId, setAddingNodeOnEdgeId] = useState<string | null>(null);
     const [rfInstance, setRfInstance] = useState<any>(null);
@@ -198,50 +201,61 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 });
 
                 // Clear results after 2.5 seconds so user sees final state briefly
-                setTimeout(() => {
-                    setResults({});
-                }, 2500);
+                // (Wait, actually user might want to see it? Let's leave it unless they run again)
+                // Existing code had timeout logic in RunSidebar, here we just keep results?
+            };
+
+            const handleFlowFailed = () => {
+                // handle flow failure if needed
             };
 
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-complete', handleRunComplete);
+            socket.on('flow-failed', handleFlowFailed);
 
             return () => {
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
                 socket.off('run-complete', handleRunComplete);
+                socket.off('flow-failed', handleFlowFailed);
             };
         }
-    }, [socket]);
+    }, [socket]); // Removed dependency on nodes/results to avoid recycles, logic uses prev state
 
-    // Update node data when results change to trigger re-renders in CustomNode
+    // --- CRITICAL FIX: Sync Results to Node Status for Canvas Visualization ---
+    // The nodes on the canvas need to know their status to change color.
     useEffect(() => {
+        if (Object.keys(results).length === 0) {
+            // checking if we need to clear statuses
+            setNodes(nds => nds.map(n => {
+                if (n.data.status) {
+                    return { ...n, data: { ...n.data, status: undefined, duration: undefined } };
+                }
+                return n;
+            }));
+            return;
+        }
+
         setNodes(nds => nds.map(node => {
-            const result = results[node.id];
-            // If result exists and status changed, update it
-            if (result && node.data.status !== result.status) {
+            const res = results[node.id];
+            // Only update if status is different to avoid infinite loops
+            if (res && (node.data.status !== res.status || node.data.duration !== res.duration)) {
                 return {
                     ...node,
                     data: {
                         ...node.data,
-                        status: result.status
-                    }
-                };
-            }
-            // If result doesn't exist (cleared) but node has a status, reset it
-            if (!result && node.data.status) {
-                return {
-                    ...node,
-                    data: {
-                        ...node.data,
-                        status: undefined
+                        status: res.status,
+                        duration: res.duration,
+                        output: res.output
                     }
                 };
             }
             return node;
         }));
     }, [results, setNodes]);
+
+
 
 
 
@@ -1403,6 +1417,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 zoomActivationKeyCode="Control"
                             >
                                 <Controls />
+                                <MiniMap zoomable pannable inversePan />
                                 <Background gap={12} size={1} />
                             </ReactFlow>
                         </ReactFlowProvider>
@@ -1454,9 +1469,26 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         isOpen={isRunSidebarOpen}
                         onClose={() => setIsRunSidebarOpen(false)}
                         nodes={nodes}
+                        edges={edges}
                         socket={socket}
                         flowId={flowId}
+                        onViewRun={(run) => {
+                            setViewingRun(run);
+                            // Optionally close sidebar or keep it open?
+                            // User said 'separate reactflow open show history'
+                            // Let's keep sidebar or overlay? Overlay is better.
+                        }}
                     />
+
+                    {viewingRun && (
+                        <RunHistoryViewer
+                            run={viewingRun}
+                            initialNodes={nodes}
+                            initialEdges={edges}
+                            onClose={() => setViewingRun(null)}
+                            theme={theme}
+                        />
+                    )}
 
 
 
