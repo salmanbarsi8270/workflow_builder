@@ -137,7 +137,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
             </div>
           </CardHeader>
 
-          <CardContent className="p-0 h-[calc(91vh-260px)]">
+          <CardContent className="p-0 h-[calc(90vh-250px)]">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -288,26 +288,10 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => onOpenEditor(item)}>
-                                        <EyeIcon className="mr-2 h-4 w-4" />
-                                        Open Editor
-                                      </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => onEditName(item)}>
                                         <PencilIcon className="mr-2 h-4 w-4" />
                                         Rename
                                       </DropdownMenuItem>
-                                      {onDuplicate && (
-                                        <DropdownMenuItem onClick={() => onDuplicate(item)}>
-                                          <CopyIcon className="mr-2 h-4 w-4" />
-                                          Duplicate
-                                        </DropdownMenuItem>
-                                      )}
-                                      {onExport && (
-                                        <DropdownMenuItem onClick={() => onExport(item)}>
-                                          <DownloadIcon className="mr-2 h-4 w-4" />
-                                          Export
-                                        </DropdownMenuItem>
-                                      )}
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem 
                                         onClick={() => onDelete(item.id)}
