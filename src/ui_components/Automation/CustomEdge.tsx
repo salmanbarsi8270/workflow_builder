@@ -2,7 +2,6 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNode
 import { Plus, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAutomationContext } from './AutomationContext';
-import { getNodeStatusColor, shouldShowEdgeButton } from './nodeUtils';
 import { cn } from "@/lib/utils";
 
 // Edge Status Colors

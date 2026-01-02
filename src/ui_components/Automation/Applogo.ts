@@ -5,4 +5,11 @@ export const AppLogoMap: Record<string, string> = {
   'drive': 'https://img.icons8.com/color/48/google-drive.png',
   'schedule': 'https://img.icons8.com/?size=100&id=W0CbBQ30TDLb&format=png&color=000000',
   'github': 'https://img.icons8.com/3d-fluency/94/github-logo.png',
+  'outlook': 'https://img.icons8.com/?size=100&id=RUIFhdJm8fbJ&format=png&color=000000',
+  'onedrive': 'https://img.icons8.com/?size=100&id=9pogsim4zHfB&format=png&color=000000',
+  'word': 'https://img.icons8.com/?size=100&id=mx1hqDffOxmy&format=png&color=000000',
+  'excel': 'https://img.icons8.com/?size=100&id=117561&format=png&color=000000',
+  'http': 'https://img.icons8.com/?size=100&id=5zuVgEwv1rTz&format=png&color=000000',
+  'logic': 'https://img.icons8.com/?size=100&id=48216&format=png&color=000000',
+  'condition': 'https://img.icons8.com/?size=100&id=48216&format=png&color=000000',
 };

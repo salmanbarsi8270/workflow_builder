@@ -35,13 +35,12 @@ import {
   SidebarTrigger,
 } from '@/components/sidebar'
 import { HugeiconsIcon } from "@hugeicons/react"
-import {  RoboticIcon, BookOpen02Icon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon } from "@hugeicons/core-free-icons"
+import {  RoboticIcon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation } from "react-router-dom"
 import { Moon, Sun, Link } from 'lucide-react'
 import WorkflowDashboard from './Dashboad'
-import Order from './Order'
 import Integration from './Integration'
 import Automation from './Automation'
 import Logout from './Logout'
@@ -77,11 +76,6 @@ export function SidebarIconExample() {
       title: "Dashboard",
       url: "/",
       icon: <HugeiconsIcon icon={DashboardSquare02Icon} strokeWidth={2} />,
-    },
-    {
-      title: "Order",
-      url: "/order",
-      icon: <HugeiconsIcon icon={BookOpen02Icon} strokeWidth={2} />,
     },
     {
       title: "Integration",
@@ -129,7 +123,11 @@ export function SidebarIconExample() {
                 <SidebarMenu>
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
+                    <SidebarMenuButton 
+                        asChild 
+                        tooltip={item.title} 
+                        isActive={item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)}
+                    >
                         <a href={item.url}>{item.icon}<span>{item.title}</span></a>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -225,7 +223,6 @@ export function SidebarIconExample() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
             {location.pathname === "/" && <WorkflowDashboard />}
-            {location.pathname === "/order" && <Order />}
             {location.pathname === "/connections" && <Connections />}
             {location.pathname === "/integration" && <Integration />}
             {(location.pathname === "/automation" || location.pathname.startsWith("/automation/")) && <Automation />}

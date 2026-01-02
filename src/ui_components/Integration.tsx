@@ -52,6 +52,11 @@ const categoryColors: Record<string, { bg: string, text: string, border: string 
     text: 'text-emerald-700 dark:text-emerald-300',
     border: 'border-emerald-200 dark:border-emerald-800'
   },
+  'storage': { 
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', 
+    text: 'text-emerald-700 dark:text-emerald-300',
+    border: 'border-emerald-200 dark:border-emerald-800'
+  },
   'communication': { 
     bg: 'bg-purple-500/10 dark:bg-purple-500/20', 
     text: 'text-purple-700 dark:text-purple-300',
@@ -309,7 +314,7 @@ const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: Integrati
             w-full font-semibold transition-all duration-300 relative overflow-hidden
             ${app.connected 
               ? 'border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary' 
-              : 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'}
+              : 'bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'}
           `}
           onClick={() => onConnect(app)}
           disabled={connectingApp === app.id}

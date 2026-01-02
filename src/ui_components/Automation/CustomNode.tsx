@@ -184,7 +184,7 @@ const ProgressIndicator = ({ progress }: { progress?: number }) => {
     <div className="mt-2">
       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500 ease-out"
+          className="h-full bg-linear-to-r from-blue-500 to-green-500 transition-all duration-500 ease-out"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -233,7 +233,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
         <div className="relative group w-[280px]">
           <div
             className={cn(
-              "w-full h-[86px] flex items-center justify-center border-2 border-dashed rounded-xl bg-gradient-to-br from-muted/20 to-muted/40 hover:from-muted/30 hover:to-muted/50 transition-all cursor-pointer backdrop-blur-sm",
+              "w-full h-[86px] flex items-center justify-center border-2 border-dashed rounded-xl bg-linear-to-br from-muted/20 to-muted/40 hover:from-muted/30 hover:to-muted/50 transition-all cursor-pointer backdrop-blur-sm",
               selected
                 ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
                 : "border-muted-foreground/30 hover:border-primary/50"

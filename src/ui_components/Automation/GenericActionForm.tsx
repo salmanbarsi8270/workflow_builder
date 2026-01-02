@@ -6,181 +6,14 @@ import { type ActionParameter, APP_DEFINITIONS } from "./ActionDefinitions"
 import ConnectionSelector from "../Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
 import { type Node } from "@xyflow/react";
-import { usePiecesMetadata } from "./usePiecesMetadata";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Database, Search, ChevronRight, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { VariablePicker } from "./VariablePicker";
+import { useUser } from "@/context/UserContext";
+import { API_URL } from "../api/apiurl";
+import axios from "axios";
 
-interface GenericActionFormProps {
-    data: any;
-    params: any;
-    onChange: (params: any) => void;
-    parameters: ActionParameter[];
-    disabled?: boolean;
-    nodes: Node[];
-    errors?: Record<string, string>;
-}
-
-export const VariablePicker = ({ onSelect, nodes, currentNodeId }: { onSelect: (val: string) => void, nodes: Node[], currentNodeId?: string }) => {
-    const { pieces } = usePiecesMetadata();
-    const [search, setSearch] = useState("");
-    const [open, setOpen] = useState(false);
-    const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-    const toggle = (id: string) => {
-        setExpanded(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }
-
-    // Filter: 
-    // 1. Not placeholder
-    // 2. Not the end node
-    // 3. Not the CURRENT node (user can't use data from the node they are currently configuring)
-    const normalizedCurrentNodeId = currentNodeId ? String(currentNodeId) : null;
-
-    const checkIsTrigger = (node: Node) => {
-        const appName = node.data?.appName;
-        const actionId = node.data?.actionId;
-        const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === node.data?.icon);
-        const actionDef = appDef?.actions.find(a => a.id === actionId);
-        return actionDef?.type === 'trigger';
-    };
-
-    // Find the current node to get its position
-    const currentNode = normalizedCurrentNodeId
-        ? nodes.find(n => String(n.id) === normalizedCurrentNodeId)
-        : null;
-
-    const availableNodes = nodes.filter(n => {
-        const nodeId = String(n.id);
-
-        // Always exclude the node being currently configured and the end node
-        if (nodeId === normalizedCurrentNodeId || nodeId === 'end') return false;
-
-        const isTrigger = checkIsTrigger(n);
-
-        // Special Case: Always allow the Trigger
-        if (isTrigger) return true;
-
-        // Exclude placeholders otherwise
-        if (n.data?.isPlaceholder) return false;
-
-        // Only show nodes that appear BEFORE the current node (smaller Y position)
-        // This ensures proper data flow: each step can only access data from previous steps
-        if (currentNode && n.position.y >= currentNode.position.y) {
-            return false;
-        }
-
-        return true;
-    });
-
-    const handleSelect = (val: string) => {
-        onSelect(val);
-        setOpen(false);
-    };
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 ml-2 text-[10px] gap-1 px-2 border-primary/20 hover:border-primary/50 text-primary bg-primary/5">
-                    <Database className="h-3 w-3" />
-                    Select Data
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-                <div className="flex items-center border-b px-3">
-                    <Search className="h-4 w-4 text-muted-foreground mr-2 shrink-0" />
-                    <Input
-                        placeholder="Search variables..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="border-0 focus-visible:ring-0 h-10 px-0 text-sm"
-                    />
-                </div>
-                <div className="max-h-[300px] overflow-auto p-2">
-                    {availableNodes.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-muted-foreground">
-                            {nodes.length <= 1 ? "Add more steps to use their data here." : "No previous steps with data found."}
-                        </div>
-                    ) : (
-                        availableNodes.map(node => {
-                            const icon = node.data.icon as string;
-                            const actionId = node.data.actionId as string;
-                            const isTrigger = checkIsTrigger(node);
-                            const pathNodeId = isTrigger ? 'trigger' : node.id;
-
-                            const piece = pieces[icon];
-                            const actionType = isTrigger ? 'triggers' : 'actions';
-                            const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema || [];
-
-                            const nodeLabel = (node.data.label as string) || '';
-                            const lowerSearch = search.toLowerCase();
-                            const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
-
-                            const filteredSchema = schema.filter((prop: any) => {
-                                if (!search) return true;
-                                return matchesNodeLabel ||
-                                    prop.name.toLowerCase().includes(lowerSearch) ||
-                                    prop.type.toLowerCase().includes(lowerSearch);
-                            });
-
-                            if (!matchesNodeLabel && filteredSchema.length === 0 && search) return null;
-
-                            const isExpanded = expanded.has(node.id) || (!!search && filteredSchema.length > 0);
-
-                            return (
-                                <div key={node.id} className="mb-2 border rounded-md overflow-hidden bg-background">
-                                    <div
-                                        className="px-3 py-2 text-xs font-medium bg-muted/30 hover:bg-muted/50 cursor-pointer flex items-center justify-between transition-colors"
-                                        onClick={() => toggle(node.id)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                                            <span className="truncate max-w-[150px]">{nodeLabel || 'Step'}</span>
-                                        </div>
-                                        <Badge variant="outline" className="text-[8px] h-3 px-1 ml-2 shrink-0">ID: {node.id}</Badge>
-                                    </div>
-
-                                    {isExpanded && (
-                                        <div className="divide-y border-t bg-card/50">
-                                            {filteredSchema.length === 0 ? (
-                                                <button
-                                                    onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}
-                                                    className="w-full text-left px-8 py-2 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between"
-                                                >
-                                                    <span>Full Object</span>
-                                                    <span className="text-[10px] text-muted-foreground">any</span>
-                                                </button>
-                                            ) : (
-                                                filteredSchema.map((prop: any) => (
-                                                    <button
-                                                        key={prop.name}
-                                                        onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}
-                                                        className="w-full text-left px-8 py-2 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-center justify-between group"
-                                                    >
-                                                        <span className="truncate">{prop.name}</span>
-                                                        <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground capitalize shrink-0 ml-2">{prop.type}</span>
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            </PopoverContent>
-        </Popover>
-    );
-};
 
 import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/button"
 
 // Robust String Array Input
 const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
@@ -274,10 +107,6 @@ interface GenericActionFormProps {
     nodeId?: string;
 }
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { useUser } from "@/context/UserContext";
-import { API_URL } from "../api/apiurl";
-import axios from "axios";
 
 const DynamicSelect = ({
     param,

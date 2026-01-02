@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select"
 
 import { type Node } from '@xyflow/react';
-import { VariablePicker } from "../Automation/GenericActionForm"
+import { VariablePicker } from "../Automation/VariablePicker"
 
 
 export default function ScheduleForm({ data, params, onChange, disabled, nodes, nodeId }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean, nodes: Node[], nodeId?: string }) {
