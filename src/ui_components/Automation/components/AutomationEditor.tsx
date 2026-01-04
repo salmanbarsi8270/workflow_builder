@@ -558,251 +558,138 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         const idToDelete = targetId || selectedNodeId;
         if (!idToDelete) return;
 
-        // Special handling: Start Node cannot be fully deleted, just reset
-        if (idToDelete === '1') {
-            const nextNodes = nodes.map(node => {
-                if (node.id === '1') {
-                    return { ...node, data: { label: 'Select Trigger', isPlaceholder: true, hasBranch: false } }
-                }
-                return node;
-            });
-            setNodes(onLayout(nextNodes, edges));
-            if (selectedNodeId === idToDelete) setSelectedNodeId(null);
-            return;
-        }
-
-        // --- General Node Deletion Logic ---
-
-        let newEdges = [...edges];
-        let newNodes = [...nodes];
+        // 1. Initial Local State
+        let nextNodes = [...nodes];
+        let nextEdges = [...edges];
         const nodeToDelete = nodes.find(n => n.id === idToDelete);
+        if (!nodeToDelete) return;
 
-        // SPECIAL CASE: Deleting a "Block Starter" (Condition/Parallel/Loop)
-        // Uses explicit mergeNodeId for robust atomic deletion.
-        if (nodeToDelete?.data?.mergeNodeId) {
-            const mergeNodeId = nodeToDelete.data.mergeNodeId as string;
+        // 2. Compute deletion scope
+        let nodesToRemove = new Set<string>([idToDelete]);
+        const mergeNodeId = nodeToDelete.data?.mergeNodeId as string | undefined;
 
-            // 1. Identify all nodes in the block
-            const blockNodeIds = new Set<string>();
+        // CRITICAL FIX: Only attempt block deletion if the merge node ACTUALLY exists.
+        // If the merge node was deleted manually, the loop node might still hold a stale ID.
+        // In that case, we should fall back to simple deletion to avoid deleting the entire downstream flow.
+        const mergeNodeExists = mergeNodeId ? nodes.some(n => n.id === mergeNodeId) : false;
+
+        if (mergeNodeId && mergeNodeExists) {
+            // Block Starter Deletion: Remove the whole block including children
             const queue = [idToDelete];
-
             while (queue.length > 0) {
                 const currentId = queue.shift()!;
-                if (blockNodeIds.has(currentId)) continue;
-                blockNodeIds.add(currentId);
+                if (currentId !== idToDelete && nodesToRemove.has(currentId)) continue;
+                nodesToRemove.add(currentId);
 
-                if (currentId === mergeNodeId) continue; // Stop at merge
+                // If we reach the merge node, we stop traversing DOWN from it, 
+                // but the merge node itself is already in nodesToRemove.
+                if (currentId === mergeNodeId) continue;
 
                 const children = edges.filter(e => e.source === currentId).map(e => e.target);
                 children.forEach(childId => {
-                    if (!blockNodeIds.has(childId)) queue.push(childId);
+                    if (!nodesToRemove.has(childId)) queue.push(childId);
                 });
             }
+        }
 
-            // 2. Identify Bridge connections
-            const blockIncoming = edges.filter(e => e.target === idToDelete);
-            const blockOutgoing = edges.filter(e => e.source === mergeNodeId);
+        const incomingEdges = edges.filter(e => e.target === idToDelete);
+        const outgoingEdges = edges.filter(e => e.source === (mergeNodeId || idToDelete));
 
-            // 3. Update State
-            newNodes = newNodes.filter(n => !blockNodeIds.has(n.id));
-            newEdges = newEdges.filter(e => !blockNodeIds.has(e.source) && !blockNodeIds.has(e.target));
+        // 3. Strategy: Reset or Remove
+        const isStartNode = idToDelete === '1';
+        const isPopulatedMerge = incomingEdges.length > 1 && !nodeToDelete.data.isPlaceholder;
+        const isPopulatedLinear = !mergeNodeId && incomingEdges.length <= 1 && outgoingEdges.length <= 1 && !nodeToDelete.data.isPlaceholder;
 
-            // 4. Bridge (Parent -> Node After Merge)
-            if (blockIncoming.length > 0 && blockOutgoing.length > 0) {
-                blockIncoming.forEach(inEdge => {
-                    blockOutgoing.forEach(outEdge => {
-                        newEdges.push({
-                            id: `e-${inEdge.source}-${outEdge.target}`,
-                            source: inEdge.source,
-                            target: outEdge.target,
-                            sourceHandle: inEdge.sourceHandle,
-                            type: 'custom'
-                        });
-                    });
-                });
-            }
-
-            // Relayout and Return
-            const layoutedNodes = onLayout(newNodes, newEdges);
-            setNodes(layoutedNodes);
-            setEdges(newEdges);
+        if (isStartNode || isPopulatedMerge || isPopulatedLinear) {
+            // "RESET" to Placeholder
+            nextNodes = nextNodes.map(n => {
+                if (n.id === idToDelete) {
+                    return {
+                        ...n,
+                        data: {
+                            ...n.data,
+                            label: isStartNode ? 'Select Trigger' : 'Add Step',
+                            subLabel: isPopulatedMerge ? 'Merge' : '',
+                            icon: undefined,
+                            isPlaceholder: true,
+                            appId: undefined,
+                            actionId: undefined,
+                            params: undefined,
+                        }
+                    };
+                }
+                return n;
+            });
+            // Update UI
+            setNodes(onLayout(nextNodes, nextEdges));
             if (selectedNodeId === idToDelete) setSelectedNodeId(null);
             return;
         }
 
+        // 4. "TRUE DELETE" with Bridging
+        // Remove nodes and edges in scope
+        nextNodes = nextNodes.filter(n => !nodesToRemove.has(n.id));
+        nextEdges = nextEdges.filter(e => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target));
 
-
-        // 1. Identify incoming edge(s)
-        const incomingEdges = edges.filter(e => e.target === idToDelete);
-
-        // 2. Identify outgoing edges
-        const outgoingEdges = edges.filter(e => e.source === idToDelete);
-
-        // 3. Remove the node
-
-        // SPECIAL CASE: Deleting a populated Merge Node should REVERT it to a Placeholder
-        // (User wants to "go to old merge selector button" instead of deleting the merge point)
-        if (incomingEdges.length > 1) {
-            const nodeToDelete = nodes.find(n => n.id === idToDelete);
-            if (nodeToDelete && !nodeToDelete.data.isPlaceholder) {
-                // Check if it's truly a merge node (diamond bottom)
-                // We reuse the ID to preserve all existing connections (Incoming Branches + Outgoing Flow)
-                const revertedNode: Node = {
-                    ...nodeToDelete,
-                    data: {
-                        label: 'Add Step',
-                        subLabel: 'Merge',
-                        isPlaceholder: true,
-                        isMergePlaceholder: true,
-                    },
-                    type: 'custom'
-                };
-
-                const updatedNodes = nodes.map(n => n.id === idToDelete ? revertedNode : n);
-
-                // Re-apply layout to ensure clean positioning
-                const layoutedNodes = onLayout(updatedNodes, edges);
-                setNodes(layoutedNodes);
-                if (selectedNodeId === idToDelete) setSelectedNodeId(null);
-                return; // STOP here. Do not delete connections.
-            }
+        // Create bridge edges
+        if (incomingEdges.length > 0 && outgoingEdges.length > 0) {
+            incomingEdges.forEach(inEdge => {
+                outgoingEdges.forEach(outEdge => {
+                    nextEdges.push({
+                        id: `e-${inEdge.source}-${outEdge.target}-${Math.random().toString(36).substr(2, 4)}`,
+                        source: inEdge.source,
+                        target: outEdge.target,
+                        sourceHandle: inEdge.sourceHandle,
+                        type: 'custom'
+                    });
+                });
+            });
         }
 
+        // Handle "Empty Branch" restoration
+        // If we just deleted a node and those branches now point directly to a merge node,
+        // or have no outgoing path, restore a placeholder if the source is a Logic Node.
+        incomingEdges.forEach(inEdge => {
+            const sourceNode = nodes.find(n => n.id === inEdge.source);
+            const isLogic = sourceNode?.type === 'condition' || sourceNode?.type === 'parallel' || sourceNode?.type === 'loop';
 
+            // Check if this branch is now empty (pointing directly to something that was already there but is now a direct neighbor)
+            const currentEdgesForBranch = nextEdges.filter(e => e.source === inEdge.source && e.sourceHandle === inEdge.sourceHandle);
+            if (isLogic && currentEdgesForBranch.length > 0) {
+                const targetId = currentEdgesForBranch[0].target;
+                const targetNode = nextNodes.find(n => n.id === targetId);
+                const targetIsMerge = targetNode?.data?.isMergePlaceholder || targetNode?.data?.isMergeNode;
 
-
-
-        // NEW STRATEGY: "Reset" to Placeholder instead of Removing
-        // The user wants to keep the "slot" open.
-        if (incomingEdges.length <= 1 && outgoingEdges.length <= 1) {
-            const nodeToDelete = nodes.find(n => n.id === idToDelete);
-
-            // CASE A: User is deleting a POPULATED node (Action/Trigger)
-            // -> Revert to Placeholder (Keep the slot)
-            if (nodeToDelete && !nodeToDelete.data.isPlaceholder) {
-                const placeholderNode: Node = {
-                    ...nodeToDelete,
-                    data: {
-                        ...nodeToDelete.data,
-                        label: 'Add Step',
-                        subLabel: '',
-                        icon: undefined, // Clear icon
-                        isPlaceholder: true,
-                        isMergePlaceholder: false,
-                        isBranchPlaceholder: false,
-                        // Clear other action data to be safe
-                        appId: undefined,
-                        actionId: undefined,
-                        params: undefined,
-                    },
-                    type: 'custom' // Ensure type is custom
-                };
-
-                const updatedNodes = nodes.map(n => n.id === idToDelete ? placeholderNode : n);
-
-                // Re-apply layout to ensure clean positioning (width might change)
-                const layoutedNodes = onLayout(updatedNodes, edges);
-                setNodes(layoutedNodes);
-                if (selectedNodeId === idToDelete) setSelectedNodeId(null);
-                return; // STOP here. Do not delete connections.
-            }
-        }
-
-        newNodes = newNodes.filter(n => n.id !== idToDelete);
-
-        // 4. Remove connected edges
-        newEdges = newEdges.filter(e => e.target !== idToDelete && e.source !== idToDelete);
-
-        // 5. Reconnection Strategy (Legacy fallback if placeholder revert didn't happen)
-        if (incomingEdges.length >= 1 && outgoingEdges.length === 1) {
-            const target = outgoingEdges[0].target;
-            const isMergeNode = edges.filter(e => e.target === target).length > 1;
-
-            incomingEdges.forEach(incoming => {
-                const source = incoming.source;
-                const sourceHandle = incoming.sourceHandle;
-
-                // Condition Branch Emptying Logic (Only applies if we are bridging a SINGLE linear path from a Condition)
-                // If we have multiple incoming, we are likely deleting an existing Merge Node, so we just want to bridge.
-                // The "Restore Placeholder" logic is strictly for "Condition -> Node -> Merge" collapsing to "Condition -> Merge".
-
-                const sourceNode = nodes.find(n => n.id === source);
-                // Check if this specific path is effectively emptying a branch
-                // We only restore placeholder if:
-                // 1. Source is Condition
-                // 2. We are connecting to a Merge Node (or creating one)
-                // 3. We are bridging a single step (implied by incomingEdges loop but we need to context check)
-
-                // Actually, simpler logic:
-                // If Source is Condition AND Target will become a Merge Node ( >1 incoming total)...
-                // We typically restore a placeholder to avoid "Condition -> Merge" direct connection.
-
-                // However, for "Delete Merge Node" scenarios (incomingEdges.length > 1), we are moving the merge point.
-                // We typically don't need to insert placeholders here unless the branches themselves were empty?
-                // If we delete Merge, we have: Cond -> True -> Merge -> End.
-                // Delete Merge => Cond -> True -> End.
-                // If True was placeholder? It stays.
-
-                // So, just standard bridging for multiple incoming is usually safe.
-
-                // But we must preserve the SINGLE connection logic for the "Emptying Branch" case.
-
-                if (incomingEdges.length === 1 && (sourceNode?.type === 'condition' || sourceNode?.type === 'parallel' || sourceNode?.type === 'loop') && isMergeNode) {
-                    // ... (Existing Placeholder Restoration Logic) ...
-                    const placeholderId = Math.random().toString(36).substring(7);
-                    const placeholderNode: Node = {
+                if (targetIsMerge) {
+                    // Inject a placeholder
+                    const placeholderId = `node-${Math.random().toString(36).substring(7)}`;
+                    const placeholder: Node = {
                         id: placeholderId,
                         type: 'custom',
                         data: {
                             label: 'Add Step',
-                            subLabel: sourceNode?.type === 'condition' ? (sourceHandle === 'true' ? 'True Path' : 'False Path') : 'Branch Step',
+                            subLabel: sourceNode?.type === 'condition' ? (inEdge.sourceHandle === 'true' ? 'True Path' : 'False Path') : 'Branch Step',
                             isPlaceholder: true,
                             isBranchPlaceholder: true,
                         },
                         position: { x: sourceNode?.position.x || 0, y: (sourceNode?.position.y || 0) + 150 }
                     };
-                    newNodes.push(placeholderNode);
+                    nextNodes.push(placeholder);
 
-                    // Connect Source -> Placeholder
-                    newEdges.push({
-                        id: `e-${source}-${placeholderId}`,
-                        source: source,
-                        target: placeholderId,
-                        sourceHandle: sourceHandle || (sourceNode?.type === 'parallel' || sourceNode?.type === 'loop' ? (sourceNode.type === 'loop' ? 'loop-output' : 'parallel-output') : null),
-                        type: 'custom'
-                    });
-
-                    // Connect Placeholder -> Target
-                    newEdges.push({
-                        id: `e-${placeholderId}-${target}`,
-                        source: placeholderId,
-                        target,
-                        type: 'custom'
-                    });
-
-                } else {
-                    // Standard Bridge (for 1..N incoming edges)
-                    newEdges.push({
-                        id: `e-${source}-${target}`,
-                        source,
-                        target,
-                        sourceHandle: sourceHandle || null, // Preserve handle!
-                        type: 'custom'
-                    });
+                    // Replace the bridge with Placeholder chain
+                    nextEdges = nextEdges.filter(e => e.id !== currentEdgesForBranch[0].id);
+                    nextEdges.push(
+                        { id: `e-${inEdge.source}-${placeholderId}`, source: inEdge.source, target: placeholderId, sourceHandle: inEdge.sourceHandle, type: 'custom' },
+                        { id: `e-${placeholderId}-${targetId}`, source: placeholderId, target: targetId, type: 'custom' }
+                    );
                 }
-            });
-        }
+            }
+        });
 
-        // If it was a branch node, we simply remove it. The children become orphans (new roots or sub-roots).
-        // The user will have to reconnect them manually to something else.
-        // BUT for a better UX, if we delete a node inside a branch, we should maintain the chain.
-
-
-        // Apply Layout
-        const layoutedNodes = onLayout(newNodes, newEdges);
-
-        setNodes(layoutedNodes);
-        setEdges(newEdges);
+        // 5. Atomic Update with Layout
+        const finalNodes = onLayout(nextNodes, nextEdges);
+        setNodes(finalNodes);
+        setEdges(nextEdges);
         if (selectedNodeId === idToDelete) setSelectedNodeId(null);
     };
 
@@ -863,6 +750,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 icon: app.piece || app.icon || 'default',
                                 appName: app.name,
                                 ...app,
+                                branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined,
                                 isPlaceholder: false
                             },
                             type: isWait ? 'wait' : n.type // Check if we should update type too for replacement
@@ -896,6 +784,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             icon: app.piece || app.icon || 'default',
                             appName: app.name,
                             ...app,
+                            branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined,
                             isPlaceholder: false
                         },
                         type: isWait ? 'wait' : n.type // Update type if swapping to wait
@@ -926,8 +815,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             : null;
 
         const newNodeId = Math.random().toString(36).substr(2, 9);
-
-        // Initial position (will be fixed by layout)
         const newNodePosition = { x: sourceNode.position.x, y: sourceNode.position.y + 100 };
 
         const newNode: Node = {
@@ -939,20 +826,20 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 icon: app.id || app.icon || 'default',
                 appName: app.name,
                 ...app,
-                // Default branches for parallel if not present
                 branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
             },
             type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : isWait ? 'wait' : 'custom'
         };
 
-        const newEdges = [];
+        const newEdges: any[] = [];
+        let additionalNodes: Node[] = [];
 
-        // 1. Edge from Source -> New Node (Condition/Parallel/Custom)
+        // 1. Edge from Source -> New Node
         newEdges.push({
             id: `e-${sourceNode.id}-${newNodeId}`,
             source: sourceNode.id,
             target: newNodeId,
-            sourceHandle: edge.sourceHandle, // Preserve branch handle if exists
+            sourceHandle: edge.sourceHandle,
             type: 'custom'
         });
 
@@ -972,249 +859,109 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }
 
         if (isCondition) {
-
-            // Create Placeholder Nodes for True and False branches
             const trueNodeId = Math.random().toString(36).substr(2, 9);
             const falseNodeId = Math.random().toString(36).substr(2, 9);
+            const mergeNodeId = Math.random().toString(36).substr(2, 9);
 
             const trueNode: Node = {
                 id: trueNodeId,
-                position: { x: newNodePosition.x - 100, y: newNodePosition.y + 150 }, // Initial offset
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'True Path',
-                    isPlaceholder: true,
-                    isBranchPlaceholder: true,
-                },
+                position: { x: newNodePosition.x - 100, y: newNodePosition.y + 150 },
+                data: { label: 'Add Step', subLabel: 'True Path', isPlaceholder: true, isBranchPlaceholder: true },
                 type: 'custom'
             };
 
             const falseNode: Node = {
                 id: falseNodeId,
-                position: { x: newNodePosition.x + 100, y: newNodePosition.y + 150 }, // Initial offset
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'False Path',
-                    isPlaceholder: true,
-                    isBranchPlaceholder: true,
-                },
+                position: { x: newNodePosition.x + 100, y: newNodePosition.y + 150 },
+                data: { label: 'Add Step', subLabel: 'False Path', isPlaceholder: true, isBranchPlaceholder: true },
                 type: 'custom'
             };
 
-            const mergeNodeId = Math.random().toString(36).substr(2, 9);
             const mergeNode: Node = {
                 id: mergeNodeId,
                 position: { x: newNodePosition.x, y: newNodePosition.y + 300 },
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'Merge',
-                    isPlaceholder: true,
-                    isMergePlaceholder: true,
-                },
+                data: { label: 'Add Step', subLabel: 'Merge', isPlaceholder: true, isMergePlaceholder: true },
                 type: 'custom'
             };
 
-            // Link Merge to Parent for Layout Engine
             newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
+            additionalNodes = [trueNode, falseNode, mergeNode];
 
-            var additionalNodes = [trueNode, falseNode, mergeNode];
+            newEdges.push(
+                { id: `e-${newNodeId}-${trueNodeId}`, source: newNodeId, target: trueNodeId, sourceHandle: 'true', type: 'custom' },
+                { id: `e-${newNodeId}-${falseNodeId}`, source: newNodeId, target: falseNodeId, sourceHandle: 'false', type: 'custom' },
+                { id: `e-${trueNodeId}-${mergeNodeId}`, source: trueNodeId, target: mergeNodeId, type: 'custom' },
+                { id: `e-${falseNodeId}-${mergeNodeId}`, source: falseNodeId, target: mergeNodeId, type: 'custom' }
+            );
 
-            // Connect Condition -> True Placeholder
-            newEdges.push({
-                id: `e-${newNodeId}-${trueNodeId}`,
-                source: newNodeId,
-                target: trueNodeId,
-                sourceHandle: 'true',
-                type: 'custom'
-            });
-
-            // Connect Condition -> False Placeholder
-            newEdges.push({
-                id: `e-${newNodeId}-${falseNodeId}`,
-                source: newNodeId,
-                target: falseNodeId,
-                sourceHandle: 'false',
-                type: 'custom'
-            });
-
-            // Connect Placeholders -> Merge Node
-            newEdges.push({
-                id: `e-${trueNodeId}-${mergeNodeId}`,
-                source: trueNodeId,
-                target: mergeNodeId,
-                type: 'custom'
-            });
-
-            newEdges.push({
-                id: `e-${falseNodeId}-${mergeNodeId}`,
-                source: falseNodeId,
-                target: mergeNodeId,
-                type: 'custom'
-            });
-
-
-            // Connect Merge Node -> Original Target (Converge)
             if (originalTargetId) {
-                newEdges.push({
-                    id: `e-${mergeNodeId}-${originalTargetId}`,
-                    source: mergeNodeId,
-                    target: originalTargetId,
-                    type: 'custom'
-                });
+                newEdges.push({ id: `e-${mergeNodeId}-${originalTargetId}`, source: mergeNodeId, target: originalTargetId, type: 'custom' });
             }
 
         } else if (isParallel) {
             const branches = (newNode.data.branches as string[]) || ['Branch 1', 'Branch 2'];
-
-            // Create Merge Node
             const mergeNodeId = Math.random().toString(36).substr(2, 9);
             const mergeNode: Node = {
                 id: mergeNodeId,
                 position: { x: newNodePosition.x, y: newNodePosition.y + 300 },
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'Merge',
-                    isPlaceholder: true,
-                    isMergePlaceholder: true,
-                },
+                data: { label: 'Add Step', subLabel: 'Merge', isPlaceholder: true, isMergePlaceholder: true },
                 type: 'custom'
             };
-            // Link
             newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
 
             const branchPlaceholders: Node[] = [];
-
-            // Create a placeholder for each branch
             branches.forEach((branchName, index) => {
                 const placeholderId = Math.random().toString(36).substr(2, 9);
                 const placeholder: Node = {
                     id: placeholderId,
-                    position: { x: newNodePosition.x + (index * 100), y: newNodePosition.y + 150 }, // improved basic offset
-                    data: {
-                        label: 'Add Step',
-                        subLabel: branchName,
-                        isPlaceholder: true,
-                        isBranchPlaceholder: true,
-                    },
+                    position: { x: newNodePosition.x + (index * 100), y: newNodePosition.y + 150 },
+                    data: { label: 'Add Step', subLabel: branchName, isPlaceholder: true, isBranchPlaceholder: true },
                     type: 'custom'
                 };
                 branchPlaceholders.push(placeholder);
 
-                // Connect Parallel -> Placeholder (Single Handle)
-                newEdges.push({
-                    id: `e-${newNodeId}-${placeholderId}`,
-                    source: newNodeId,
-                    target: placeholderId,
-                    sourceHandle: 'parallel-output',
-                    data: { label: branchName }, // Add Label
-                    type: 'custom'
-                });
-
-                // Connect Placeholder -> Merge
-                newEdges.push({
-                    id: `e-${placeholderId}-${mergeNodeId}`,
-                    source: placeholderId,
-                    target: mergeNodeId,
-                    type: 'custom'
-                });
+                newEdges.push(
+                    { id: `e-${newNodeId}-${placeholderId}`, source: newNodeId, target: placeholderId, sourceHandle: 'parallel-output', data: { label: branchName }, type: 'custom' },
+                    { id: `e-${placeholderId}-${mergeNodeId}`, source: placeholderId, target: mergeNodeId, type: 'custom' }
+                );
             });
 
-            var additionalNodes = [...branchPlaceholders, mergeNode];
-
-            // Connect Merge -> Target
+            additionalNodes = [...branchPlaceholders, mergeNode];
             if (originalTargetId) {
-                newEdges.push({
-                    id: `e-${mergeNodeId}-${originalTargetId}`,
-                    source: mergeNodeId,
-                    target: originalTargetId,
-                    type: 'custom'
-                });
-            }
-
-            // Connect Merge -> Target
-            if (originalTargetId) {
-                newEdges.push({
-                    id: `e-${mergeNodeId}-${originalTargetId}`,
-                    source: mergeNodeId,
-                    target: originalTargetId,
-                    type: 'custom'
-                });
+                newEdges.push({ id: `e-${mergeNodeId}-${originalTargetId}`, source: mergeNodeId, target: originalTargetId, type: 'custom' });
             }
 
         } else if (isLoop) {
-            // Create Merge Node
             const mergeNodeId = Math.random().toString(36).substr(2, 9);
             const mergeNode: Node = {
                 id: mergeNodeId,
                 position: { x: newNodePosition.x, y: newNodePosition.y + 300 },
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'Merge',
-                    isPlaceholder: true,
-                    isMergePlaceholder: true,
-                },
+                data: { label: 'Add Step', subLabel: 'Merge', isPlaceholder: true, isMergePlaceholder: true },
                 type: 'custom'
             };
-            // Link
             newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
 
             const placeholderId = Math.random().toString(36).substr(2, 9);
             const placeholder: Node = {
                 id: placeholderId,
                 position: { x: newNodePosition.x, y: newNodePosition.y + 150 },
-                data: {
-                    label: 'Add Step',
-                    subLabel: 'Loop Body',
-                    isPlaceholder: true,
-                    isBranchPlaceholder: true,
-                },
+                data: { label: 'Add Step', subLabel: 'Loop Body', isPlaceholder: true, isBranchPlaceholder: true },
                 type: 'custom'
             };
 
-            var additionalNodes = [placeholder, mergeNode];
+            additionalNodes = [placeholder, mergeNode];
+            newEdges.push(
+                { id: `e-${newNodeId}-${placeholderId}`, source: newNodeId, target: placeholderId, sourceHandle: 'loop-output', data: { label: 'Do' }, type: 'custom' },
+                { id: `e-${newNodeId}-${mergeNodeId}`, source: newNodeId, target: mergeNodeId, sourceHandle: 'loop-bypass', type: 'custom' },
+                { id: `e-${placeholderId}-${mergeNodeId}`, source: placeholderId, target: mergeNodeId, type: 'custom' }
+            );
 
-            // 1. Loop -> Body Placeholder
-            newEdges.push({
-                id: `e-${newNodeId}-${placeholderId}`,
-                source: newNodeId,
-                target: placeholderId,
-                sourceHandle: 'loop-output',
-                data: { label: 'Do' },
-                type: 'custom'
-            });
-
-            // 2. Loop -> Merge (The "Done/Skip" path) - Implicit or Explicit?
-            newEdges.push({
-                id: `e-${newNodeId}-${mergeNodeId}`,
-                source: newNodeId,
-                target: mergeNodeId,
-                sourceHandle: 'loop-bypass',
-                // data: { label: 'Done' },
-                type: 'custom'
-            });
-
-            // 3. Body Placeholder -> Merge
-            newEdges.push({
-                id: `e-${placeholderId}-${mergeNodeId}`,
-                source: placeholderId,
-                target: mergeNodeId,
-                type: 'custom'
-            });
-
-
-            // Connect Merge -> Target
             if (originalTargetId) {
-                newEdges.push({
-                    id: `e-${mergeNodeId}-${originalTargetId}`,
-                    source: mergeNodeId,
-                    target: originalTargetId,
-                    type: 'custom'
-                });
+                newEdges.push({ id: `e-${mergeNodeId}-${originalTargetId}`, source: mergeNodeId, target: originalTargetId, type: 'custom' });
             }
 
         } else {
             // Standard single node insertion
-            var additionalNodes: Node[] = []; // Empty for non-condition
             if (originalTargetId) {
                 newEdges.push({
                     id: `e-${newNodeId}-${originalTargetId}`,
@@ -1364,6 +1111,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             key={selectedNode.id}
                             selectedNode={selectedNode}
                             nodes={nodes}
+                            edges={edges}
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}

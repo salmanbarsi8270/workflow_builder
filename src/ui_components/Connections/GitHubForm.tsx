@@ -174,7 +174,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                             size="icon"
                             className="h-4 w-4"
                             onClick={fetchRepositories}
-                            disabled={!params.connection || isLoadingRepos || disabled}
+                            disabled={!params.authId || isLoadingRepos || disabled}
                         >
                             <RefreshCw className={`h-3 w-3 ${isLoadingRepos ? 'animate-spin' : ''}`} />
                         </Button>
@@ -182,7 +182,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                     <Select
                         value={params.repository || ''}
                         onValueChange={(val) => handleChange('repository', val)}
-                        disabled={disabled || !params.connection || isLoadingRepos}
+                        disabled={disabled || !params.authId || isLoadingRepos}
                     >
                         <SelectTrigger className="w-full">
                             {isLoadingRepos ? (
@@ -203,7 +203,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                                 ))
                             ) : (
                                 <div className="p-2 text-center text-xs text-muted-foreground italic">
-                                    {params.connection ? "No repositories found" : "Select connection first"}
+                                    {params.authId ? "No repositories found" : "Select connection first"}
                                 </div>
                             )}
                         </SelectContent>

@@ -2,8 +2,8 @@ import { type Node, type Edge, Position } from '@xyflow/react';
 
 const NODE_HEIGHT = 100;
 const NODE_WIDTH = 280;
-const NODE_GAP_Y = 100;
-const NODE_GAP_X = 100; // Increased to prevent connection overlap
+const NODE_GAP_Y = 100; 
+const NODE_GAP_X = 60; 
 
 /**
  * Calculates the auto-layout for the workflow graph.
@@ -62,13 +62,12 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
     layoutNodes.forEach(n => adjacency[n.id] = []);
 
     layoutEdges.forEach(e => {
-        // ALWAYS add to adjacency so we can sort/position branches correctly (Visual Children)
-        if (adjacency[e.source]) {
+        // ONLY add to adjacency if it's NOT a merge node.
+        // (Merge Nodes are "Roots" of their own fragments in the CUT graph)
+        if (adjacency[e.source] && !mergeNodeIds.has(e.target)) {
             adjacency[e.source].push(e.target);
         }
         
-        // But only treat as a Layout Parent if it's NOT a merge node
-        // (Merge Nodes are "Roots" of their own fragments)
         if (!mergeNodeIds.has(e.target)) {
             reverseAdjacency[e.target] = e.source;
         }
@@ -164,96 +163,19 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
     const positions: Record<string, { x: number, y: number }> = {};
 
     // Helper: partial traversal to find the "closing" merge node for a block
-    const getClosestMergeNode = (nodeId: string): string | null => {
+    const getClosestMergeNode = (nodeId: string): string | undefined => {
         const node = layoutNodes.find(n => n.id === nodeId);
-        // 0. Explicit Link (Robust)
-        if (node?.data?.mergeNodeId) {
-            return node.data.mergeNodeId as string;
-        }
+        // Optimized: Use explicit mergeNodeId if provided by the editor
+        if (node?.data?.mergeNodeId) return node.data.mergeNodeId as string;
 
-        // Look at direct outgoing edges
-        const children = layoutEdges.filter(e => e.source === nodeId).map(e => e.target);
-        if (children.length === 0) return null;
-
-        // If only 1 child? (Shouldn't happen for logic blocks, but if so, naive BFS is fine)
-        if (children.length === 1) {
-            // ... (Same traversal as before for single path)
-             const queue = [...children];
-             const visited = new Set<string>(queue);
-             while (queue.length > 0) {
-                 const current = queue.shift()!;
-                 if (mergeNodeIds.has(current)) return current;
-                 const outgoing = layoutEdges.filter(e => e.source === current);
-                 outgoing.forEach(e => {
-                     if (!visited.has(e.target)) {
-                         visited.add(e.target);
-                         queue.push(e.target);
-                     }
-                 });
-             }
-             return null;
-        }
-
-        // 1. Finding Reachable Merges for EACH branch
-        const branchMergeMap: Set<string>[] = children.map(childStart => {
-            const reachableMerges = new Set<string>();
-            const queue = [childStart];
-            const visited = new Set<string>();
-            
-            while (queue.length > 0) {
-                const current = queue.shift()!;
-                if (visited.has(current)) continue;
-                visited.add(current);
-
-                if (mergeNodeIds.has(current)) {
-                    reachableMerges.add(current);
-                    // Don't stop? We might need to find deeper common ones? 
-                    // Actually, usually the first common one is the closer.
-                    // But if we have nested, we might pass through one.
-                    // Let's continue traversal to find ALL downstream merges.
-                }
-
-                const outgoing = layoutEdges.filter(e => e.source === current).map(e => e.target);
-                outgoing.forEach(next => queue.push(next));
-            }
-            return reachableMerges;
-        });
-
-        // 2. Find Intersection (Common Merges)
-        if (branchMergeMap.length === 0) return null;
+        const children = adjacency[nodeId] || [];
+        if (children.length === 0) return undefined;
         
-        // Start with Set 0
-        const potentialClosers = Array.from(branchMergeMap[0]).filter(mId => {
-            // It must be present in ALL other sets
-            return branchMergeMap.every(set => set.has(mId));
-        });
-
-        if (potentialClosers.length === 0) return null;
-
-        // 3. Select the "Shallowness" / First one (Topological?)
-        // The closer is the one closest to the start.
-        // We can sort potentialClosers by their topological index or simply pick one.
-        // In our DAG, generally the first one we encountered in BFS is the shallowest.
-        // But since we did full traversal, we just have a list.
-        
-        // Let's rely on Valid Parents heuristic:
-        // The true closing merge node is usually the first one that is common.
-        // Let's pick the one with the smallest Y? No, positions not calculated.
-        // Let's pick the one that has valid paths from all branches. 
-        // We already did that.
-        
-        // Return the first one provided by the first branch's BFS order?
-        // (Assuming BFS order in Set initialization was preserved? No Set iteration order is reliable-ish but let's be safe).
-        // Let's re-verify topological order if possible, or just take the first.
-        // In a structured block, there is usually only ONE immediate enclosing merge.
-        // Deeper common merges are merges of the Parent's Parent.
-        
-        // Since we want the Immediate Closer, we want the one that is "closest".
-        // A simple distance check or just picking the first one found by Branch 0's BFS (if we kept order) works.
-        // Re-run simple BFS on Branch 0 to find the first match from potentialClosers
-        
+        // Fallback to BFS for legacy/unstructured graphs
         const queue0 = [children[0]];
         const visited0 = new Set<string>();
+        const potentialClosers = layoutNodes.filter(n => n.data?.isMergePlaceholder).map(n => n.id);
+        
         while(queue0.length > 0){
              const current = queue0.shift()!;
              if(visited0.has(current)) continue;
@@ -265,58 +187,69 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
              outgoing.forEach(n => queue0.push(n));
         }
 
-        return potentialClosers[0]; // Fallback
+        return undefined;
     };
 
-    const getSubtreeWidth = (nodeId: string, d: number): number => {
+    const getSubtreeWidth = (nodeId: string, d: number, visited: Set<string> = new Set()): number => {
+        if (visited.has(nodeId)) return NODE_WIDTH + NODE_GAP_X;
+        visited.add(nodeId);
+
         const children = adjacency[nodeId] || [];
         const node = layoutNodes.find(n => n.id === nodeId);
-        const isLoop = node?.type === 'loop';
+        if (!node) return NODE_WIDTH + NODE_GAP_X;
 
-        // DYNAMIC PADDING: Base 80 + (Depth * 40)
-        const depth = loopNestDepths[nodeId] || 1;
-        const LOOP_PADDING = 80 + (depth * 40);
+        const isLoop = node.type === 'loop';
+        const isParallel = node.type === 'parallel';
+        const isCondition = node.type === 'condition';
 
-        // STOP RECURSION at Merge Nodes (They are leaves for the Top Tree)
-        if (mergeNodeIds.has(nodeId) && d > 0) {
-             // It's a "Stub" in this tree. Reserve standard width.
-             return NODE_WIDTH + NODE_GAP_X;
+        // Base case: Leaf node
+        if (children.length === 0) {
+             const depth = loopNestDepths[nodeId] || 1;
+             const LOOP_PADDING = 80 + (depth * 40);
+             return NODE_WIDTH + NODE_GAP_X + (isLoop ? LOOP_PADDING : 0);
         }
 
-        // Calculate Merge Subtree Width (if this node starts a block that closes at a merge)
-        let mergeWidth = 0;
-        // Optimization: Only check for "Block Starters" that might have a merge
-        if (children.length > 0 || isLoop) {
-             const mergeId = getClosestMergeNode(nodeId);
-             if (mergeId) {
-                 // Calculate width of the merge tree (starting from d + 1 effectively, but it's relative)
-                 // We pass 'd' just for recursion depth if needed, but width is width.
-                 // CRITICAL: We DO NOT recurse `getSubtreeWidth` on mergeId here?
-                 // No, mergeWidth usually determines the MINIMUM width of the block.
-                 // But wait, if we are now treating Merge Links as children, they contribute to `width`.
-                 // So `width` (sum of branches) should strictly be >= mergeWidth usually.
-                 // `mergeWidth` is mostly relevant for calculating the Merge Node's Own Children width,
-                 // to ensure the branches don't overlap with the Merge's future children?
-                 // Let's keep it but ensure recursion safety.
-                 mergeWidth = getSubtreeWidth(mergeId, 0); // Reset depth?
+        // --- Recursive Width Calculation ---
+        let width = 0;
+
+        if (isParallel || isCondition) {
+             // SYMMETRY FIX: For logic blocks, we find the MAX branch width and apply it to all.
+             // This ensures the parent expands to accommodate wide nested subtrees.
+             let maxBranchWidth = 0;
+             children.forEach(childId => {
+                 const bw = getSubtreeWidth(childId, d + 1, new Set(visited));
+                 if (bw > maxBranchWidth) maxBranchWidth = bw;
+             });
+             width = maxBranchWidth * children.length;
+        } else {
+             // Standard Linear path or Loop
+             children.forEach(childId => {
+                 width += getSubtreeWidth(childId, d + 1, new Set(visited));
+             });
+             
+             if (isLoop) {
+                 const depth = loopNestDepths[nodeId] || 1;
+                 const LOOP_PADDING = 80 + (depth * 40);
+                 width += LOOP_PADDING;
              }
         }
 
-        if (children.length === 0) {
-             const baseWidth = NODE_WIDTH + NODE_GAP_X + (isLoop ? LOOP_PADDING : 0);
-             return Math.max(baseWidth, mergeWidth);
+        // We no longer add mergeWidth to the branches sum because branch recursion 
+        // already reaches the merge node eventually. 
+        // EXCEPT: We must ensure the block starter is at least as wide as the tail.
+        const mergeId = getClosestMergeNode(nodeId);
+        let tailWidth = 0;
+        if (mergeId) {
+            tailWidth = getSubtreeWidth(mergeId, 0, new Set(visited));
         }
 
-        let width = 0;
-        children.forEach(childId => width += getSubtreeWidth(childId, d + 1));
-
-        if (isLoop) width += LOOP_PADDING;
-
-        // The effective width is the Max of the Branches and the Continuation
-        return Math.max(width, mergeWidth);
+        return Math.max(width, tailWidth);
     };
 
-    const setPositions = (nodeId: string, d: number, startX: number) => {
+    const setPositions = (nodeId: string, d: number, startX: number, visited: Set<string> = new Set()) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+
         const children = adjacency[nodeId] || [];
         const y = d * (NODE_HEIGHT + NODE_GAP_Y);
 
@@ -343,9 +276,22 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         // If Loop, shift children to the right by half padding (Left Gutter)
         let childCursorX = startX + (isLoop ? (LOOP_PADDING / 2) : 0);
 
+        // SYMMETRY FIX: Use Max Branch Width for increments if Parent is a Logic Block
+        const isParallel = node?.type === 'parallel';
+        const isCondition = node?.type === 'condition';
+        let branchWidthToUse = 0;
+        if (isParallel || isCondition) {
+            let maxBW = 0;
+            children.forEach(cid => {
+                const bw = getSubtreeWidth(cid, d + 1, new Set(visited));
+                if (bw > maxBW) maxBW = bw;
+            });
+            branchWidthToUse = maxBW;
+        }
+
         children.forEach(childId => {
-            const w = getSubtreeWidth(childId, d + 1);
-            setPositions(childId, d + 1, childCursorX);
+            const w = (isParallel || isCondition) ? branchWidthToUse : getSubtreeWidth(childId, d + 1, new Set(visited));
+            setPositions(childId, d + 1, childCursorX, new Set(visited));
             childCursorX += w;
         });
 
@@ -377,8 +323,8 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
     // Roots that are Merge Nodes likely start at X=0, we will move them later
     let rootCursorX = 0;
     layoutRoots.forEach(root => {
-        const treeWidth = getSubtreeWidth(root.id, 0);
-        setPositions(root.id, 0, rootCursorX);
+        const treeWidth = getSubtreeWidth(root.id, 0, new Set());
+        setPositions(root.id, 0, rootCursorX, new Set());
         // If it's a merge node, we don't really care about its initial X, 
         // but we increment rootCursorX to avoid overlap if we didn't stitch (safety)
         rootCursorX += treeWidth + NODE_GAP_X;

@@ -104,6 +104,7 @@ interface GenericActionFormProps {
     parameters: ActionParameter[];
     disabled?: boolean;
     nodes: Node[];
+    edges?: any[]; // added edges
     errors?: Record<string, string>;
     nodeId?: string;
 }
@@ -151,7 +152,7 @@ const DynamicSelect = ({
                 const res = await axios.post(`${API_URL}/api/pieces/options`, {
                     userId,
                     service,
-                    actionName: dynamicOptions.action,
+                    action: dynamicOptions.action,
                     params: {
                         authId: connectionId,
                         ...allParams
@@ -201,7 +202,7 @@ const DynamicSelect = ({
     );
 };
 
-export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, errors = {}, nodeId }: GenericActionFormProps) {
+export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
 
@@ -255,6 +256,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             {(param.type === 'string' || param.type === 'number' || param.type === 'array' || param.type === 'object' || param.type === 'select') && !isTrigger && (
                                 <VariablePicker
                                     nodes={nodes}
+                                    edges={edges}
                                     onSelect={(v) => handleVariableSelect(param.name, v)}
                                     currentNodeId={nodeId}
                                 />
