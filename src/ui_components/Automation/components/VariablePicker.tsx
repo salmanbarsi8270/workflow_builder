@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { type Node } from "@xyflow/react";
+import { type Edge, type Node } from "@xyflow/react"; // Updated import
 import { usePiecesMetadata } from "../hooks/usePiecesMetadata";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Database, Search, ChevronRight, ChevronDown, Zap, Code, Variable, Copy, Hash, List, Type, Calendar, Clock, Mail, User, FileText, Image, DollarSign, Globe, CheckCircle2, X } from "lucide-react";
+import { Database, Search, ChevronRight, ChevronDown, Zap, Code, Variable, Copy, Hash, List, Type, Calendar, Clock, Mail, User, FileText, Image, DollarSign, Globe, CheckCircle2, X, BoxSelect } from "lucide-react"; // Added BoxSelect
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +10,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { APP_DEFINITIONS } from "../metadata";
+import { useMemo, useState } from "react";
 
 interface VariablePickerProps {
   onSelect: (val: string) => void;
   nodes: Node[];
+  edges: Edge[];
   currentNodeId?: string;
 }
 
-export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePickerProps) => {
+export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: VariablePickerProps) => {
   const { pieces } = usePiecesMetadata();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -44,19 +45,74 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePicke
     return actionDef?.type === 'trigger';
   };
 
-  const currentNode = normalizedCurrentNodeId
-    ? nodes.find(n => String(n.id) === normalizedCurrentNodeId)
-    : null;
+  // Graph Traversal for Scoping
+  const availableNodes = useMemo(() => {
+    if (!normalizedCurrentNodeId || !nodes || !edges) return [];
+    if (normalizedCurrentNodeId === '1' || normalizedCurrentNodeId === 'trigger') return [];
 
-  const availableNodes = nodes.filter(n => {
-    const nodeId = String(n.id);
-    if (nodeId === normalizedCurrentNodeId || nodeId === 'end') return false;
-    const isTrigger = checkIsTrigger(n);
-    if (isTrigger) return true;
-    if (n.data?.isPlaceholder) return false;
-    if (currentNode && n.position.y >= currentNode.position.y) return false;
-    return true;
-  });
+    const ancestorIds = new Set<string>();
+    const loopScopes = new Set<string>();
+    const bypassedLoopIds = new Set<string>(); // Tracks loops where we are strictly "after" (via bypass/merge)
+    const queue = [normalizedCurrentNodeId];
+    const visited = new Set<string>();
+
+    // Pre-compute incoming edges map
+    // Key: Target Node ID -> List of Incoming Edges
+    const incomingSdk = new Map<string, Edge[]>();
+    edges.forEach(e => {
+      if (!e.target || !e.source) return;
+      if (!incomingSdk.has(e.target)) incomingSdk.set(e.target, []);
+      incomingSdk.get(e.target)!.push(e);
+    });
+
+    while (queue.length > 0) {
+      const currId = queue.shift()!;
+      if (visited.has(currId)) continue;
+      visited.add(currId);
+
+      const incoming = incomingSdk.get(currId) || [];
+      incoming.forEach(e => {
+        const sourceId = e.source;
+        const sourceNode = nodes.find(n => n.id === sourceId);
+
+        if (sourceNode) {
+          // Loop Detection Logic
+          if (sourceNode.type === 'loop') {
+            // If we reached the loop via its "bypass" handle, we are OUTSIDE/AFTER the loop.
+            if (e.sourceHandle === 'loop-bypass') {
+              bypassedLoopIds.add(sourceId);
+            }
+            // If we reached via "output" handle, it MIGHT be inside.
+            // But if we ALSO found a bypass edge (or find one later), the bypass flag takes precedence.
+            if (e.sourceHandle === 'loop-output' || e.sourceHandle === 'loop-body') {
+              loopScopes.add(sourceId);
+            }
+          }
+
+          // If we haven't visited this source yet, add to queue
+          // We add to ancestorIds immediately
+          if (!visited.has(sourceId)) {
+            ancestorIds.add(sourceId);
+            queue.push(sourceId);
+          }
+        }
+      });
+    }
+
+    return nodes.filter(n => {
+      // Exclude self, end, placeholders
+      if (n.id === normalizedCurrentNodeId || n.id === 'end' || n.data?.isPlaceholder) return false;
+
+      // Always include Trigger (Node 1)
+      if (n.id === '1' || checkIsTrigger(n)) return true;
+
+      return ancestorIds.has(n.id);
+    }).map(n => ({
+      ...n,
+      isLoopScope: loopScopes.has(n.id) && !bypassedLoopIds.has(n.id)
+    })).sort((a, b) => a.position.y - b.position.y); // visual sort
+
+  }, [nodes, edges, normalizedCurrentNodeId]);
 
   const handleSelect = (val: string) => {
     onSelect(val);
@@ -113,11 +169,11 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePicke
         <PopoverContent className="w-96 p-0 border-2 shadow-xl" align="end">
           <Card className="border-0 shadow-none">
             <CardHeader className="pb-3">
-            <div className="flex items-center justify-end">
+              <div className="flex items-center justify-end">
                 <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full">
-                    <X className="h-4 w-4 text-red-500" />
+                  <X className="h-4 w-4 text-red-500" />
                 </button>
-            </div>
+              </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -235,6 +291,24 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePicke
                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t bg-linear-to-b from-background/50 to-background/20">
                                 <div className="p-1.5">
                                   <div className="mb-2 px-2">
+                                    {(node as any).isLoopScope && (
+                                      <div className="mb-2 pb-2 border-b border-border/50">
+                                        <span className="text-[10px] font-medium text-amber-600 mb-1.5 block flex items-center gap-1">
+                                          <BoxSelect className="h-3 w-3" /> LOOP CONTEXT
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start h-8 text-xs hover:bg-amber-500/10 text-amber-700 font-medium"
+                                          onClick={() => handleSelect(`{{loop_item}}`)}
+                                        >
+                                          <Zap className="h-3 w-3 mr-2" />
+                                          Current Item
+                                          <Badge variant="outline" className="ml-auto text-[9px] border-amber-200 bg-amber-50 text-amber-700">Object</Badge>
+                                        </Button>
+                                      </div>
+                                    )}
+
                                     <div className="flex items-center justify-between">
                                       <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                                         Available Properties
@@ -251,9 +325,9 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePicke
                                       </Tooltip>
                                     </div>
                                   </div>
-                                  
+
                                   {filteredSchema.length === 0 ? (
-                                    <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`) }>
+                                    <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
                                       <Database className="h-3 w-3 mr-2" />
                                       Insert Full Data Object
                                       <Badge variant="outline" className="ml-auto text-[10px]">any</Badge>

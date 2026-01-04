@@ -81,7 +81,10 @@ export default function CustomEdge({
   const sourceNode = nodes.find(n => n.id === source);
   const targetNode = nodes.find(n => n.id === target);
 
-  const status = sourceNode?.data?.status as keyof typeof EdgeStatusColors || 'pending';
+  const validStatuses = ['pending', 'running', 'success', 'error', 'warning', 'skipped', 'conditional'];
+  const rawStatus = sourceNode?.data?.status as string;
+  const status = (validStatuses.includes(rawStatus) ? rawStatus : 'pending') as keyof typeof EdgeStatusColors;
+
   const edgeType = data?.type as keyof typeof EdgeTypeColors || 'default';
   const hasError = data?.hasError as boolean;
   const label = data?.label as string;
@@ -99,8 +102,8 @@ export default function CustomEdge({
 
   // CUSTOM PATH: For nodes entering a Merge Node (Convergence Point)
   // We force a "Merge Bus" line at targetY - 40 to ensure symmetry
-  const isTargetMerge = targetNode?.data?.isMergeNode;
-  if (isTargetMerge) {
+  const isTargetMergeNode = targetNode?.data?.isMergeNode;
+  if (isTargetMergeNode) {
     const mergeY = targetY - 40; // Consistent horizontal level for all branches
     edgePath = `M ${sourceX},${sourceY} L ${sourceX},${mergeY} L ${targetX},${mergeY} L ${targetX},${targetY}`;
 
@@ -116,7 +119,7 @@ export default function CustomEdge({
     ...style,
     stroke: hasError ? '#ef4444' : (EdgeTypeColors[edgeType] || EdgeStatusColors[status].stroke),
     strokeWidth: EdgeStatusColors[status].width,
-    strokeDasharray: EdgeStatusColors[status].dasharray,
+    strokeDasharray: (targetNode?.data?.isMergeNode && status === 'pending') ? '5,5' : EdgeStatusColors[status].dasharray,
     filter: EdgeStatusColors[status].glow,
     opacity: 1,
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -153,16 +156,15 @@ export default function CustomEdge({
   // OR if either side is a Branch Placeholder (the "Add Step" cards inside branches).
   // This allows buttons on edges leading to Merge Points or End Nodes while avoiding
   // redundancy on the construction cards.
-  const isBranchPlaceholder = sourceNode?.data?.isBranchPlaceholder || targetNode?.data?.isBranchPlaceholder;
+  const isTargetMerge = targetNode?.data?.isMergeNode || targetNode?.data?.isMergePlaceholder;
+  const isTargetRealPlaceholder = (targetNode?.data?.isPlaceholder || targetNode?.data?.isBranchPlaceholder) && !isTargetMerge;
 
   // --- LOOP BYPASS VISUAL FIX ---
-  // If this is the "Bypass" line for a Loop, we want a wider bracket.
-  // The default edge path might be too tight to the loop body.
   const isLoopBypass = (data as any)?.sourceHandle === 'loop-bypass' || (sourceNode?.type === 'loop' && targetNode?.data?.isMergeNode && !label);
 
-  // FIXED: Removed targetNode?.data?.isMergeNode check so users can add nodes before Merge nodes (end of branch/loop).
-  // ALSO: Hide if source is Placeholder (redundant) or Loop Bypass.
-  const showAddButton = distanceY > 45 && !isBranchPlaceholder && !isLoopBypass && !isPlaceholder;
+  // Hide if distance too short, OR target is a "Step" placeholder, OR Loop Bypass, OR source is placeholder.
+  // We DO share buttons before Merge Nodes (to extend the branch), unless the source itself is empty.
+  const showAddButton = distanceY > 45 && !isLoopBypass && !isPlaceholder && !isTargetRealPlaceholder;
 
   if (isLoopBypass) {
     // Force a "wide bracket" shape

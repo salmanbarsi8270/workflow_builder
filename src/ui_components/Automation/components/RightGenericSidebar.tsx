@@ -28,6 +28,7 @@ const SpecificForms: Record<string, any> = {
 interface RightGenericSidebarProps {
     selectedNode: Node | undefined;
     nodes: Node[]; // Added this
+    edges?: any[]; // Added edges
     onUpdateNode: (label: string, data?: any, immediate?: boolean) => void;
     onDeleteNode: () => void;
     onClose: () => void;
@@ -96,7 +97,7 @@ const getInitialParams = (node: Node) => {
     return migratedParams;
 };
 
-export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false }: RightGenericSidebarProps) {
+export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false }: RightGenericSidebarProps) {
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
     const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
     const [activeTab, setActiveTab] = useState("configuration");
@@ -464,13 +465,13 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                                                 </span>
                                             )}
                                         </div>
-                                        <Input 
-                                            value={localLabel} 
+                                        <Input
+                                            value={localLabel}
                                             onChange={(e) => {
                                                 setLocalLabel(e.target.value);
                                                 setIsDirty(true);
-                                            }} 
-                                            placeholder="Enter step label" 
+                                            }}
+                                            placeholder="Enter step label"
                                             className={cn("transition-all duration-200", validationErrors.label && "border-red-500 focus-visible:ring-red-500")}
                                             disabled={isLocked}
                                         />
@@ -490,7 +491,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
 
                                         {FormComponent ? (
                                             <div className="space-y-4">
-                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} nodeId={selectedNode.id} disabled={isLocked} />
+                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} edges={edges} nodeId={selectedNode.id} disabled={isLocked} />
                                             </div>
                                         ) : (
                                             <div className="p-8 border border-dashed rounded-lg text-center space-y-3">
@@ -747,17 +748,17 @@ export default function RightGenericSidebar({ selectedNode, nodes, onUpdateNode,
                         )}
 
                         <div className="grid grid-cols-2 gap-3">
-                            <Button 
-                                variant="outline" 
-                                onClick={handleDelete} 
+                            <Button
+                                variant="outline"
+                                onClick={handleDelete}
                                 className="h-11 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 disabled={isLocked}
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />Delete
                             </Button>
-                            <Button 
-                                onClick={handleSave} 
-                                disabled={isLocked || (!isDirty && localLabel === selectedNode.data.label)} 
+                            <Button
+                                onClick={handleSave}
+                                disabled={isLocked || (!isDirty && localLabel === selectedNode.data.label)}
                                 className="h-11"
                             >
                                 {<Save className="h-4 w-4 mr-2" />}Save
