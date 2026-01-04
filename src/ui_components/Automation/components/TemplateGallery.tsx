@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Sparkles, Check, X } from 'lucide-react';
+import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import axios from 'axios';
 import { API_URL } from '@/ui_components/api/apiurl';

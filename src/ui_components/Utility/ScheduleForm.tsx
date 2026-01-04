@@ -8,11 +8,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { type Node } from '@xyflow/react';
+import { type Node, type Edge } from '@xyflow/react';
 import { VariablePicker } from "../Automation/components/VariablePicker"
 
-
-export default function ScheduleForm({ data, params, onChange, disabled, nodes, nodeId }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean, nodes: Node[], nodeId?: string }) {
+export default function ScheduleForm({ data, params, onChange, disabled, nodes, edges, nodeId }: { data: any, params: any, onChange: (params: any) => void, disabled?: boolean, nodes: Node[], edges: Edge[], nodeId?: string }) {
     const triggerType = data.actionId || 'schedule';
 
     const handleChange = (field: string, value: any) => {
@@ -153,6 +152,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('intervalHours', v)}
                             currentNodeId={nodeId}
                         />
@@ -176,6 +176,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('intervalDay', v)}
                             currentNodeId={nodeId}
                         />

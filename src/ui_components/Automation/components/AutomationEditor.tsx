@@ -37,7 +37,7 @@ import CustomEdge from '@/ui_components/Automation/edges/CustomEdge';
 import ConditionNode from '@/ui_components/Automation/nodes/ConditionNode';
 import ParallelNode from '@/ui_components/Automation/nodes/ParallelNode';
 import LoopNode from '@/ui_components/Automation/nodes/LoopNode';
-import WaitNode from '@/ui_components/Automation/nodes/WaitNode';
+import WaitNode from '../nodes/WaitNode';
 import AutomationContext from '../context/AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
@@ -209,7 +209,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const handleRunComplete = () => {
                 console.log("Run complete auto");
-                setResults({});
                 // Mark nodes that didn't run as skipped
                 setResults(prev => {
                     const next = { ...prev };

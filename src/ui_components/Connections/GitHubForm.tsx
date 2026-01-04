@@ -16,7 +16,7 @@ import { Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast as sonner } from "sonner";
 import { useUser } from "@/context/UserContext";
-import { type Node } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "../Automation/components/VariablePicker";
 
 interface GitHubFormProps {
@@ -25,10 +25,11 @@ interface GitHubFormProps {
     onChange: (params: any) => void;
     disabled?: boolean;
     nodes: Node[];
+    edges: Edge[];
     nodeId?: string;
 }
 
-export default function GitHubForm({ data, params, onChange, disabled, nodes, nodeId }: GitHubFormProps) {
+export default function GitHubForm({ data, params, onChange, disabled, nodes, edges, nodeId }: GitHubFormProps) {
     const { user } = useUser();
     const [repositories, setRepositories] = useState<any[]>([]);
     const [isLoadingRepos, setIsLoadingRepos] = useState(false);
@@ -290,6 +291,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('issueNumber', v)}
                             currentNodeId={nodeId}
                         />
@@ -313,6 +315,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('title', v)}
                             currentNodeId={nodeId}
                         />
@@ -357,6 +360,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('body', v)}
                             currentNodeId={nodeId}
                         />
@@ -381,6 +385,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                             </Label>
                             <VariablePicker
                                 nodes={nodes}
+                                edges={edges}
                                 onSelect={(v: string) => handleVariableSelect('name', v)}
                                 currentNodeId={nodeId}
                             />
@@ -399,6 +404,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, no
                             </Label>
                             <VariablePicker
                                 nodes={nodes}
+                                edges={edges}
                                 onSelect={(v: string) => handleVariableSelect('description', v)}
                                 currentNodeId={nodeId}
                             />
