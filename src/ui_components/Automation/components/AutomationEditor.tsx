@@ -1312,7 +1312,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         </Button>
                         <Button 
                             variant="default" 
-                            className="bg-indigo-600 hover:bg-indigo-700" 
+                            className="bg-violet-600 hover:bg-violet-700 text-white" 
                             onClick={() => {
                                 setTemplateName(automationName || "");
                                 setIsPublishDialogOpen(true);
