@@ -8,13 +8,13 @@ import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import AutomationList, { type AutomationItem } from './components/AutomationList';
-import AutomationEditor from './components/AutomationEditor';
+import AutomationList, { type AutomationItem } from '@/ui_components/Automation/components/AutomationList';
+import AutomationEditor from '@/ui_components/Automation/components/AutomationEditor';
 
-import { API_URL } from '../api/apiurl';
+import { API_URL } from '@/ui_components/api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
-import Editorloading from '../Utility/Editorloading';
+import Editorloading from '@/ui_components/Utility/Editorloading';
 import { Loader2 } from 'lucide-react';
 
 const defaultStartNode: Node[] = [

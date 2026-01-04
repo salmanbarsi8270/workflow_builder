@@ -19,13 +19,13 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import RightGenericSidebar from './RightGenericSidebar';
-import CustomNode from '../nodes/CustomNode';
-import EndNode from '../nodes/EndNode';
-import CustomEdge from '../edges/CustomEdge';
-import ConditionNode from '../nodes/ConditionNode';
-import ParallelNode from '../nodes/ParallelNode';
-import LoopNode from '../nodes/LoopNode';
-import WaitNode from '../nodes/WaitNode';
+import CustomNode from '@/ui_components/Automation/nodes/CustomNode';
+import EndNode from '@/ui_components/Automation/nodes/EndNode';
+import CustomEdge from '@/ui_components/Automation/edges/CustomEdge';
+import ConditionNode from '@/ui_components/Automation/nodes/ConditionNode';
+import ParallelNode from '@/ui_components/Automation/nodes/ParallelNode';
+import LoopNode from '@/ui_components/Automation/nodes/LoopNode';
+import WaitNode from '@/ui_components/Automation/nodes/WaitNode';
 import AutomationContext from '../context/AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
@@ -41,7 +41,6 @@ const nodeTypes = {
     loop: LoopNode,
     wait: WaitNode,
     end: EndNode,
-
 };
 
 const edgeTypes = {
