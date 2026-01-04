@@ -77,6 +77,21 @@ export const APP_DEFINITIONS: AppDefinition[] = [
                default: ['Branch 1', 'Branch 2']
              }
         ]
+      },
+      {
+        id: 'loop',
+        name: 'Loop on Items',
+        description: 'Iterate over a list of items.',
+        type: 'action',
+        parameters: [
+             { 
+               name: 'items', 
+               type: 'string', // Changed to string to allow {{vars}} or static JSON "[1,2]"
+               label: 'Items', 
+               description: 'List of items to iterate over (e.g. {{trigger.body.items}} or ["a", "b"])',
+               required: true
+             }
+        ]
       }
     ]
   },

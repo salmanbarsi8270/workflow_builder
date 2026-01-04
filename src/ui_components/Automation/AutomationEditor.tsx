@@ -15,7 +15,6 @@ import {
     type Node,
     type Edge,
     ReactFlowProvider,
-    Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -25,17 +24,20 @@ import EndNode from './EndNode';
 import CustomEdge from './CustomEdge';
 import ConditionNode from './ConditionNode';
 import ParallelNode from './ParallelNode';
+import LoopNode from './LoopNode';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
 import RunHistoryViewer from './RunHistoryViewer';
 import NodeContextMenu from './NodeContextMenu';
+import { calculateLayout } from './layoutEngine';
 
 // Define custom types
 const nodeTypes = {
     custom: CustomNode,
     condition: ConditionNode,
     parallel: ParallelNode,
+    loop: LoopNode,
     end: EndNode,
 
 };
@@ -69,10 +71,7 @@ export interface StepResult {
 }
 
 
-const NODE_HEIGHT = 100;
-const NODE_WIDTH = 280; // Needed for centered tree layout
-const NODE_GAP_Y = 100;
-const NODE_GAP_X = 50;
+
 
 
 
@@ -505,7 +504,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // --- Parallel Branch Reconciliation ---
         const incomingBranches = data?.params?.branches || data?.branches;
 
-        if (targetNode?.type === 'parallel' && incomingBranches) {
+        if ((targetNode?.type === 'parallel' || targetNode?.type === 'loop') && incomingBranches) {
             const oldBranchesRaw = (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
             // Parse everything to compare arrays, not strings
             const oldBranches = safeParseBranches(oldBranchesRaw);
@@ -562,8 +561,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         let newNodes = [...nodes];
         const nodeToDelete = nodes.find(n => n.id === idToDelete);
 
-        // DIAMOND DELETION LOGIC for Control Flow (Condition/Parallel)
-        if (nodeToDelete?.type === 'condition' || nodeToDelete?.type === 'parallel') {
+        // DIAMOND DELETION LOGIC for Control Flow (Condition/Parallel/Loop)
+        if (nodeToDelete?.type === 'condition' || nodeToDelete?.type === 'parallel' || nodeToDelete?.type === 'loop') {
             const outgoingParams = edges.filter(e => e.source === idToDelete);
             const incomingParams = edges.filter(e => e.target === idToDelete);
             const parentId = incomingParams[0]?.source;
@@ -605,7 +604,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Identify the Merge Node (the entry point to the common path)
                 let mergeNodeId = [...intersection].find(id => {
                     const incomers = edges.filter(e => e.target === id).map(e => e.source);
-                    return incomers.some(src => nodesToDeleteInsideBranches.includes(src) || branchHeadIds.includes(src));
+                    return incomers.some(src => src === idToDelete || nodesToDeleteInsideBranches.includes(src) || branchHeadIds.includes(src));
                 });
 
                 // Decide if we delete the Merge Node (if it's a placeholder)
@@ -628,13 +627,52 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
                 // Reconnect Parent -> targetToConnectTo
                 if (parentId && targetToConnectTo) {
-                    newEdges.push({
-                        id: `e-${parentId}-${targetToConnectTo}`,
-                        source: parentId,
-                        target: targetToConnectTo,
-                        sourceHandle: incomingParams[0].sourceHandle || null,
-                        type: 'custom'
-                    });
+                    const targetNode = nodes.find(n => n.id === targetToConnectTo);
+                    const targetIsMerge = targetNode?.data?.isMergePlaceholder || targetNode?.data?.isMergeNode || edges.filter(e => e.target === targetToConnectTo).length > 1;
+
+                    if (targetIsMerge) {
+                        // Restore Placeholder to avoid "Locked" Loop/Branch (No + button on merge edges)
+                        const placeholderId = Math.random().toString(36).substring(7);
+                        const placeholderNode: Node = {
+                            id: placeholderId,
+                            type: 'custom',
+                            data: {
+                                label: 'Add Step',
+                                subLabel: 'Restored',
+                                isPlaceholder: true,
+                                isBranchPlaceholder: true,
+                            },
+                            // Roughly place it between parent and target (Layout will fix)
+                            position: { x: 0, y: 0 }
+                        };
+                        newNodes.push(placeholderNode);
+
+                        newEdges.push({
+                            id: `e-${parentId}-${placeholderId}`,
+                            source: parentId,
+                            target: placeholderId,
+                            sourceHandle: incomingParams[0].sourceHandle || null,
+                            type: 'custom'
+                        });
+
+                        newEdges.push({
+                            id: `e-${placeholderId}-${targetToConnectTo}`,
+                            source: placeholderId,
+                            target: targetToConnectTo,
+                            type: 'custom'
+                        });
+
+                    } else {
+                        // Direct Bridge (Standard)
+                        newEdges.push({
+                            id: `e-${parentId}-${targetToConnectTo}`,
+                            source: parentId,
+                            target: targetToConnectTo,
+                            sourceHandle: incomingParams[0].sourceHandle || null,
+                            type: 'custom'
+                        });
+                    }
+
                 } else if (parentId && mergeNodeId && !isMergePlaceholder && !targetToConnectTo) {
                     // Keep Merge but it's end of flow
                     newEdges.push({
@@ -735,7 +773,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
                 // But we must preserve the SINGLE connection logic for the "Emptying Branch" case.
 
-                if (incomingEdges.length === 1 && (sourceNode?.type === 'condition' || sourceNode?.type === 'parallel') && isMergeNode) {
+                if (incomingEdges.length === 1 && (sourceNode?.type === 'condition' || sourceNode?.type === 'parallel' || sourceNode?.type === 'loop') && isMergeNode) {
                     // ... (Existing Placeholder Restoration Logic) ...
                     const placeholderId = Math.random().toString(36).substring(7);
                     const placeholderNode: Node = {
@@ -754,9 +792,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     // Connect Source -> Placeholder
                     newEdges.push({
                         id: `e-${source}-${placeholderId}`,
-                        source,
+                        source: source,
                         target: placeholderId,
-                        sourceHandle: sourceHandle || (sourceNode?.type === 'parallel' ? 'parallel-output' : null),
+                        sourceHandle: sourceHandle || (sourceNode?.type === 'parallel' || sourceNode?.type === 'loop' ? (sourceNode.type === 'loop' ? 'loop-output' : 'parallel-output') : null),
                         type: 'custom'
                     });
 
@@ -817,6 +855,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleAppSelect = (app: any) => {
         const isCondition = app.actionId === 'condition';
         const isParallel = app.actionId === 'parallel';
+        const isLoop = app.actionId === 'loop';
 
         // --- Local State for this execution ---
         let isPlaceholderLogicMode = false;
@@ -828,7 +867,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             // Find incoming edge to this placeholder to mimic "Edge Insertion"
             const incomingEdge = edges.find(e => e.target === selectedNodeId);
 
-            if (incomingEdge && (isCondition || isParallel)) {
+            if (incomingEdge && (isCondition || isParallel || isLoop)) {
                 // If replacing with Logic, we treat it as an insertion ON the incoming edge, 
                 // but we also need to handle the placeholder's outgoing edge.
                 const outgoingEdge = edges.find(e => e.source === selectedNodeId);
@@ -838,11 +877,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Continue to Mode 2 logic below...
             } else {
                 // Standard Replacement (Simple Action)
-                setNodes((nds) => nds.map(n => {
+                const updatedNodes = nodes.map(n => {
                     if (n.id === selectedNodeId) {
                         return {
                             ...n,
                             data: {
+                                ...n.data, // Preserve existing data
                                 label: app.name,
                                 subLabel: app.description,
                                 icon: app.piece || app.icon || 'default',
@@ -853,7 +893,13 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         }
                     }
                     return n;
-                }));
+                });
+
+                // CRITICAL: We changed a node from Placeholder to Real. 
+                // We MUST re-run layout to update loop bypass lines and centering.
+                const layoutedNodes = onLayout(updatedNodes, edges);
+                setNodes(layoutedNodes);
+
                 setAddingNodeOnEdgeId(null);
                 setSelectedNodeId(null);
                 return;
@@ -914,7 +960,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Default branches for parallel if not present
                 branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
             },
-            type: isCondition ? 'condition' : isParallel ? 'parallel' : 'custom'
+            type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : 'custom'
         };
 
         const newEdges = [];
@@ -1083,6 +1129,85 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 });
             }
 
+            // Connect Merge -> Target
+            if (originalTargetId) {
+                newEdges.push({
+                    id: `e-${mergeNodeId}-${originalTargetId}`,
+                    source: mergeNodeId,
+                    target: originalTargetId,
+                    type: 'custom'
+                });
+            }
+
+        } else if (isLoop) {
+            // Create Merge Node
+            const mergeNodeId = Math.random().toString(36).substr(2, 9);
+            const mergeNode: Node = {
+                id: mergeNodeId,
+                position: { x: newNodePosition.x, y: newNodePosition.y + 300 },
+                data: {
+                    label: 'Add Step',
+                    subLabel: 'Merge',
+                    isPlaceholder: true,
+                    isMergePlaceholder: true,
+                },
+                type: 'custom'
+            };
+
+            const placeholderId = Math.random().toString(36).substr(2, 9);
+            const placeholder: Node = {
+                id: placeholderId,
+                position: { x: newNodePosition.x, y: newNodePosition.y + 150 },
+                data: {
+                    label: 'Add Step',
+                    subLabel: 'Loop Body',
+                    isPlaceholder: true,
+                    isBranchPlaceholder: true,
+                },
+                type: 'custom'
+            };
+
+            var additionalNodes = [placeholder, mergeNode];
+
+            // 1. Loop -> Body Placeholder
+            newEdges.push({
+                id: `e-${newNodeId}-${placeholderId}`,
+                source: newNodeId,
+                target: placeholderId,
+                sourceHandle: 'loop-output',
+                data: { label: 'Do' },
+                type: 'custom'
+            });
+
+            // 2. Loop -> Merge (The "Done/Skip" path) - Implicit or Explicit?
+            newEdges.push({
+                id: `e-${newNodeId}-${mergeNodeId}`,
+                source: newNodeId,
+                target: mergeNodeId,
+                sourceHandle: 'loop-bypass',
+                // data: { label: 'Done' }, 
+                type: 'custom'
+            });
+
+            // 3. Body Placeholder -> Merge
+            newEdges.push({
+                id: `e-${placeholderId}-${mergeNodeId}`,
+                source: placeholderId,
+                target: mergeNodeId,
+                type: 'custom'
+            });
+
+
+            // Connect Merge -> Target
+            if (originalTargetId) {
+                newEdges.push({
+                    id: `e-${mergeNodeId}-${originalTargetId}`,
+                    source: mergeNodeId,
+                    target: originalTargetId,
+                    type: 'custom'
+                });
+            }
+
         } else {
             // Standard single node insertion
             var additionalNodes: Node[] = []; // Empty for non-condition
@@ -1120,241 +1245,37 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         const layoutNodes = passedNodes || nodes;
         const layoutEdges = passedEdges || edges;
 
-        if (layoutNodes.length === 0) return layoutNodes;
+        return calculateLayout(layoutNodes, layoutEdges);
+    }, [nodes, edges]);
 
-        // 1. Identify Merge Nodes & Check Topology
-        const incomingCount: Record<string, number> = {};
-        layoutEdges.forEach(e => {
-            incomingCount[e.target] = (incomingCount[e.target] || 0) + 1;
-        });
+    // AUTO-ADJUST VIEWPORT & CLEANUP ON CHANGE
+    useEffect(() => {
+        if (nodes.length > 0) {
+            // 1. Safety: Remove Orphaned Edges (fixes "stuck lines")
+            const activeNodeIds = new Set(nodes.map(n => n.id));
+            const validEdges = edges.filter(e => activeNodeIds.has(e.source) && activeNodeIds.has(e.target));
 
-        const mergeNodeIds = new Set(Object.keys(incomingCount).filter(id => incomingCount[id] > 1));
-
-        // Topological Sort (Kahn's Algorithm) to determine correct Stitching Order
-        // We must process M2 before M1 if M2 -> ... -> M1
-        const sortedNodeIds: string[] = [];
-        const inDegree: Record<string, number> = {};
-
-        layoutNodes.forEach(n => inDegree[n.id] = 0);
-        layoutEdges.forEach(e => inDegree[e.target] = (inDegree[e.target] || 0) + 1);
-
-        const queue: string[] = [];
-        layoutNodes.forEach(n => {
-            if (inDegree[n.id] === 0) queue.push(n.id);
-        });
-
-        while (queue.length > 0) {
-            const u = queue.shift()!;
-            sortedNodeIds.push(u);
-
-            const children = layoutEdges.filter(e => e.source === u).map(e => e.target);
-            children.forEach(v => {
-                inDegree[v]--;
-                if (inDegree[v] === 0) queue.push(v);
-            });
-        }
-
-        // Filter for Merge Nodes, maintaining topological order
-        const sortedMergeNodes = sortedNodeIds.filter(id => mergeNodeIds.has(id));
-
-
-        // 2. Build Graph Structure with CUTS at Merge Nodes
-        // Adjacency for LAYOUT (skips pointing TO merge nodes)
-        const adjacency: Record<string, string[]> = {};
-        const reverseAdjacency: Record<string, string> = {};
-
-        layoutNodes.forEach(n => adjacency[n.id] = []);
-
-        layoutEdges.forEach(e => {
-            // CRITICAL: If target is a merge node, DO NOT add it to parent's adjacency for layout recursion
-            // This treats the parent as a "leaf" for the layout engine, and the merge node as a new "root"
-            if (mergeNodeIds.has(e.target)) {
-                // Skip adding to adjacency[e.source]
-            } else {
-                if (adjacency[e.source]) {
-                    adjacency[e.source].push(e.target);
-                }
-                reverseAdjacency[e.target] = e.source;
-            }
-        });
-
-        // SORT ADJACENCY: Ensure 'true' (Left) comes before 'false' (Right)
-        Object.keys(adjacency).forEach(nodeId => {
-            adjacency[nodeId].sort((a, b) => {
-                const edgeA = layoutEdges.find(e => e.source === nodeId && e.target === a);
-                const edgeB = layoutEdges.find(e => e.source === nodeId && e.target === b);
-
-                const handleA = edgeA?.sourceHandle;
-                const handleB = edgeB?.sourceHandle;
-
-                // Priority 1: Handle Type (True Left, False Right)
-                const getSortIndex = (h: string | null | undefined) => {
-                    if (h === 'true') return -1;
-                    if (h === 'false') return 9999;
-                    return 0;
-                };
-
-                const scoreA = getSortIndex(handleA);
-                const scoreB = getSortIndex(handleB);
-
-                if (scoreA !== scoreB) return scoreA - scoreB;
-
-                // Priority 2: Parallel Branch Order
-                // If it's a Parallel Node, we trust the 'branches' array order over X position
-                // because new nodes might have unsynced X positions (e.g. 0 or default), causing them to jump to the left.
-                const sourceNode = layoutNodes.find(n => n.id === nodeId);
-                if (sourceNode?.type === 'parallel') {
-                    const branches = (sourceNode.data.params as any)?.branches || (sourceNode.data.branches as string[]) || [];
-                    const labelA = edgeA?.data?.label;
-                    const labelB = edgeB?.data?.label;
-
-                    const indexA = branches.indexOf(labelA);
-                    const indexB = branches.indexOf(labelB);
-
-                    if (indexA !== -1 && indexB !== -1) {
-                        return indexA - indexB;
-                    }
-                }
-
-                // Priority 3: Tie-breaker using X position (Standard)
-                const nodeA = layoutNodes.find(n => n.id === a);
-                const nodeB = layoutNodes.find(n => n.id === b);
-                return (nodeA?.position.x || 0) - (nodeB?.position.x || 0);
-            });
-        });
-
-        // 3. Find Roots (nodes with no parents in the CUT DAG)
-        // This will include regular start nodes AND the Merge Nodes
-        const layoutRoots = layoutNodes.filter(n => !reverseAdjacency[n.id]);
-
-        // 4. Recursive Position Calculation (Standard Tree)
-        const positions: Record<string, { x: number, y: number }> = {};
-
-        const getSubtreeWidth = (nodeId: string, d: number): number => {
-            const children = adjacency[nodeId] || [];
-            if (children.length === 0) return NODE_WIDTH + NODE_GAP_X;
-            let width = 0;
-            children.forEach(childId => width += getSubtreeWidth(childId, d + 1));
-            return width;
-        };
-
-        const setPositions = (nodeId: string, d: number, startX: number) => {
-            const children = adjacency[nodeId] || [];
-            const y = d * (NODE_HEIGHT + NODE_GAP_Y);
-
-            if (children.length === 0) {
-                positions[nodeId] = { x: startX + (NODE_GAP_X / 2), y };
+            if (validEdges.length !== edges.length) {
+                console.log("Cleaning up orphaned edges...");
+                setEdges(validEdges);
+                // Return here to allow next render to process clean state
                 return;
             }
 
-            let childCursorX = startX;
-            children.forEach(childId => {
-                const w = getSubtreeWidth(childId, d + 1);
-                setPositions(childId, d + 1, childCursorX);
-                childCursorX += w;
-            });
-
-            // Center parent
-            if (children.length > 0) {
-                const childrenStart = positions[children[0]].x;
-                const childrenEnd = positions[children[children.length - 1]].x;
-                positions[nodeId] = { x: (childrenStart + childrenEnd) / 2, y };
-            }
-        };
-
-        // Run Layout for all detached trees
-        // Roots that are Merge Nodes likely start at X=0, we will move them later
-        let rootCursorX = 0;
-        layoutRoots.forEach(root => {
-            const treeWidth = getSubtreeWidth(root.id, 0);
-            setPositions(root.id, 0, rootCursorX);
-            // If it's a merge node, we don't really care about its initial X, 
-            // but we increment rootCursorX to avoid overlap if we didn't stitch (safety)
-            rootCursorX += treeWidth + NODE_GAP_X;
-        });
-
-        // 4.5. STITCHING HELPERS & CENTERING PASS
-        // We define this early for Centering
-        const shiftSubtree = (nodeId: string, dx: number, dy: number) => {
-            if (positions[nodeId]) {
-                positions[nodeId].x += dx;
-                positions[nodeId].y += dy;
-            }
-            const children = adjacency[nodeId] || [];
-            children.forEach(childId => shiftSubtree(childId, dx, dy));
-        };
-
-        // CENTERING PASS (Fix Main Root to X=210)
-        // This ensures the "Spine" stays at 210
-        const mainRoot = layoutRoots.find(n => n.id === '1') || layoutRoots[0];
-        if (mainRoot && positions[mainRoot.id]) {
-            const currentRootX = positions[mainRoot.id].x;
-            const centerOffset = 210 - currentRootX; // <--- CHANGED TO 210
-            // Shift the Main Root's tree to align Root with X=210
-            shiftSubtree(mainRoot.id, centerOffset, 0);
-        } // Merge trees are still at original X, but Stitching below will align them relative to parents
-
-
-        // 5. STITCHING PASS
-        // Move Merge Trees to align with their true parents
-
-        sortedMergeNodes.forEach(mergeId => {
-            if (!positions[mergeId]) return;
-
-            // Find parents in actual graph
-            const incoming = layoutEdges.filter(e => e.target === mergeId);
-            const parentIds = incoming.map(e => e.source);
-
-            // Calculate Target Center
-            let sumX = 0;
-            let maxY = 0;
-            let validParents = 0;
-
-            parentIds.forEach(pid => {
-                if (positions[pid]) {
-                    sumX += positions[pid].x;
-                    if (positions[pid].y > maxY) maxY = positions[pid].y;
-                    validParents++;
-                }
-            });
-
-            if (validParents > 0) {
-                const targetX = sumX / validParents;
-                const targetY = maxY + NODE_HEIGHT + NODE_GAP_Y;
-
-                const currentIs = positions[mergeId];
-                const dx = targetX - currentIs.x;
-                const dy = targetY - currentIs.y;
-
-                shiftSubtree(mergeId, dx, dy);
-            }
-        });
-
-
-        // 6. Apply Positions
-        const finalNodes = layoutNodes.map(n => {
-            const pos = positions[n.id];
-            if (!pos) return n;
-
-            // Mark Merge Nodes so Edges can handle symmetry
-            const isMerge = mergeNodeIds.has(n.id);
-
-            return {
-                ...n,
-                position: { x: pos.x, y: pos.y + 70 }, // Increased from 50 to 70 for more breathing room
-                data: { ...n.data, isMergeNode: isMerge },
-                targetPosition: Position.Top,
-                sourcePosition: Position.Bottom
-            };
-        });
-
-        // Immediate fit view if explicit or initially
-        if (!passedNodes) {
-            // No-op
+            // 2. Auto-Layout/Fit View
+            const timer = setTimeout(() => {
+                rfInstance?.fitView({ padding: 0.2, duration: 300 });
+            }, 100);
+            return () => clearTimeout(timer);
         }
+    }, [nodes.length, edges.length, rfInstance]);
 
-        return finalNodes;
-    }, [nodes, edges]);
+    const handleDeleteKeyboard = useCallback((deletedNodes: Node[]) => {
+        // Intercept keyboard delete and route through our logic to bridge connections
+        deletedNodes.forEach(n => {
+            handleDeleteNode(n.id);
+        });
+    }, [handleDeleteNode]);
 
     return (
         <AutomationContext.Provider value={{
@@ -1404,6 +1325,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 onNodeClick={onNodeClick}
                                 onNodeContextMenu={onNodeContextMenu}
                                 onPaneClick={onPaneClick}
+                                onNodesDelete={handleDeleteKeyboard} // Intercept Keyboard Delete
                                 onInit={setRfInstance}
                                 fitView
                                 fitViewOptions={{ padding: { top: 80, right: 80, bottom: 500, left: 80 }, maxZoom: 1 }}

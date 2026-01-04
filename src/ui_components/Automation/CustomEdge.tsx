@@ -154,7 +154,29 @@ export default function CustomEdge({
   // This allows buttons on edges leading to Merge Points or End Nodes while avoiding
   // redundancy on the construction cards.
   const isBranchPlaceholder = sourceNode?.data?.isBranchPlaceholder || targetNode?.data?.isBranchPlaceholder;
-  const showAddButton = distanceY > 45 && !isBranchPlaceholder;
+
+  // --- LOOP BYPASS VISUAL FIX ---
+  // If this is the "Bypass" line for a Loop, we want a wider bracket.
+  // The default edge path might be too tight to the loop body.
+  const isLoopBypass = (data as any)?.sourceHandle === 'loop-bypass' || (sourceNode?.type === 'loop' && targetNode?.data?.isMergeNode && !label);
+
+  // FIXED: Removed targetNode?.data?.isMergeNode check so users can add nodes before Merge nodes (end of branch/loop).
+  // ALSO: Hide if source is Placeholder (redundant) or Loop Bypass.
+  const showAddButton = distanceY > 45 && !isBranchPlaceholder && !isLoopBypass && !isPlaceholder;
+
+  if (isLoopBypass) {
+    // Force a "wide bracket" shape
+    // Go LEFT from Source (Loop Node Left Handle), then DOWN, then RIGHT to Target (Merge Node Top Handle)
+
+    // Gap: How far left to push the line
+    // Use dynamic bypassX from layout if available (to clear inner content), otherwise default gap.
+    // Default fallback: sourceX (Center) - NodeHalfWidth (140) - Padding (40) = sourceX - 180
+    const verticalX = (sourceNode?.data?.bypassX as number) ?? (sourceX - 180);
+
+    // Simplified rectilinear for now
+    const mergeY = targetY - 40; // Same merge bus level as others
+    edgePath = `M ${sourceX},${sourceY} L ${verticalX},${sourceY} L ${verticalX},${mergeY} L ${targetX},${mergeY} L ${targetX},${targetY}`;
+  }
 
   return (
     <>
