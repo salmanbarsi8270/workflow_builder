@@ -10,6 +10,11 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { VariablePicker } from "../Automation/components/VariablePicker"
 import { type Node } from "@xyflow/react"
+import { useState } from "react"
+import { API_URL } from "@/ui_components/api/apiurl"
+import { Check, Copy, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 interface HTTPFormProps {
     data: any;
@@ -17,10 +22,14 @@ interface HTTPFormProps {
     onChange: (params: any) => void;
     disabled?: boolean;
     nodes: Node[];
+    edges?: any[];
     nodeId?: string;
+    flowId?: string;
 }
 
-export default function HTTPForm({ data: _data, params, onChange, disabled, nodes, nodeId }: HTTPFormProps) {
+export default function HTTPForm({ data: nodeData, params, onChange, disabled, nodes, edges = [], nodeId, flowId }: HTTPFormProps) {
+    const [copied, setCopied] = useState(false);
+
     const handleChange = (field: string, value: any) => {
         onChange({ ...params, [field]: value });
     };
@@ -30,6 +39,71 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
         handleChange(field, currentValue + variable);
     };
 
+    // WEBHOOK TRIGGER VIEW
+    if (nodeData.actionId === 'webhook' || nodeData.action === 'webhook' || nodeData.trigger === 'webhook') {
+        // Construct Webhook URL
+        const webhookUrl = flowId ? `${API_URL}/api/webhooks/${flowId}` : 'Save workflow to generate URL';
+
+        const handleCopy = () => {
+            if (!flowId) {
+                toast.error("Please save the workflow first");
+                return;
+            }
+            navigator.clipboard.writeText(webhookUrl);
+            setCopied(true);
+            toast.success("Webhook URL copied to clipboard");
+            setTimeout(() => setCopied(false), 2000);
+        };
+
+        return (
+            <div className="space-y-6">
+                <div className="p-4 bg-muted/30 border rounded-lg space-y-3">
+                    <div className="flex items-center gap-2 text-primary font-medium">
+                        <Globe className="h-4 w-4" />
+                        <h3>Webhook URL</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Send a POST request to this URL to trigger this workflow.
+                        The JSON body of the request will be available in the trigger output.
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <div className="relative flex-1">
+                            <Input
+                                value={webhookUrl}
+                                readOnly
+                                className="pr-10 font-mono text-xs bg-background"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopy}
+                            className="shrink-0"
+                            disabled={!flowId}
+                        >
+                            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                        Test Command (cURL)
+                    </Label>
+                    <div className="bg-slate-950 text-slate-50 p-3 rounded-md font-mono text-[10px] overflow-x-auto whitespace-pre-wrap">
+                        {`curl -X POST "${webhookUrl}" \\
+-H "Content-Type: application/json" \\
+-d '{"message": "Hello from frontend"}'`}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                        Copy and run this in your terminal to test the trigger.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // HTTP REQUEST ACTION VIEW
     return (
         <div className="flex flex-col gap-4">
             {/* Method */}
@@ -64,6 +138,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     </Label>
                     <VariablePicker
                         nodes={nodes}
+                        edges={edges}
                         onSelect={(v: string) => handleVariableSelect('url', v)}
                         currentNodeId={nodeId}
                     />
@@ -71,7 +146,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                 <Input
                     value={params.url || ''}
                     onChange={(e) => handleChange('url', e.target.value)}
-                    placeholder="https://api.example.com/v1/resource"
+                    placeholder="https://api.your-api.com/endpoint"
                     disabled={disabled}
                     required
                 />
@@ -85,6 +160,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     </Label>
                     <VariablePicker
                         nodes={nodes}
+                        edges={edges}
                         onSelect={(v: string) => handleVariableSelect('headers', v)}
                         currentNodeId={nodeId}
                     />
@@ -92,7 +168,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                 <Textarea
                     value={typeof params.headers === 'string' ? params.headers : JSON.stringify(params.headers, null, 2) || ''}
                     onChange={(e) => handleChange('headers', e.target.value)}
-                    placeholder='{ "Content-Type": "application/json" }'
+                    placeholder='{ "Authorization": "Bearer 123" }'
                     className="font-mono text-xs min-h-[100px]"
                     disabled={disabled}
                     required
@@ -108,6 +184,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                         </Label>
                         <VariablePicker
                             nodes={nodes}
+                            edges={edges}
                             onSelect={(v: string) => handleVariableSelect('body', v)}
                             currentNodeId={nodeId}
                         />
@@ -115,7 +192,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     <Textarea
                         value={typeof params.body === 'string' ? params.body : JSON.stringify(params.body, null, 2) || ''}
                         onChange={(e) => handleChange('body', e.target.value)}
-                        placeholder='{ "key": "value" }'
+                        placeholder='{ "data": "{{trigger.body.message}}" }'
                         className="font-mono text-xs min-h-[150px]"
                         disabled={disabled}
                         required

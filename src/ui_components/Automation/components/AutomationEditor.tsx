@@ -120,9 +120,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             data: {
                                 ...newNode.data,
                                 status: existingNode.data.status,
-                                duration: existingNode.data.duration
+                                duration: existingNode.data.duration,
+                                isPlaceholder: !!newNode.data.piece ? false : newNode.data.isPlaceholder
                             }
                         };
+                    }
+                    // Even if not matching existing, if it has a piece, it shouldn't be a placeholder
+                    if (newNode.data.piece && newNode.data.isPlaceholder) {
+                        return { ...newNode, data: { ...newNode.data, isPlaceholder: false } };
                     }
                     return newNode;
                 });
@@ -154,16 +159,23 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Socket listeners for run progress
     useEffect(() => {
         if (socket) {
+            const normalizeId = (id: string) => {
+                const triggerIds = ['webhook', 'trigger', 'schedule', 'form'];
+                if (triggerIds.includes(id)) return '1';
+                return id;
+            };
+
             const handleStepStart = (data: any) => {
+                const nodeId = normalizeId(data.nodeId);
                 setResults(prev => {
                     const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-                    const isFirstNode = sortedNodes[0]?.id === data.nodeId;
+                    const isFirstNode = sortedNodes[0]?.id === nodeId;
                     const noActiveResults = Object.keys(prev).length === 0;
 
                     if (isFirstNode || noActiveResults) {
                         return {
-                            [data.nodeId]: {
-                                nodeId: data.nodeId,
+                            [nodeId]: {
+                                nodeId: nodeId,
                                 status: 'running',
                                 output: null,
                                 duration: 0
@@ -172,8 +184,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     }
                     return {
                         ...prev,
-                        [data.nodeId]: {
-                            nodeId: data.nodeId,
+                        [nodeId]: {
+                            nodeId: nodeId,
                             status: 'running',
                             output: null,
                             duration: 0
@@ -183,10 +195,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleStepFinish = (data: any) => {
+                const nodeId = normalizeId(data.nodeId);
                 setResults(prev => ({
                     ...prev,
-                    [data.nodeId]: {
-                        nodeId: data.nodeId,
+                    [nodeId]: {
+                        nodeId: nodeId,
                         status: data.status,
                         output: data.output,
                         duration: data.duration
@@ -195,6 +208,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
+                console.log("Run complete auto");
+                setResults({});
                 // Mark nodes that didn't run as skipped
                 setResults(prev => {
                     const next = { ...prev };
@@ -537,7 +552,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         const updatedNodes = currentNodes.map((node) => {
             if (node.id === selectedNodeId) {
-                return { ...node, data: { ...node.data, ...data, label: label } };
+                return { ...node, data: { ...node.data, ...data, label: label, isPlaceholder: false } };
             }
             return node;
         });
@@ -1117,6 +1132,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onClose={() => setSelectedNodeId(null)}
                             nodeStatus={(selectedNode.data as any).status}
                             isLocked={automationStatus}
+                            flowId={flowId}
                         />
                     )}
 

@@ -1,11 +1,11 @@
-import { HardDrive } from "lucide-react";
+import { Clock } from "lucide-react";
 import type { AppDefinition } from "../types";
 
-export const utility: AppDefinition = {
-  id: 'utility',
-  name: 'Utility',
-  description: 'Generic workflow utilities.',
-  icon: HardDrive,
+export const delay: AppDefinition = {
+  id: 'delay', // Changed from utility to delay to match filename/purpose
+  name: 'Delay',
+  description: 'Pause the workflow for a duration.',
+  icon: Clock,
   category: 'utility',
   actions: [
     {

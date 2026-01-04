@@ -34,6 +34,7 @@ interface RightGenericSidebarProps {
     onClose: () => void;
     nodeStatus?: 'pending' | 'running' | 'success' | 'error' | 'warning';
     isLocked?: boolean;
+    flowId?: string;
 }
 
 const getStatusColor = (status?: string) => {
@@ -97,7 +98,7 @@ const getInitialParams = (node: Node) => {
     return migratedParams;
 };
 
-export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false }: RightGenericSidebarProps) {
+export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false, flowId }: RightGenericSidebarProps) {
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
     const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
     const [activeTab, setActiveTab] = useState("configuration");
@@ -491,7 +492,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
 
                                         {FormComponent ? (
                                             <div className="space-y-4">
-                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} edges={edges} nodeId={selectedNode.id} disabled={isLocked} />
+                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} edges={edges} nodeId={selectedNode.id} disabled={isLocked} flowId={flowId} />
                                             </div>
                                         ) : (
                                             <div className="p-8 border border-dashed rounded-lg text-center space-y-3">

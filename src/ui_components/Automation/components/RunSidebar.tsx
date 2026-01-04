@@ -64,7 +64,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
     const visualSteps = useMemo(() => {
         if (!nodes || nodes.length === 0) return [];
         return [...nodes]
-            .filter(n => !n.data.isPlaceholder && n.id !== '1' && n.type !== 'end') // Filter out placeholders and trigger/end
+            .filter(n => !n.data.isPlaceholder && n.type !== 'end') // Include node '1' (trigger)
             .sort((a, b) => {
                 // Sort by Y first, then X (for parallel branches on same row)
                 if (Math.abs(a.position.y - b.position.y) > 50) {
@@ -154,12 +154,19 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
 
     useEffect(() => {
         if (socket) {
+            const normalizeId = (id: string) => {
+                const triggerIds = ['webhook', 'trigger', 'schedule', 'form'];
+                if (triggerIds.includes(id)) return '1';
+                return id;
+            };
+
             const handleStepStart = (data: any) => {
+                const nodeId = normalizeId(data.nodeId);
                 setliveRun(true);
                 
                 // If this is the trigger node (usually first node) or we have no results, start fresh
                 const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-                const isFirstNode = sortedNodes[0]?.id === data.nodeId;
+                const isFirstNode = sortedNodes[0]?.id === nodeId;
                 const noActiveResults = Object.keys(resultsRef.current).length === 0;
 
                 if (isFirstNode || noActiveResults) {
@@ -174,8 +181,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
 
                 setResults(prev => ({
                     ...prev,
-                    [data.nodeId]: {
-                        nodeId: data.nodeId,
+                    [nodeId]: {
+                        nodeId: nodeId,
                         status: 'running',
                         output: null,
                         duration: 0
@@ -184,11 +191,12 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
             };
 
             const handleStepFinish = (data: any) => {
-                console.log("run finish");
+                const nodeId = normalizeId(data.nodeId);
+                console.log("run finish", nodeId);
                 setResults(prev => ({
                     ...prev,
-                    [data.nodeId]: {
-                        nodeId: data.nodeId,
+                    [nodeId]: {
+                        nodeId: nodeId,
                         status: data.status,
                         output: data.output,
                         duration: data.duration
@@ -225,15 +233,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
                     setRunSummaryStatus(newStatus);
                 }
 
-                setTimeout(() => {
-                    setRunStartTime(null);
-                    setliveRun(false);
-                    setTimeout(() => {
-                        if (view === 'live') {
-                            setRunSummaryStatus('idle');
-                        }
-                    }, 5000);
-                }, 1000);
+                setRunStartTime(prev => prev); // Keep start time for duration display
+                setliveRun(false);
+                // Removed 5s timeout that resets summary status to idle
             };
 
             const handleFlowFailed = (_data: any) => {

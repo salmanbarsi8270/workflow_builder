@@ -28,6 +28,6 @@ export const AppLogoMap: Record<string, string> = {
   'http': http,
   'logic': logic,
   'condition': condition,
-  'utility': utility,
+  'delay': utility,
   'wait': wait,
 };
