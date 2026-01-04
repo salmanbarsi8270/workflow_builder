@@ -62,6 +62,11 @@ export function App() {
                             <SidebarIconExample />
                         </RequireAuth>
                     } />
+                    <Route path="/templates" element={
+                        <RequireAuth>
+                            <SidebarIconExample />
+                        </RequireAuth>
+                    } />
                     
                     <Route path="*" element={<ErrorPage />} />
                 </Routes>

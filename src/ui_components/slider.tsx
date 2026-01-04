@@ -35,7 +35,7 @@ import {
   SidebarTrigger,
 } from '@/components/sidebar'
 import { HugeiconsIcon } from "@hugeicons/react"
-import {  RoboticIcon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon } from "@hugeicons/core-free-icons"
+import {  RoboticIcon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation } from "react-router-dom"
@@ -45,6 +45,7 @@ import Integration from './Integration'
 import Automation from './Automation'
 import Logout from './Logout'
 import Connections from './Connections'
+import Templates from './Templates'
 import { useUser } from '@/context/UserContext';
 
 export function SidebarIconExample() {
@@ -64,6 +65,8 @@ export function SidebarIconExample() {
         return "Integration";
       case "/automation":
         return "Automation";
+      case "/templates":
+        return "Templates";
       default:
         return "Dashboard";
     }
@@ -91,6 +94,11 @@ export function SidebarIconExample() {
       title: "Automation",
       url: "/automation",
       icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
+    },
+    {
+      title: "Templates",
+      url: "/templates",
+      icon: <HugeiconsIcon icon={Layout01Icon} strokeWidth={2} />,
     },
   ]
 
@@ -225,6 +233,7 @@ export function SidebarIconExample() {
             {location.pathname === "/" && <WorkflowDashboard />}
             {location.pathname === "/connections" && <Connections />}
             {location.pathname === "/integration" && <Integration />}
+            {location.pathname === "/templates" && <Templates />}
             {(location.pathname === "/automation" || location.pathname.startsWith("/automation/")) && <Automation />}
         </div>
       </SidebarInset>
