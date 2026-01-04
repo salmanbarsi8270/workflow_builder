@@ -3,18 +3,20 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import AutomationList, { type AutomationItem } from './components/AutomationList';
-import AutomationEditor from './components/AutomationEditor';
+import AutomationList, { type AutomationItem } from '@/ui_components/Automation/components/AutomationList';
+import AutomationEditor from '@/ui_components/Automation/components/AutomationEditor';
+import { TemplateGallery } from '@/ui_components/Automation/components/TemplateGallery';
 
-import { API_URL } from '../api/apiurl';
+import { API_URL } from '@/ui_components/api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
-import Editorloading from '../Utility/Editorloading';
+import Editorloading from '@/ui_components/Utility/Editorloading';
 import { Loader2 } from 'lucide-react';
 
 const defaultStartNode: Node[] = [
@@ -445,26 +447,69 @@ export default function AutomationIndex() {
                     isLoading={isListLoading}
                 />
 
-                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingId ? "Edit Automation" : "Create New Automation"}</DialogTitle>
-                            <DialogDescription>
-                                {editingId ? "Update the name of your automation." : "Enter a name for your new automation workflow."}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" value={newAutomationName} onChange={(e) => setNewAutomationName(e.target.value)} placeholder="e.g., Order Confirmation Flow" />
+                <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                    <SheetContent side="right" className="sm:max-w-md">
+                        <SheetHeader>
+                            <SheetTitle>{editingId ? "Edit Automation" : "Create New Automation"}</SheetTitle>
+                            <SheetDescription>
+                                {editingId ? "Update the name of your automation." : "Choose how you want to start your new automation."}
+                            </SheetDescription>
+                        </SheetHeader>
+
+                        {editingId ? (
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input 
+                                        id="name" 
+                                        value={newAutomationName} 
+                                        onChange={(e) => setNewAutomationName(e.target.value)} 
+                                        placeholder="e.g., Order Confirmation Flow" 
+                                    />
+                                </div>
+                                <SheetFooter>
+                                    <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                                    <Button disabled={createsutomationloading} onClick={handleSaveAutomationName}>
+                                        {createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
+                                    </Button>
+                                </SheetFooter>
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                            <Button disabled={createsutomationloading} onClick={handleSaveAutomationName}>{createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : editingId ? "Save Changes" : "Create"}</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        ) : (
+                            <Tabs defaultValue="blank" className="w-full mt-4">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="blank">Blank Flow</TabsTrigger>
+                                    <TabsTrigger value="templates">Templates</TabsTrigger>
+                                </TabsList>
+                                
+                                <TabsContent value="blank" className="space-y-4 pt-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="blank-name">Automation Name</Label>
+                                        <Input 
+                                            id="blank-name" 
+                                            value={newAutomationName} 
+                                            onChange={(e) => setNewAutomationName(e.target.value)} 
+                                            placeholder="e.g., My New Workflow" 
+                                        />
+                                    </div>
+                                    <Button 
+                                        className="w-full" 
+                                        disabled={createsutomationloading || !newAutomationName.trim()} 
+                                        onClick={handleSaveAutomationName}
+                                    >
+                                        {createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Blank Automation"}
+                                    </Button>
+                                </TabsContent>
+
+                                <TabsContent value="templates" className="h-[500px] pt-4">
+                                    <TemplateGallery 
+                                        userId={user?.id || ""} 
+                                        onSuccess={() => setIsCreateModalOpen(false)}
+                                    />
+                                </TabsContent>
+                            </Tabs>
+                        )}
+                    </SheetContent>
+                </Sheet>
                 <Toaster />
             </>
         );

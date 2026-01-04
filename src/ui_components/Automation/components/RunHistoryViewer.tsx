@@ -12,11 +12,13 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { X, Calendar } from "lucide-react";
-import CustomNode from '../nodes/CustomNode';
-import CustomEdge from '../edges/CustomEdge';
-import ConditionNode from '../nodes/ConditionNode';
-import ParallelNode from '../nodes/ParallelNode';
-import EndNode from '../nodes/EndNode';
+import CustomNode from '@/ui_components/Automation/nodes/CustomNode';
+import CustomEdge from '@/ui_components/Automation/edges/CustomEdge';
+import ConditionNode from '@/ui_components/Automation/nodes/ConditionNode';
+import ParallelNode from '@/ui_components/Automation/nodes/ParallelNode';
+import EndNode from '@/ui_components/Automation/nodes/EndNode';
+import WaitNode from '@/ui_components/Automation/nodes/WaitNode';
+import LoopNode from '@/ui_components/Automation/nodes/LoopNode';
 
 // Reuse node types
 const nodeTypes = {
@@ -24,6 +26,8 @@ const nodeTypes = {
     condition: ConditionNode,
     parallel: ParallelNode,
     end: EndNode,
+    wait: WaitNode,
+    loop: LoopNode,
 };
 
 const edgeTypes = {

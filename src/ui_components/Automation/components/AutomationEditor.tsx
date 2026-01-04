@@ -2,7 +2,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-// import { toast } from "sonner"
+import { toast } from "sonner"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Upload } from "lucide-react"
 import {
     ReactFlow,
     Controls,
@@ -19,19 +31,20 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import RightGenericSidebar from './RightGenericSidebar';
-import CustomNode from '../nodes/CustomNode';
-import EndNode from '../nodes/EndNode';
-import CustomEdge from '../edges/CustomEdge';
-import ConditionNode from '../nodes/ConditionNode';
-import ParallelNode from '../nodes/ParallelNode';
-import LoopNode from '../nodes/LoopNode';
-import WaitNode from '../nodes/WaitNode';
+import CustomNode from '@/ui_components/Automation/nodes/CustomNode';
+import EndNode from '@/ui_components/Automation/nodes/EndNode';
+import CustomEdge from '@/ui_components/Automation/edges/CustomEdge';
+import ConditionNode from '@/ui_components/Automation/nodes/ConditionNode';
+import ParallelNode from '@/ui_components/Automation/nodes/ParallelNode';
+import LoopNode from '@/ui_components/Automation/nodes/LoopNode';
+import WaitNode from '@/ui_components/Automation/nodes/WaitNode';
 import AutomationContext from '../context/AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
 import RunHistoryViewer from './RunHistoryViewer';
 import NodeContextMenu from './NodeContextMenu';
 import { calculateLayout } from '../utils/layoutEngine';
+import { API_URL } from '@/ui_components/api/apiurl';
 
 // Define custom types
 const nodeTypes = {
@@ -41,7 +54,6 @@ const nodeTypes = {
     loop: LoopNode,
     wait: WaitNode,
     end: EndNode,
-
 };
 
 const edgeTypes = {
@@ -75,10 +87,6 @@ export interface StepResult {
 
 
 
-
-
-
-
 export default function AutomationEditor({ automationName, initialNodes, initialEdges, automationStatus, onBack, onAutoSave, onToggleStatus, theme, isLoading, socket, flowId }: AutomationEditorProps) {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -91,6 +99,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [swappingNodeId, setSwappingNodeId] = useState<string | null>(null);
+
+    // Publish Template State
+    const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+    const [templateName, setTemplateName] = useState("");
+    const [templateDescription, setTemplateDescription] = useState("");
+    const [isPublishing, setIsPublishing] = useState(false);
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
@@ -1043,6 +1057,16 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
                             <HistoryIcon className="mr-2 h-4 w-4" /> Runs
                         </Button>
+                        <Button 
+                            variant="default" 
+                            className="bg-indigo-600 hover:bg-indigo-700" 
+                            onClick={() => {
+                                setTemplateName(automationName || "");
+                                setIsPublishDialogOpen(true);
+                            }}
+                        >
+                            <Upload className="mr-2 h-4 w-4" /> Publish
+                        </Button>
                         <div className="flex items-center gap-2 mr-2">
                             <span className="text-sm font-medium text-muted-foreground">Run</span>
                             <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
@@ -1154,6 +1178,78 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
 
                 </div>
+
+                <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Publish as Template</DialogTitle>
+                            <DialogDescription>
+                                Share this automation as a template for others to use.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Template Name</Label>
+                                <Input
+                                    id="name"
+                                    value={templateName}
+                                    onChange={(e) => setTemplateName(e.target.value)}
+                                    placeholder="e.g. Daily Report Generator"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    value={templateDescription}
+                                    onChange={(e) => setTemplateDescription(e.target.value)}
+                                    placeholder="Briefly describe what this automation does..."
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsPublishDialogOpen(false)}>Cancel</Button>
+                            <Button 
+                                onClick={async () => {
+                                    if (!templateName.trim()) {
+                                        toast.error("Template name is required");
+                                        return;
+                                    }
+                                    setIsPublishing(true);
+                                    try {
+                                        // TODO: Import axios if not available, or use fetch
+                                        const response = await fetch(`${API_URL}/api/templates/publish`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                name: templateName,
+                                                description: templateDescription,
+                                                definition: JSON.stringify({ nodes, edges }), // Ensure serialized
+                                                uidefinition: JSON.stringify({ nodes, edges }), // Sending duplicate for now as requested
+                                                created_at: new Date().toISOString()
+                                            })
+                                        });
+                                        const result = await response.json();
+                                        if (result.success) {
+                                            toast.success("Template published successfully!");
+                                            setIsPublishDialogOpen(false);
+                                        } else {
+                                            toast.error("Failed to publish template", { description: result.error });
+                                        }
+                                    } catch (error: any) {
+                                        console.error("Publish error:", error);
+                                        toast.error("Failed to publish template");
+                                    } finally {
+                                        setIsPublishing(false);
+                                    }
+                                }} 
+                                disabled={isPublishing}
+                            >
+                                {isPublishing ? "Publishing..." : "Publish Template"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AutomationContext.Provider>
     );
