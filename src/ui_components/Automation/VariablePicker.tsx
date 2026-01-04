@@ -150,7 +150,7 @@ export const VariablePicker = ({ onSelect, nodes, currentNodeId }: VariablePicke
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="max-h-[400px] overflow-auto p-2">
+              <div className="h-[250px] overflow-auto p-2">
                 <AnimatePresence>
                   {availableNodes.length === 0 ? (
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 text-center space-y-3">

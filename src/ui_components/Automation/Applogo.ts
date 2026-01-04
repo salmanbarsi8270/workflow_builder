@@ -12,6 +12,6 @@ export const AppLogoMap: Record<string, string> = {
   'http': 'https://img.icons8.com/?size=100&id=5zuVgEwv1rTz&format=png&color=000000',
   'logic': 'https://img.icons8.com/?size=100&id=48216&format=png&color=000000',
   'condition': 'https://img.icons8.com/?size=100&id=48216&format=png&color=000000',
-  'utility': 'https://img.icons8.com/?size=100&id=102553&format=png&color=000000',
+  'utility': 'https://img.icons8.com/?size=100&id=Fv0GYvp0ychm&format=png&color=000000',
   'wait': 'https://img.icons8.com/?size=100&id=W0CbBQ30TDLb&format=png&color=000000',
 };
