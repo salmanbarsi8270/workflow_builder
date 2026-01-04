@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
-<<<<<<< HEAD
 import {
     ReactFlow,
     Controls,
@@ -13,12 +12,9 @@ import {
     useEdgesState,
     addEdge,
     type Connection,
-    type Node,
-    type Edge,
-    ReactFlowProvider,
-=======
-import { ReactFlow, Controls, MiniMap, Background, useNodesState, useEdgesState, addEdge, type Connection, type Node, type Edge, ReactFlowProvider, Position
->>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
+    type Node as Node,
+    type Edge as Edge,
+    ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -130,7 +126,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (checked) {
             setIsRunSidebarOpen(true);
         } else {
-            // Clear results when turning off? Or keep them? 
+            // Clear results when turning off? Or keep them?
             // Usually good to clear if we're stopping the flow
             setResults({});
         }
@@ -409,7 +405,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     // If it's a placeholder, remove it safely
                     // If it's a real node, we also remove it because the user explicitly reduced the branch count.
                     // Ideally we should warn, but for now we follow the config.
-                    // We need to recursively remove downstream if we want to be clean, 
+                    // We need to recursively remove downstream if we want to be clean,
                     // but basic removal of the head node disconnects the branch.
                     // For now, let's just remove the edge and the head node if it's a placeholder/branch head.
                     // Actually, if we just remove the edge, the node becomes orphaned.
@@ -567,136 +563,60 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         let newNodes = [...nodes];
         const nodeToDelete = nodes.find(n => n.id === idToDelete);
 
-        // DIAMOND DELETION LOGIC for Control Flow (Condition/Parallel/Loop)
-        if (nodeToDelete?.type === 'condition' || nodeToDelete?.type === 'parallel' || nodeToDelete?.type === 'loop') {
-            const outgoingParams = edges.filter(e => e.source === idToDelete);
-            const incomingParams = edges.filter(e => e.target === idToDelete);
-            const parentId = incomingParams[0]?.source;
+        // SPECIAL CASE: Deleting a "Block Starter" (Condition/Parallel/Loop)
+        // Uses explicit mergeNodeId for robust atomic deletion.
+        if (nodeToDelete?.data?.mergeNodeId) {
+            const mergeNodeId = nodeToDelete.data.mergeNodeId as string;
 
-            // Find all branch head node IDs
-            const branchHeadIds = outgoingParams.map(e => e.target);
+            // 1. Identify all nodes in the block
+            const blockNodeIds = new Set<string>();
+            const queue = [idToDelete];
 
-            if (branchHeadIds.length > 0) {
-                // Helper: Get all descendants
-                const getDescendants = (startId: string): Set<string> => {
-                    const descendants = new Set<string>();
-                    const queue = [startId];
-                    while (queue.length > 0) {
-                        const curr = queue.shift()!;
-                        if (descendants.has(curr)) continue;
-                        descendants.add(curr);
-                        const children = edges.filter(e => e.source === curr).map(e => e.target);
-                        queue.push(...children);
-                    }
-                    return descendants;
-                };
+            while (queue.length > 0) {
+                const currentId = queue.shift()!;
+                if (blockNodeIds.has(currentId)) continue;
+                blockNodeIds.add(currentId);
 
-                // Get descendant sets for all branches
-                const branchDescendantSets = branchHeadIds.map(id => getDescendants(id));
+                if (currentId === mergeNodeId) continue; // Stop at merge
 
-                // Find intersection: Nodes present in ALL branch descendant sets
-                // (The first common node encounterd is the Merge Node)
-                let intersection = branchDescendantSets[0];
-                for (let i = 1; i < branchDescendantSets.length; i++) {
-                    intersection = new Set([...intersection].filter(x => branchDescendantSets[i].has(x)));
-                }
-
-                // Nodes to DELETE: (All branch descendants) - (Intersection) + RouterNode itself
-                const allBranchNodes = new Set<string>();
-                branchDescendantSets.forEach(s => s.forEach(id => allBranchNodes.add(id)));
-
-                const nodesToDeleteInsideBranches = [...allBranchNodes].filter(id => !intersection.has(id));
-
-                // Identify the Merge Node (the entry point to the common path)
-                let mergeNodeId = [...intersection].find(id => {
-                    const incomers = edges.filter(e => e.target === id).map(e => e.source);
-                    return incomers.some(src => src === idToDelete || nodesToDeleteInsideBranches.includes(src) || branchHeadIds.includes(src));
+                const children = edges.filter(e => e.source === currentId).map(e => e.target);
+                children.forEach(childId => {
+                    if (!blockNodeIds.has(childId)) queue.push(childId);
                 });
-
-                // Decide if we delete the Merge Node (if it's a placeholder)
-                const mergeNode = nodes.find(n => n.id === mergeNodeId);
-                const isMergePlaceholder = mergeNode?.data?.isPlaceholder || mergeNode?.data?.isMergePlaceholder;
-
-                const nodesToDeleteIds = [idToDelete, ...nodesToDeleteInsideBranches];
-
-                let targetToConnectTo: string | undefined = mergeNodeId;
-
-                if (mergeNodeId && isMergePlaceholder) {
-                    nodesToDeleteIds.push(mergeNodeId);
-                    // Next target is the child of Merge Node
-                    targetToConnectTo = edges.find(e => e.source === mergeNodeId)?.target;
-                }
-
-                // Execute Deletion
-                newNodes = newNodes.filter(n => !nodesToDeleteIds.includes(n.id));
-                newEdges = newEdges.filter(e => !nodesToDeleteIds.includes(e.source) && !nodesToDeleteIds.includes(e.target));
-
-                // Reconnect Parent -> targetToConnectTo
-                if (parentId && targetToConnectTo) {
-                    const targetNode = nodes.find(n => n.id === targetToConnectTo);
-                    const targetIsMerge = targetNode?.data?.isMergePlaceholder || targetNode?.data?.isMergeNode || edges.filter(e => e.target === targetToConnectTo).length > 1;
-
-                    if (targetIsMerge) {
-                        // Restore Placeholder to avoid "Locked" Loop/Branch (No + button on merge edges)
-                        const placeholderId = Math.random().toString(36).substring(7);
-                        const placeholderNode: Node = {
-                            id: placeholderId,
-                            type: 'custom',
-                            data: {
-                                label: 'Add Step',
-                                subLabel: 'Restored',
-                                isPlaceholder: true,
-                                isBranchPlaceholder: true,
-                            },
-                            // Roughly place it between parent and target (Layout will fix)
-                            position: { x: 0, y: 0 }
-                        };
-                        newNodes.push(placeholderNode);
-
-                        newEdges.push({
-                            id: `e-${parentId}-${placeholderId}`,
-                            source: parentId,
-                            target: placeholderId,
-                            sourceHandle: incomingParams[0].sourceHandle || null,
-                            type: 'custom'
-                        });
-
-                        newEdges.push({
-                            id: `e-${placeholderId}-${targetToConnectTo}`,
-                            source: placeholderId,
-                            target: targetToConnectTo,
-                            type: 'custom'
-                        });
-
-                    } else {
-                        // Direct Bridge (Standard)
-                        newEdges.push({
-                            id: `e-${parentId}-${targetToConnectTo}`,
-                            source: parentId,
-                            target: targetToConnectTo,
-                            sourceHandle: incomingParams[0].sourceHandle || null,
-                            type: 'custom'
-                        });
-                    }
-
-                } else if (parentId && mergeNodeId && !isMergePlaceholder && !targetToConnectTo) {
-                    // Keep Merge but it's end of flow
-                    newEdges.push({
-                        id: `e-${parentId}-${mergeNodeId}`,
-                        source: parentId,
-                        target: mergeNodeId,
-                        sourceHandle: incomingParams[0].sourceHandle || null,
-                        type: 'custom'
-                    });
-                }
-
-                const layoutedNodes = onLayout(newNodes, newEdges);
-                setNodes(layoutedNodes);
-                setEdges(newEdges);
-                if (selectedNodeId === idToDelete) setSelectedNodeId(null);
-                return;
             }
+
+            // 2. Identify Bridge connections
+            const blockIncoming = edges.filter(e => e.target === idToDelete);
+            const blockOutgoing = edges.filter(e => e.source === mergeNodeId);
+
+            // 3. Update State
+            newNodes = newNodes.filter(n => !blockNodeIds.has(n.id));
+            newEdges = newEdges.filter(e => !blockNodeIds.has(e.source) && !blockNodeIds.has(e.target));
+
+            // 4. Bridge (Parent -> Node After Merge)
+            if (blockIncoming.length > 0 && blockOutgoing.length > 0) {
+                blockIncoming.forEach(inEdge => {
+                    blockOutgoing.forEach(outEdge => {
+                        newEdges.push({
+                            id: `e-${inEdge.source}-${outEdge.target}`,
+                            source: inEdge.source,
+                            target: outEdge.target,
+                            sourceHandle: inEdge.sourceHandle,
+                            type: 'custom'
+                        });
+                    });
+                });
+            }
+
+            // Relayout and Return
+            const layoutedNodes = onLayout(newNodes, newEdges);
+            setNodes(layoutedNodes);
+            setEdges(newEdges);
+            if (selectedNodeId === idToDelete) setSelectedNodeId(null);
+            return;
         }
+
+
 
         // 1. Identify incoming edge(s)
         const incomingEdges = edges.filter(e => e.target === idToDelete);
@@ -734,21 +654,55 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             }
         }
 
+
+
+
+
+        // NEW STRATEGY: "Reset" to Placeholder instead of Removing
+        // The user wants to keep the "slot" open.
+        if (incomingEdges.length <= 1 && outgoingEdges.length <= 1) {
+            const nodeToDelete = nodes.find(n => n.id === idToDelete);
+
+            // CASE A: User is deleting a POPULATED node (Action/Trigger)
+            // -> Revert to Placeholder (Keep the slot)
+            if (nodeToDelete && !nodeToDelete.data.isPlaceholder) {
+                const placeholderNode: Node = {
+                    ...nodeToDelete,
+                    data: {
+                        ...nodeToDelete.data,
+                        label: 'Add Step',
+                        subLabel: '',
+                        icon: undefined, // Clear icon
+                        isPlaceholder: true,
+                        isMergePlaceholder: false,
+                        isBranchPlaceholder: false,
+                        // Clear other action data to be safe
+                        appId: undefined,
+                        actionId: undefined,
+                        params: undefined,
+                    },
+                    type: 'custom' // Ensure type is custom
+                };
+
+                const updatedNodes = nodes.map(n => n.id === idToDelete ? placeholderNode : n);
+
+                // Re-apply layout to ensure clean positioning (width might change)
+                const layoutedNodes = onLayout(updatedNodes, edges);
+                setNodes(layoutedNodes);
+                if (selectedNodeId === idToDelete) setSelectedNodeId(null);
+                return; // STOP here. Do not delete connections.
+            }
+        }
+
         newNodes = newNodes.filter(n => n.id !== idToDelete);
 
         // 4. Remove connected edges
         newEdges = newEdges.filter(e => e.target !== idToDelete && e.source !== idToDelete);
 
-        // 5. Reconnection Strategy
-        // If it was a linear node (1 in, 1 out), we can try to bridge the gap.
-        // If it was a branch node (1 in, 2 out), we probably shouldn't auto-reconnect to avoid mess, 
-        // OR we could connect source to *both* children? No, that's invalid in some flows.
-        // Let's stick to: Bridge if only 1 outgoing. If multiple, just leave them disconnected.
-
+        // 5. Reconnection Strategy (Legacy fallback if placeholder revert didn't happen)
         if (incomingEdges.length >= 1 && outgoingEdges.length === 1) {
             const target = outgoingEdges[0].target;
-            const isMergeNode = edges.filter(e => e.target === target).length > 1; // Check if target is ALREADY a merge node (before our new connections)
-            // Note: If we connect multiple sources to it, it WILL become a merge node.
+            const isMergeNode = edges.filter(e => e.target === target).length > 1;
 
             incomingEdges.forEach(incoming => {
                 const source = incoming.source;
@@ -825,7 +779,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             });
         }
 
-        // If it was a branch node, we simply remove it. The children become orphans (new roots or sub-roots). 
+        // If it was a branch node, we simply remove it. The children become orphans (new roots or sub-roots).
         // The user will have to reconnect them manually to something else.
         // BUT for a better UX, if we delete a node inside a branch, we should maintain the chain.
 
@@ -861,11 +815,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleAppSelect = (app: any) => {
         const isCondition = app.actionId === 'condition';
         const isParallel = app.actionId === 'parallel';
-<<<<<<< HEAD
         const isLoop = app.actionId === 'loop';
-=======
         const isWait = app.actionId === 'wait';
->>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
 
         // --- Local State for this execution ---
         let isPlaceholderLogicMode = false;
@@ -878,7 +829,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             const incomingEdge = edges.find(e => e.target === selectedNodeId);
 
             if (incomingEdge && (isCondition || isParallel || isLoop)) {
-                // If replacing with Logic, we treat it as an insertion ON the incoming edge, 
+                // If replacing with Logic, we treat it as an insertion ON the incoming edge,
                 // but we also need to handle the placeholder's outgoing edge.
                 const outgoingEdge = edges.find(e => e.source === selectedNodeId);
                 placeholderTargetId = outgoingEdge?.target;
@@ -906,7 +857,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     return n;
                 });
 
-                // CRITICAL: We changed a node from Placeholder to Real. 
+                // CRITICAL: We changed a node from Placeholder to Real.
                 // We MUST re-run layout to update loop bypass lines and centering.
                 const layoutedNodes = onLayout(updatedNodes, edges);
                 setNodes(layoutedNodes);
@@ -955,6 +906,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // If we are replacing a placeholder, the block should connect to whatever was AFTER that placeholder.
         const originalTargetId = isPlaceholderLogicMode ? placeholderTargetId : edge.target;
 
+        // Detect if replacing a Merge Node (reconnect all parents)
+        const replacingMergeNodeId = (isPlaceholderLogicMode && selectedNodeId && nodes.find(n => n.id === selectedNodeId)?.data?.isMergePlaceholder)
+            ? selectedNodeId
+            : null;
+
         const newNodeId = Math.random().toString(36).substr(2, 9);
 
         // Initial position (will be fixed by layout)
@@ -972,11 +928,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Default branches for parallel if not present
                 branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
             },
-<<<<<<< HEAD
-            type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : 'custom'
-=======
-            type: isCondition ? 'condition' : isParallel ? 'parallel' : isWait ? 'wait' : 'custom'
->>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
+            type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : isWait ? 'wait' : 'custom'
         };
 
         const newEdges = [];
@@ -989,6 +941,21 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             sourceHandle: edge.sourceHandle, // Preserve branch handle if exists
             type: 'custom'
         });
+
+        // 1.5 Handle Additional Parents if replacing Merge Node (Fan-in)
+        if (replacingMergeNodeId) {
+            const otherIncomingEdges = edges.filter(e => e.target === replacingMergeNodeId && e.id !== activeEdgeId);
+            otherIncomingEdges.forEach(otherEdge => {
+                newEdges.push({
+                    id: `e-${otherEdge.source}-${newNodeId}`,
+                    source: otherEdge.source,
+                    target: newNodeId,
+                    type: 'custom',
+                    sourceHandle: otherEdge.sourceHandle,
+                    data: otherEdge.data
+                });
+            });
+        }
 
         if (isCondition) {
 
@@ -1032,6 +999,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 },
                 type: 'custom'
             };
+
+            // Link Merge to Parent for Layout Engine
+            newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
 
             var additionalNodes = [trueNode, falseNode, mergeNode];
 
@@ -1095,6 +1065,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 },
                 type: 'custom'
             };
+            // Link
+            newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
 
             const branchPlaceholders: Node[] = [];
 
@@ -1169,6 +1141,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 },
                 type: 'custom'
             };
+            // Link
+            newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
 
             const placeholderId = Math.random().toString(36).substr(2, 9);
             const placeholder: Node = {
@@ -1201,7 +1175,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 source: newNodeId,
                 target: mergeNodeId,
                 sourceHandle: 'loop-bypass',
-                // data: { label: 'Done' }, 
+                // data: { label: 'Done' },
                 type: 'custom'
             });
 
