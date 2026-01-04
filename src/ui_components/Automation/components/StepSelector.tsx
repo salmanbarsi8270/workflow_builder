@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, ArrowLeft, X } from "lucide-react";
-import { APP_DEFINITIONS, type AppDefinition, type ActionDefinition } from './ActionDefinitions';
+import { APP_DEFINITIONS, type AppDefinition, type ActionDefinition } from '../metadata';
 import { cn } from "@/lib/utils";
-import { AppLogoMap } from './Applogo';
+import { AppLogoMap } from '../utils/Applogo';
 
 interface StepSelectorProps {
     onSelect: (app: any) => void;

@@ -2,13 +2,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { type ActionParameter, APP_DEFINITIONS } from "./ActionDefinitions"
-import ConnectionSelector from "../Connections/ConnectionSelector"
+import { type ActionParameter, APP_DEFINITIONS } from "../metadata"
+import ConnectionSelector from "../../Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
 import { type Node } from "@xyflow/react";
 import { VariablePicker } from "./VariablePicker";
 import { useUser } from "@/context/UserContext";
-import { API_URL } from "../api/apiurl";
+import { API_URL } from "../../api/apiurl";
 import axios from "axios";
 
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type Node } from "@xyflow/react";
-import { usePiecesMetadata } from "./usePiecesMetadata";
+import { usePiecesMetadata } from "../hooks/usePiecesMetadata";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Database, Search, ChevronRight, ChevronDown, Zap, Code, Variable, Copy, Hash, List, Type, Calendar, Clock, Mail, User, FileText, Image, DollarSign, Globe, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { APP_DEFINITIONS } from "./ActionDefinitions";
+import { APP_DEFINITIONS } from "../metadata";
 
 interface VariablePickerProps {
   onSelect: (val: string) => void;

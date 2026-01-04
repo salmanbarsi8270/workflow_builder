@@ -1,7 +1,7 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath, useNodes } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAutomationContext } from './AutomationContext';
+import { useAutomationContext } from '../context/AutomationContext';
 import { cn } from "@/lib/utils";
 
 // Edge Status Colors

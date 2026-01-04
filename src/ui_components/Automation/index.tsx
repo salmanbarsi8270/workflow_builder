@@ -8,8 +8,8 @@ import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import AutomationList, { type AutomationItem } from './AutomationList';
-import AutomationEditor from './AutomationEditor';
+import AutomationList, { type AutomationItem } from './components/AutomationList';
+import AutomationEditor from './components/AutomationEditor';
 
 import { API_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';

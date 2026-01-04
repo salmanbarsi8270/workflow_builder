@@ -19,19 +19,19 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import RightGenericSidebar from './RightGenericSidebar';
-import CustomNode from './CustomNode';
-import EndNode from './EndNode';
-import CustomEdge from './CustomEdge';
-import ConditionNode from './ConditionNode';
-import ParallelNode from './ParallelNode';
-import LoopNode from './LoopNode';
-import WaitNode from './Nodes/WaitNode';
-import AutomationContext from './AutomationContext';
+import CustomNode from '../nodes/CustomNode';
+import EndNode from '../nodes/EndNode';
+import CustomEdge from '../edges/CustomEdge';
+import ConditionNode from '../nodes/ConditionNode';
+import ParallelNode from '../nodes/ParallelNode';
+import LoopNode from '../nodes/LoopNode';
+import WaitNode from '../nodes/WaitNode';
+import AutomationContext from '../context/AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
 import RunHistoryViewer from './RunHistoryViewer';
 import NodeContextMenu from './NodeContextMenu';
-import { calculateLayout } from './layoutEngine';
+import { calculateLayout } from '../utils/layoutEngine';
 
 // Define custom types
 const nodeTypes = {

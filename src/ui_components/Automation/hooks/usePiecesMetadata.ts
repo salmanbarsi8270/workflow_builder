@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from '../api/apiurl';
-import { type PropertyMetadata } from './ActionDefinitions';
+import { API_URL } from '../../api/apiurl';
+import { type PropertyMetadata } from '../metadata';
 
 export interface ActionMetadata {
   label?: string;

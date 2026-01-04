@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash } from "lucide-react";
 import { type Node, type Edge } from '@xyflow/react';
 import { cn } from "@/lib/utils";
-import { API_URL } from '../api/apiurl';
+import { API_URL } from '../../api/apiurl';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 

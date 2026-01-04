@@ -12,11 +12,11 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { X, Calendar } from "lucide-react";
-import CustomNode from './CustomNode';
-import CustomEdge from './CustomEdge';
-import ConditionNode from './ConditionNode';
-import ParallelNode from './ParallelNode';
-import EndNode from './EndNode';
+import CustomNode from '../nodes/CustomNode';
+import CustomEdge from '../edges/CustomEdge';
+import ConditionNode from '../nodes/ConditionNode';
+import ParallelNode from '../nodes/ParallelNode';
+import EndNode from '../nodes/EndNode';
 
 // Reuse node types
 const nodeTypes = {

@@ -8,7 +8,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { VariablePicker } from "../Automation/VariablePicker"
+import { VariablePicker } from "../Automation/components/VariablePicker"
 import { type Node } from "@xyflow/react"
 
 interface HTTPFormProps {
@@ -64,7 +64,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     </Label>
                     <VariablePicker
                         nodes={nodes}
-                        onSelect={(v) => handleVariableSelect('url', v)}
+                        onSelect={(v: string) => handleVariableSelect('url', v)}
                         currentNodeId={nodeId}
                     />
                 </div>
@@ -85,7 +85,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                     </Label>
                     <VariablePicker
                         nodes={nodes}
-                        onSelect={(v) => handleVariableSelect('headers', v)}
+                        onSelect={(v: string) => handleVariableSelect('headers', v)}
                         currentNodeId={nodeId}
                     />
                 </div>
@@ -108,7 +108,7 @@ export default function HTTPForm({ data: _data, params, onChange, disabled, node
                         </Label>
                         <VariablePicker
                             nodes={nodes}
-                            onSelect={(v) => handleVariableSelect('body', v)}
+                            onSelect={(v: string) => handleVariableSelect('body', v)}
                             currentNodeId={nodeId}
                         />
                     </div>
