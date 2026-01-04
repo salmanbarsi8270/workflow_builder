@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 // import { toast } from "sonner"
+<<<<<<< HEAD
 import {
     ReactFlow,
     Controls,
@@ -15,6 +16,9 @@ import {
     type Node,
     type Edge,
     ReactFlowProvider,
+=======
+import { ReactFlow, Controls, MiniMap, Background, useNodesState, useEdgesState, addEdge, type Connection, type Node, type Edge, ReactFlowProvider, Position
+>>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -25,6 +29,7 @@ import CustomEdge from './CustomEdge';
 import ConditionNode from './ConditionNode';
 import ParallelNode from './ParallelNode';
 import LoopNode from './LoopNode';
+import WaitNode from './Nodes/WaitNode';
 import AutomationContext from './AutomationContext';
 import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
@@ -38,6 +43,7 @@ const nodeTypes = {
     condition: ConditionNode,
     parallel: ParallelNode,
     loop: LoopNode,
+    wait: WaitNode,
     end: EndNode,
 
 };
@@ -855,7 +861,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleAppSelect = (app: any) => {
         const isCondition = app.actionId === 'condition';
         const isParallel = app.actionId === 'parallel';
+<<<<<<< HEAD
         const isLoop = app.actionId === 'loop';
+=======
+        const isWait = app.actionId === 'wait';
+>>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
 
         // --- Local State for this execution ---
         let isPlaceholderLogicMode = false;
@@ -889,7 +899,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 appName: app.name,
                                 ...app,
                                 isPlaceholder: false
-                            }
+                            },
+                            type: isWait ? 'wait' : n.type // Check if we should update type too for replacement
                         }
                     }
                     return n;
@@ -921,7 +932,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             appName: app.name,
                             ...app,
                             isPlaceholder: false
-                        }
+                        },
+                        type: isWait ? 'wait' : n.type // Update type if swapping to wait
                     }
                 }
                 return n;
@@ -960,7 +972,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Default branches for parallel if not present
                 branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
             },
+<<<<<<< HEAD
             type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : 'custom'
+=======
+            type: isCondition ? 'condition' : isParallel ? 'parallel' : isWait ? 'wait' : 'custom'
+>>>>>>> a8b6e0f6cba116660f7cf3fdad6cbd6e76d4ae6e
         };
 
         const newEdges = [];
@@ -1354,6 +1370,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
                             nodeStatus={(selectedNode.data as any).status}
+                            isLocked={automationStatus}
                         />
                     )}
 

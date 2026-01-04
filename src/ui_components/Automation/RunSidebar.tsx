@@ -1,14 +1,13 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash, GitFork, GitMerge, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash } from "lucide-react";
 import { type Node, type Edge } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import { API_URL } from '../api/apiurl';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 interface RunSidebarProps {
     isOpen: boolean;
@@ -37,7 +36,7 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flowId, onViewRun }: RunSidebarProps) {
+export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onViewRun }: RunSidebarProps) {
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
@@ -45,6 +44,12 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
     const [hasActiveRun, setHasActiveRun] = useState(false);
     const [runStartTime, setRunStartTime] = useState<Date | null>(null);
     const [runDuration, setRunDuration] = useState<number>(0);
+    const resultsRef = useRef<Record<string, StepResult>>({});
+
+    // Keep ref in sync
+    useEffect(() => {
+        resultsRef.current = results;
+    }, [results]);
 
     // History State
     const [view, setView] = useState<'live' | 'history' | 'detail'>('live');
@@ -151,13 +156,18 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
         if (socket) {
             const handleStepStart = (data: any) => {
                 setliveRun(true);
+                
+                // If this is the trigger node (usually first node) or we have no results, start fresh
+                const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
+                const isFirstNode = sortedNodes[0]?.id === data.nodeId;
+                const noActiveResults = Object.keys(resultsRef.current).length === 0;
 
-                // Clear on trigger start
-                if (data.nodeId === '1') {
+                if (isFirstNode || noActiveResults) {
                     setResults({});
                     setRunStartTime(new Date());
                     setRunDuration(0);
                     setRunSummaryStatus('idle');
+                    console.log("Run started fresh");
                 }
 
                 if (view !== 'live') setView('live');
@@ -174,6 +184,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
             };
 
             const handleStepFinish = (data: any) => {
+                console.log("run finish");
                 setResults(prev => ({
                     ...prev,
                     [data.nodeId]: {
@@ -185,9 +196,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
                 }));
             };
 
-            const handleRunComplete = (data: any) => {
-                console.log("Run Complete", data);
-                // Mark skipped
+           const handleRunComplete = () => {
+                console.log("run complete");
+
+                // Mark nodes that didn't run as skipped
                 setResults(prev => {
                     const next = { ...prev };
                     nodes.forEach(node => {
@@ -195,32 +207,36 @@ export default function RunSidebar({ isOpen, onClose, nodes, edges, socket, flow
                         if (!next[node.id]) {
                             next[node.id] = {
                                 nodeId: node.id,
-                                status: 'skipped',
+                                status: 'skipped', // Type cast if needed, but StepStatus now includes skipped
                                 output: null,
                                 duration: 0
-                            };
+                            } as any; // Cast to avoid strict type issues if local StepStatus def is outdated 
                         }
                     });
                     return next;
                 });
-
-                const status = (data && data.status) ? (data.status === 'failed' ? 'error' : 'success') : 'success';
-                // Check local results too
-                const hasError = Object.values(results).some(r => r.status === 'error');
-                const finalStatus = hasError ? 'error' : status;
-
-                if (view === 'live') setRunSummaryStatus(finalStatus);
+                
+                // Determine summary status based on results
+                const hasError = Object.values(resultsRef.current as Record<string, StepResult>).some(r => r.status === 'error');
+                const newStatus = hasError ? 'error' : 'success';
+                
+                // Only set summary status if we're in live view
+                if (view === 'live') {
+                    setRunSummaryStatus(newStatus);
+                }
 
                 setTimeout(() => {
                     setRunStartTime(null);
                     setliveRun(false);
                     setTimeout(() => {
-                        if (view === 'live') setRunSummaryStatus('idle');
+                        if (view === 'live') {
+                            setRunSummaryStatus('idle');
+                        }
                     }, 5000);
                 }, 1000);
             };
 
-            const handleFlowFailed = (data: any) => {
+            const handleFlowFailed = (_data: any) => {
                 setRunSummaryStatus('error');
                 setliveRun(false);
             };

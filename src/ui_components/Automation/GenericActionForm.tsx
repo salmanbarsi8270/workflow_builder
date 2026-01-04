@@ -66,6 +66,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: a
                         onChange={(e) => updateItem(index, e.target.value)}
                         placeholder={`Item ${index + 1}`}
                         disabled={disabled}
+                        required
                         className="flex-1 h-8 text-xs"
                     />
                     <Button
@@ -180,6 +181,7 @@ const DynamicSelect = ({
             value={value || ''}
             onValueChange={onChange}
             disabled={disabled || loading}
+            required
         >
             <SelectTrigger className={error ? "border-red-500" : ""}>
                 <SelectValue placeholder={loading ? "Loading..." : (param.description || `Select ${param.label}`)} />
@@ -247,8 +249,8 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 return (
                     <div key={param.name} className="grid gap-2">
                         <div className="flex items-center justify-between">
-                            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
-                                {param.label} {param.required && <span className="text-red-500">*</span>}
+                            <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
+                                {param.label} <span className="text-red-500">*</span>
                             </Label>
                             {(param.type === 'string' || param.type === 'number' || param.type === 'array' || param.type === 'object' || param.type === 'select') && !isTrigger && (
                                 <VariablePicker
@@ -290,6 +292,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 value={params[param.name] || param.default || ''}
                                 onValueChange={(val) => handleChange(param.name, val)}
                                 disabled={disabled}
+                                required
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder={param.description || "Select an option"} />
@@ -312,6 +315,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                     placeholder={param.description}
                                     className="min-h-[100px]"
                                     disabled={disabled}
+                                    required
                                 />
                             ) : (
                                 <Input
@@ -319,6 +323,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                     onChange={(e) => handleChange(param.name, e.target.value)}
                                     placeholder={param.description}
                                     disabled={disabled}
+                                    required
                                 />
                             )
                         )}
@@ -330,6 +335,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 onChange={(e) => handleChange(param.name, e.target.value)}
                                 placeholder={param.description}
                                 disabled={disabled}
+                                required
                             />
                         )}
 

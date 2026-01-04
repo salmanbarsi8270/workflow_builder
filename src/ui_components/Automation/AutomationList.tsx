@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
-import { PlusIcon, SearchIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, CopyIcon, Sparkles, CalendarIcon, CheckCircle2, XCircle, Workflow, DownloadIcon, Layers, ArrowUpDown, ChevronLeft, ChevronRight,} from "lucide-react"
+import { PlusIcon, SearchIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, CheckCircle2, XCircle, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight,} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -42,7 +42,7 @@ interface AutomationListProps {
 
 type SortType = 'name' | 'date' | 'recent' | 'runs';
 
-export default function AutomationList({ automations, search, setSearch, onToggleStatus, onDelete, onEditName, onOpenEditor, onCreate, onDuplicate, onExport, isLoading = false
+export default function AutomationList({ automations, search, setSearch, onToggleStatus, onDelete, onEditName, onOpenEditor, onCreate, isLoading = false
 }: AutomationListProps) {
     const [sortBy, setSortBy] = useState<SortType>('name');
     const [currentPage, setCurrentPage] = useState(1);
@@ -137,7 +137,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
             </div>
           </CardHeader>
 
-          <CardContent className="p-0">
+          <CardContent className="p-0 h-[calc(90vh-250px)]">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -288,26 +288,10 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => onOpenEditor(item)}>
-                                        <EyeIcon className="mr-2 h-4 w-4" />
-                                        Open Editor
-                                      </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => onEditName(item)}>
                                         <PencilIcon className="mr-2 h-4 w-4" />
                                         Rename
                                       </DropdownMenuItem>
-                                      {onDuplicate && (
-                                        <DropdownMenuItem onClick={() => onDuplicate(item)}>
-                                          <CopyIcon className="mr-2 h-4 w-4" />
-                                          Duplicate
-                                        </DropdownMenuItem>
-                                      )}
-                                      {onExport && (
-                                        <DropdownMenuItem onClick={() => onExport(item)}>
-                                          <DownloadIcon className="mr-2 h-4 w-4" />
-                                          Export
-                                        </DropdownMenuItem>
-                                      )}
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem 
                                         onClick={() => onDelete(item.id)}
