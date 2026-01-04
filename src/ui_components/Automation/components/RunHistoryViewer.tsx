@@ -17,7 +17,7 @@ import CustomEdge from '@/ui_components/Automation/edges/CustomEdge';
 import ConditionNode from '@/ui_components/Automation/nodes/ConditionNode';
 import ParallelNode from '@/ui_components/Automation/nodes/ParallelNode';
 import EndNode from '@/ui_components/Automation/nodes/EndNode';
-import WaitNode from '../nodes/WaitNode';
+import WaitNode from '@/ui_components/Automation/nodes/WaitNode';
 import LoopNode from '@/ui_components/Automation/nodes/LoopNode';
 
 // Reuse node types
