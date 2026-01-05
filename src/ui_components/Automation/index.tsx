@@ -582,7 +582,7 @@ export default function AutomationIndex() {
         );
     }
 
-    return (
+    return ( 
         <>
             <AutomationEditor
                 key={id}

@@ -215,7 +215,7 @@ export function TemplateGallery({ userId, onSuccess, gridClassName }: TemplateGa
                             <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
                                 <Sparkles className="h-5 w-5 text-muted-foreground/50" />
                             </div>
-                            <span className="text-sm font-medium">No templates match your search</span>
+                            <span className="text-sm font-medium">No templates found</span>
                         </motion.div>
                     )}
                 </div>
