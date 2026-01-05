@@ -104,14 +104,14 @@ export default function CustomEdge({
   // We force a "Merge Bus" line at targetY - 40 to ensure symmetry
   const isTargetMergeNode = targetNode?.data?.isMergeNode;
   if (isTargetMergeNode) {
-    const mergeY = targetY - 40; // Consistent horizontal level for all branches
+    const mergeY = targetY; // Bus aligned with Node (was targetY - 40)
     edgePath = `M ${sourceX},${sourceY} L ${sourceX},${mergeY} L ${targetX},${mergeY} L ${targetX},${targetY}`;
 
     // Position label/button on the vertical segment coming from source
-    // Use dynamic offset to ensure we never hit the "elbow" (at offset 40)
-    const verticalSegmentLength = Math.max(0, (targetY - 40) - sourceY);
+    // Use dynamic offset
+    const verticalSegmentLength = Math.max(0, targetY - sourceY);
     labelX = sourceX;
-    labelY = sourceY + Math.min(25, verticalSegmentLength * 0.7);
+    labelY = sourceY + Math.min(25, verticalSegmentLength * 0.5);
   }
 
   // Calculate edge style based on status and type
@@ -149,7 +149,9 @@ export default function CustomEdge({
     }
   };
 
-  const isPlaceholder = sourceNode?.data?.isPlaceholder;
+  // We consider a node a "blocking placeholder" (preventing edge buttons) only if it's NOT a merge node.
+  // We WANT buttons after Merge Nodes even if they are placeholders/disabled.
+  const isPlaceholder = sourceNode?.data?.isPlaceholder && !sourceNode?.data?.isMergePlaceholder && !sourceNode?.data?.isMergeNode;
   const distanceY = Math.abs(targetY - sourceY);
 
   // Don't show add button if the edge is too short (prevents "collapse" aka overlap with nodes)

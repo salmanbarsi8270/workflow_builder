@@ -440,19 +440,18 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         let width = 0;
 
         if (isParallel || isCondition) {
-             // SYMMETRY FIX: For logic blocks, we find the MAX branch width and apply it to all.
-             let maxBranchWidth = 0;
+             // For logic blocks, we sum the widths of individual branches.
+             // This allows for variable width branches (e.g., one wide, one narrow).
              effectiveBranches.forEach(targetId => {
                  if (!targetId || mergeNodeIds.has(targetId)) {
-                     // Empty/Virtual Branch (Direct to Merge) -> Minimum Width
-                     if ((NODE_WIDTH + NODE_GAP_X) > maxBranchWidth) maxBranchWidth = (NODE_WIDTH + NODE_GAP_X);
+                     // Empty/Merge Branch Width (minimum space for a connection)
+                     width += (NODE_WIDTH + NODE_GAP_X);
                  } else {
                      // Real Branch
                      const bw = getSubtreeWidth(targetId, d + 1, new Set(visited));
-                     if (bw > maxBranchWidth) maxBranchWidth = bw;
+                     width += bw;
                  }
              });
-             width = maxBranchWidth * effectiveBranches.length;
         } else {
              // Standard Linear path or Loop
              children.forEach(childId => {
@@ -479,8 +478,10 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         if (visited.has(nodeId)) return;
         visited.add(nodeId);
 
-        const y = d * (NODE_HEIGHT + NODE_GAP_Y);
         const node = layoutNodes.find(n => n.id === nodeId);
+        const isEndNode = node?.type === 'end';
+        // Reduced gap for End Node (40px reduction = 60px visual gap, enough for button)
+        const y = d * (NODE_HEIGHT + NODE_GAP_Y) - (isEndNode ? 40 : 0);
         
         // STOP RECURSION at Merge Nodes
         if (mergeNodeIds.has(nodeId) && d > 0) return;
@@ -502,24 +503,11 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         const LOOP_PADDING = 80 + (depth * 40);
         let childCursorX = startX + (isLoop ? (LOOP_PADDING / 2) : 0);
 
-        // Branch Width Calculation (match getSubtreeWidth logic)
-        let branchWidthToUse = 0;
-        if (isParallel || isCondition) {
-            let maxBW = 0;
-            effectiveBranches.forEach(targetId => {
-                 if (!targetId || mergeNodeIds.has(targetId)) {
-                     const bw = NODE_WIDTH + NODE_GAP_X;
-                     if (bw > maxBW) maxBW = bw;
-                 } else {
-                     const bw = getSubtreeWidth(targetId, d + 1, new Set(visited));
-                     if (bw > maxBW) maxBW = bw;
-                 }
-            });
-            branchWidthToUse = maxBW;
-        }
+        // Branch Width Calculation (match getSubtreeWidth logic - Variable Width)
+        // No pre-calculation needed, we just iterate and consume ACTUAL width
 
         effectiveBranches.forEach(targetId => {
-            const w = (isParallel || isCondition) ? branchWidthToUse : getSubtreeWidth(targetId!, d + 1, new Set(visited));
+            const w = getSubtreeWidth(targetId!, d + 1, new Set(visited));
             
             // If Target is a Node (not Merge), set its position
             if (targetId && !mergeNodeIds.has(targetId)) {
@@ -594,7 +582,8 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
 
         if (validParents > 0) {
             const targetX = sumX / validParents;
-            const targetY = maxY + NODE_HEIGHT + NODE_GAP_Y;
+            // Align Node with "Merge Bus" High (maxY + 120 = Bottom + 20px gap)
+            const targetY = maxY + 120;
 
             const currentIs = positions[mergeId];
             const dx = targetX - currentIs.x;

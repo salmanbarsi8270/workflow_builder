@@ -305,6 +305,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
     const onNodeClick = (_event: React.MouseEvent, node: Node) => {
         if (node.type === 'end') return;
+        // Disable interaction for Merge Nodes
+        if (node.data.isMergeNode || node.data.isMergePlaceholder) return;
 
         if (node.data.isPlaceholder) {
             setAddingNodeOnEdgeId('PLACEHOLDER_MODE'); // Hacky flag or use separate state
@@ -665,58 +667,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // Create bridge edges
         // Create bridge edges OR Placeholder Replacement
         if (incomingEdges.length > 0 && outgoingEdges.length > 0) {
-            // New Requirement: If deleting a Logic Block (Head), replace with Placeholder ("old merge + placeholder")
-            if (isLogicNode) {
-                const placeholderId = `node-${Math.random().toString(36).substring(7)}`;
-                const isMergeReplacement = incomingEdges.length > 1; // Check if it acts as a merge point
-
-                const placeholder: Node = {
-                    id: placeholderId,
-                    type: 'custom',
-                    data: {
-                        label: 'Add Step',
-                        subLabel: isMergeReplacement ? 'Merge' : 'Configure this step',
-                        isPlaceholder: true,
-                        isMergePlaceholder: isMergeReplacement, // Vital for layout engine to recognize the completion of upstream blocks
-                    },
-                    // Position approximation (will be fixed by layout)
-                    position: nodeToDelete.position
-                };
-                nextNodes.push(placeholder);
-
-                incomingEdges.forEach(inEdge => {
+            // Standard Bridging (Directly connect Parents to Followers)
+            // This prevents "Ghost Placeholders" from appearing when deleting logic blocks
+            incomingEdges.forEach(inEdge => {
+                outgoingEdges.forEach(outEdge => {
                     nextEdges.push({
-                        id: `e-${inEdge.source}-${placeholderId}-${Math.random().toString(36).substr(2, 4)}`,
+                        id: `e-${inEdge.source}-${outEdge.target}-${Math.random().toString(36).substr(2, 4)}`,
                         source: inEdge.source,
-                        target: placeholderId,
+                        target: outEdge.target,
                         sourceHandle: inEdge.sourceHandle,
                         type: 'custom'
                     });
                 });
-
-                outgoingEdges.forEach(outEdge => {
-                    nextEdges.push({
-                        id: `e-${placeholderId}-${outEdge.target}-${Math.random().toString(36).substr(2, 4)}`,
-                        source: placeholderId,
-                        target: outEdge.target,
-                        type: 'custom'
-                    });
-                });
-
-            } else {
-                // Standard Bridging (Action Deletion)
-                incomingEdges.forEach(inEdge => {
-                    outgoingEdges.forEach(outEdge => {
-                        nextEdges.push({
-                            id: `e-${inEdge.source}-${outEdge.target}-${Math.random().toString(36).substr(2, 4)}`,
-                            source: inEdge.source,
-                            target: outEdge.target,
-                            sourceHandle: inEdge.sourceHandle,
-                            type: 'custom'
-                        });
-                    });
-                });
-            }
+            });
         }
 
         // Handle "Empty Branch" restoration - Restored based on user requirement: "delete means swap to old placeholder"
@@ -1169,6 +1132,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 nodeTypes={nodeTypes}
                                 edgeTypes={edgeTypes}
                                 nodesDraggable={true}
+                                nodesConnectable={false}
                                 zoomOnScroll={false}
                                 panOnScroll={true}
                                 zoomOnPinch={true}

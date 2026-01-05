@@ -253,6 +253,33 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
       );
     } else {
       // Small Button for Action/Merge Placeholder
+      const isMerge = data.isMergeNode || data.isMergePlaceholder;
+
+      if (isMerge) {
+        return (
+          <div className="relative group w-[280px] flex justify-center items-center pointer-events-none">
+            <Handle
+              type="target"
+              position={Position.Top}
+              className="!w-3 !h-3 !bg-transparent !border-0 opacity-0"
+            />
+
+            {/* Small node "like edge size" - A small dot/joint */}
+            <div className={cn(
+              "h-2 w-2 rounded-full transition-all",
+              colorConfig.handle,
+              selected && "ring-2 ring-primary scale-150"
+            )} />
+
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              className="!w-3 !h-3 !bg-transparent !border-0 opacity-0"
+            />
+          </div>
+        );
+      }
+
       return (
         <div className="relative group w-[280px] flex justify-center">
           <Handle
