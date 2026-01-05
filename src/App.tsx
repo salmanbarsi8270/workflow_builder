@@ -2,33 +2,36 @@ import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-route
 import { SidebarIconExample } from "./ui_components/slider";
 import ErrorPage from "./ui_components/Errorpage";
 import LoginPage from "./ui_components/LoginPage";
-
 import React from 'react';
+import { UserProvider, useUser } from './context/UserContext';
+import { Loader2 } from 'lucide-react';
+
+// Page Imports
+import WorkflowDashboard from './ui_components/Dashboad';
+import Integration from './ui_components/Integration';
+import Automation from './ui_components/Automation';
+import Connections from './ui_components/Connections';
+import Templates from './ui_components/Templates';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const location = useLocation();
-    
-    // Check for token in URL (from backend redirect)
-    const searchParams = new URLSearchParams(location.search);
-    const token = searchParams.get('token');
-
-    if (token) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('authToken', token);
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
+    const { user, isLoading } = useUser();
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
 
-    if (!isAuthenticated) {
+    if (isLoading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (!isAuthenticated && !user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return children;
 }
-
-import { UserProvider } from './context/UserContext';
 
 export function App() {
     return (
@@ -37,36 +40,15 @@ export function App() {
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     
-                    <Route path="/" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
-                    <Route path="/integration" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
-                    <Route path="/automation" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
-                     <Route path="/automation/:id" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
-                    <Route path="/connections" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
-                    <Route path="/templates" element={
-                        <RequireAuth>
-                            <SidebarIconExample />
-                        </RequireAuth>
-                    } />
+                    {/* Protected Routes with Sidebar Layout */}
+                    <Route element={<RequireAuth><SidebarIconExample /></RequireAuth>}>
+                        <Route path="/" element={<WorkflowDashboard />} />
+                        <Route path="/integration" element={<Integration />} />
+                        <Route path="/connections" element={<Connections />} />
+                        <Route path="/templates" element={<Templates />} />
+                        <Route path="/automation" element={<Automation />} />
+                        <Route path="/automation/:id" element={<Automation />} />
+                    </Route>
                     
                     <Route path="*" element={<ErrorPage />} />
                 </Routes>

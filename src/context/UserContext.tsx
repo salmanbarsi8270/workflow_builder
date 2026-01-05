@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getdata } from '../ui_components/api/userdeatails';
+import { getCurrentUser, loginUser } from '../ui_components/api/auth';
 
 export interface User {
   id: string;
@@ -12,6 +12,8 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   refreshUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -37,8 +39,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      const data = await getdata();
-      // Basic validation or casting
+      const data = await getCurrentUser();
       if (data && data.email) {
           setUser(data);
       } else {
@@ -46,19 +47,55 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('isAuthenticated');
       setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const login = async (email: string, password: string) => {
+    try {
+      const data = await loginUser(email, password);
+      if (data.token) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('authToken', data.token);
+        setUser(data.user);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('authToken');
+    setUser(null);
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
+    // Check for token in URL (from Google/OAuth redirect)
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    
+    if (token) {
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('authToken', token);
+      // Clean URL without full reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token');
+      window.history.replaceState({}, '', url.pathname);
+    }
+
     refreshUser();
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, isLoading, refreshUser }}>
+    <UserContext.Provider value={{ user, isLoading, refreshUser, login, logout }}>
       {children}
     </UserContext.Provider>
   );
 };
+

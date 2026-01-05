@@ -3,7 +3,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
@@ -17,7 +17,7 @@ import { API_URL } from '@/ui_components/api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { io, type Socket } from 'socket.io-client';
 import Editorloading from '@/ui_components/Utility/Editorloading';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, FilePlus, Layout, Save, Sparkles, Wand2 } from 'lucide-react';
 
 const defaultStartNode: Node[] = [
     {
@@ -448,66 +448,126 @@ export default function AutomationIndex() {
                 />
 
                 <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                    <SheetContent side="right" className="sm:max-w-md">
-                        <SheetHeader>
-                            <SheetTitle>{editingId ? "Edit Automation" : "Create New Automation"}</SheetTitle>
-                            <SheetDescription>
-                                {editingId ? "Update the name of your automation." : "Choose how you want to start your new automation."}
-                            </SheetDescription>
-                        </SheetHeader>
-
-                        {editingId ? (
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
-                                    <Input 
-                                        id="name" 
-                                        value={newAutomationName} 
-                                        onChange={(e) => setNewAutomationName(e.target.value)} 
-                                        placeholder="e.g., Order Confirmation Flow" 
-                                    />
-                                </div>
-                                <SheetFooter>
-                                    <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                                    <Button disabled={createsutomationloading} onClick={handleSaveAutomationName}>
-                                        {createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : "Save Changes"}
-                                    </Button>
-                                </SheetFooter>
-                            </div>
-                        ) : (
-                            <Tabs defaultValue="blank" className="w-full mt-4">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="blank">Blank Flow</TabsTrigger>
-                                    <TabsTrigger value="templates">Templates</TabsTrigger>
-                                </TabsList>
-                                
-                                <TabsContent value="blank" className="space-y-4 pt-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="blank-name">Automation Name</Label>
-                                        <Input 
-                                            id="blank-name" 
-                                            value={newAutomationName} 
-                                            onChange={(e) => setNewAutomationName(e.target.value)} 
-                                            placeholder="e.g., My New Workflow" 
-                                        />
+                    <SheetContent side="right" className="sm:max-w-md border-l-0 shadow-2xl p-0">
+                        <div className="h-full flex flex-col">
+                            <div className="p-6 pb-4 border-b bg-linear-to-b from-primary/5 to-transparent">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center ring-8 ring-primary/5">
+                                        {editingId ? (
+                                            <Save className="h-6 w-6 text-primary" />
+                                        ) : (
+                                            <Plus className="h-6 w-6 text-primary" />
+                                        )}
                                     </div>
-                                    <Button 
-                                        className="w-full" 
-                                        disabled={createsutomationloading || !newAutomationName.trim()} 
-                                        onClick={handleSaveAutomationName}
-                                    >
-                                        {createsutomationloading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating...</> : "Create Blank Automation"}
-                                    </Button>
-                                </TabsContent>
+                                    <SheetHeader className="text-left space-y-0.5">
+                                        <SheetTitle className="text-2xl font-bold tracking-tight">
+                                            {editingId ? "Rename Flow" : "New Automation"}
+                                        </SheetTitle>
+                                        <SheetDescription className="text-sm font-medium text-muted-foreground/80 lowercase first-letter:uppercase">
+                                            {editingId ? "Update your automation identity" : "Start building your next workflow"}
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                </div>
+                            </div>
 
-                                <TabsContent value="templates" className="h-[500px] pt-4">
-                                    <TemplateGallery 
-                                        userId={user?.id || ""} 
-                                        onSuccess={() => setIsCreateModalOpen(false)}
-                                    />
-                                </TabsContent>
-                            </Tabs>
-                        )}
+                            <div className="flex-1 overflow-y-auto p-6 pt-4">
+                                {editingId ? (
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <Label htmlFor="name" className="text-sm font-semibold ml-1">Flow Name</Label>
+                                            <div className="relative group">
+                                                <Input 
+                                                    id="name" 
+                                                    value={newAutomationName} 
+                                                    onChange={(e) => setNewAutomationName(e.target.value)} 
+                                                    placeholder="e.g., Order Confirmation Flow" 
+                                                    className="h-12 px-4 bg-muted/30 focus:bg-background transition-all border-border/50 group-hover:border-primary/50 text-base"
+                                                />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-hover:text-primary/30 transition-colors">
+                                                    <Save className="h-5 w-5" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex gap-3 pt-2">
+                                            <Button variant="outline" className="flex-1 h-12 text-base font-medium" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                                            <Button 
+                                                disabled={createsutomationloading} 
+                                                onClick={handleSaveAutomationName}
+                                                className="flex-2 h-12 text-base font-bold bg-linear-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
+                                            >
+                                                {createsutomationloading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Saving...</> : "Update Name"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Tabs defaultValue="blank" className="w-full h-full flex flex-col">
+                                        <TabsList className="grid w-full grid-cols-2 p-1.5 h-14 bg-muted/40 rounded-2xl mb-6">
+                                            <TabsTrigger value="blank" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm font-bold">
+                                                <FilePlus className="h-4 w-4" /> Blank Flow
+                                            </TabsTrigger>
+                                            <TabsTrigger value="templates" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm font-bold">
+                                                <Layout className="h-4 w-4" /> Templates
+                                            </TabsTrigger>
+                                        </TabsList>
+                                        
+                                        <TabsContent value="blank" className="space-y-6 mt-0">
+                                            <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 mb-2">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                        <Sparkles className="h-5 w-5 text-primary" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-sm font-bold leading-none">Fresh Start</h4>
+                                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                                            Start with a clean canvas and build your logic from scratch.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label htmlFor="blank-name" className="text-sm font-semibold ml-1">What should we call this?</Label>
+                                                <Input 
+                                                    id="blank-name" 
+                                                    value={newAutomationName} 
+                                                    onChange={(e) => setNewAutomationName(e.target.value)} 
+                                                    placeholder="e.g., Sync LinkedIn to Sheets" 
+                                                    className="h-12 px-4 bg-muted/30 focus:bg-background transition-all border-border/50 focus:ring-2 focus:ring-primary/10 text-base"
+                                                />
+                                            </div>
+
+                                            <Button 
+                                                className="w-full h-14 text-lg font-bold bg-linear-to-br from-primary to-primary/80 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl" 
+                                                disabled={createsutomationloading || !newAutomationName.trim()} 
+                                                onClick={handleSaveAutomationName}
+                                            >
+                                                {createsutomationloading ? (
+                                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Architecting...</>
+                                                ) : (
+                                                    <span className="flex items-center gap-2">
+                                                        Create Automation <Wand2 className="h-5 w-5 opacity-50" />
+                                                    </span>
+                                                )}
+                                            </Button>
+                                            
+                                            <p className="text-center text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">
+                                               Automate anything in seconds
+                                            </p>
+                                        </TabsContent>
+
+                                        <TabsContent value="templates" className="flex-1 min-h-0 pt-0">
+                                            <div className="h-full overflow-hidden border border-border/40 rounded-2xl shadow-inner bg-muted/5">
+                                                <TemplateGallery 
+                                                    userId={user?.id || ""} 
+                                                    onSuccess={() => setIsCreateModalOpen(false)}
+                                                />
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
+                                )}
+                            </div>
+                        </div>
                     </SheetContent>
                 </Sheet>
                 <Toaster />

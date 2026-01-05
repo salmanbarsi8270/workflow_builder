@@ -38,14 +38,9 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {  RoboticIcon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
-import { useLocation } from "react-router-dom"
-import { Moon, Sun, Link } from 'lucide-react'
-import WorkflowDashboard from './Dashboad'
-import Integration from './Integration'
-import Automation from './Automation'
+import { useLocation, Link, Outlet } from "react-router-dom"
+import { Moon, Sun, Link as LinkIcon } from 'lucide-react'
 import Logout from './Logout'
-import Connections from './Connections'
-import Templates from './Templates'
 import { useUser } from '@/context/UserContext';
 
 export function SidebarIconExample() {
@@ -88,7 +83,7 @@ export function SidebarIconExample() {
     {
       title: "Connections",
       url: "/connections",
-      icon: <Link size={20} strokeWidth={2} />,
+      icon: <LinkIcon size={20} strokeWidth={2} />,
     },
     {
       title: "Automation",
@@ -110,7 +105,7 @@ export function SidebarIconExample() {
              <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-                <a href="#">
+                <Link to="/">
                     <Avatar>
                       <AvatarImage src="https://picsum.photos/seed/picsum/200" />
                       <AvatarFallback className="rounded-lg">FTS</AvatarFallback>
@@ -119,7 +114,7 @@ export function SidebarIconExample() {
                       <span className="truncate font-semibold">Workflow Builder</span>
                       <span className="truncate text-xs">Automation</span>
                     </div>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -136,7 +131,7 @@ export function SidebarIconExample() {
                         tooltip={item.title} 
                         isActive={item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)}
                     >
-                        <a href={item.url}>{item.icon}<span>{item.title}</span></a>
+                        <Link to={item.url}>{item.icon}<span>{item.title}</span></Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}
@@ -230,11 +225,7 @@ export function SidebarIconExample() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
-            {location.pathname === "/" && <WorkflowDashboard />}
-            {location.pathname === "/connections" && <Connections />}
-            {location.pathname === "/integration" && <Integration />}
-            {location.pathname === "/templates" && <Templates />}
-            {(location.pathname === "/automation" || location.pathname.startsWith("/automation/")) && <Automation />}
+            <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>

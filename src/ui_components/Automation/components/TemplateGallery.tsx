@@ -55,7 +55,7 @@ const getTemplateIcon = (name: string) => {
     return { icon: ZapIcon, color: "text-violet-500 bg-violet-500/10" };
 };
 
-export function TemplateGallery({ userId, onSuccess, headerClassName, gridClassName }: TemplateGalleryProps) {
+export function TemplateGallery({ userId, onSuccess, gridClassName }: TemplateGalleryProps) {
     const navigate = useNavigate();
     const [templates, setTemplates] = useState<Template[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -147,13 +147,12 @@ export function TemplateGallery({ userId, onSuccess, headerClassName, gridClassN
 
     return (
         <div className="flex flex-col gap-6 h-full">
-            <div className="flex flex-col gap-4 flex-1 min-h-0">
-                <div className="flex items-center justify-between">
-                    <Label className={cn("text-base font-semibold", headerClassName)}>Choose a Blueprint</Label>
-                    <div className="relative w-56">
+            <div className="flex flex-col gap-4 flex-1 min-h-0 p-2">
+                <div className="flex flex-col items-center justify-center">
+                    <div className="relative w-full p-1 mt-2">
                         <Input 
                             placeholder="Search templates..." 
-                            className="h-9 text-sm bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-violet-500/50 transition-all font-medium"
+                            className="h-9 text-sm bg-muted/30 border-none focus-visible:ring-1 placeholder:ml-3 placeholder:text-muted-foreground focus-visible:ring-violet-500/50 transition-all font-medium"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
