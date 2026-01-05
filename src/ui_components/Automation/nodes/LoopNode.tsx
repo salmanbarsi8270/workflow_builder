@@ -3,6 +3,7 @@ import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import { Repeat } from "lucide-react";
+import { AppLogoMap } from '../utils/Applogo';
 
 // Status Colors same as CustomNode for consistency
 const StatusColors = {
@@ -17,13 +18,16 @@ const LoopNode = ({ data, selected }: NodeProps) => {
     const label = (data.label as string) || "Loop on Items";
     const subLabel = (data.subLabel as string) || "Iterate over list";
 
+    const iconKey = (data.icon as string) || (data.piece as string) || 'logic';
+    const logoUrl = AppLogoMap[iconKey];
+
     return (
         <div className="relative group">
             {/* Input Handle */}
             <Handle
                 type="target"
                 position={Position.Top}
-                className="!w-3 !h-3 !top-[-6px] !border-2 !border-background !bg-muted-foreground/30"
+                className="w-3! h-3! top-[-6px]! border-2! border-background! bg-muted-foreground/30!"
             />
 
             <div
@@ -35,8 +39,12 @@ const LoopNode = ({ data, selected }: NodeProps) => {
                 {/* Header with Icon and Title */}
                 <div className="flex items-start gap-4">
                     {/* Icon Container */}
-                    <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                        <Repeat className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110">
+                        {logoUrl ? (
+                            <img src={logoUrl} alt={iconKey} className="h-6 w-6 object-contain" />
+                        ) : (
+                            <Repeat className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                        )}
                     </div>
 
                     {/* Content */}
@@ -57,7 +65,7 @@ const LoopNode = ({ data, selected }: NodeProps) => {
                 type="source"
                 position={Position.Left}
                 id="loop-bypass"
-                className="!w-3 !h-3 !-left-[6px] !top-1/2 !-translate-y-1/2 !border-2 !border-background !bg-muted-foreground/30 z-50"
+                className="w-3! h-3! -left-[6px]! top-1/2! -translate-y-1/2! border-2! border-background! bg-muted-foreground/30! z-50"
             />
 
             {/* Single Shared Output Handle (Bottom) */}
@@ -65,7 +73,7 @@ const LoopNode = ({ data, selected }: NodeProps) => {
                 type="source"
                 position={Position.Bottom}
                 id="loop-output"
-                className="!w-3 !h-3 !-bottom-[6px] !border-2 !border-background !bg-muted-foreground/30 z-50"
+                className="w-3! h-3! -bottom-[6px]! border-2! border-background! bg-muted-foreground/30! z-50"
             />
         </div>
     );

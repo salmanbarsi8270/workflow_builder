@@ -384,16 +384,6 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
         {/* Progress Bar (conditional) */}
         {showProgress && <ProgressIndicator progress={progress} />}
 
-        {/* Execution Time */}
-        {!!data.duration && (
-          <div className="mt-2 pt-2 border-t border-border">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>Duration: {String(data.duration)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Handles */}
         <Handle
           type="target"

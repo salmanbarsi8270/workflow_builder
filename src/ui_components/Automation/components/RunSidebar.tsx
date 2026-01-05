@@ -14,8 +14,8 @@ interface RunSidebarProps {
     onClose: () => void;
     nodes: Node[];
     edges: Edge[];
-    socket?: any;
     flowId?: string;
+    results: Record<string, StepResult>; // Received from parent
     onViewRun?: (run: FlowRun) => void;
 }
 
@@ -36,28 +36,39 @@ interface FlowRun {
     created_at: string;
 }
 
-export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onViewRun }: RunSidebarProps) {
-    const [results, setResults] = useState<Record<string, StepResult>>({});
+export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, onViewRun }: RunSidebarProps) {
     const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
     // Track active run status
-    const [hasActiveRun, setHasActiveRun] = useState(false);
     const [runStartTime, setRunStartTime] = useState<Date | null>(null);
     const [runDuration, setRunDuration] = useState<number>(0);
-    const resultsRef = useRef<Record<string, StepResult>>({});
+    const prevHasActiveRun = useRef(false);
 
-    // Keep ref in sync
-    useEffect(() => {
-        resultsRef.current = results;
-    }, [results]);
+    // Derived Run State
+    const hasActiveRun = useMemo(() => 
+        Object.values(results).some(r => r.status === 'running' || r.status === 'waiting'),
+    [results]);
+
+    const liveRun = hasActiveRun;
+
+    const runSummaryStatus = useMemo(() => {
+        const values = Object.values(results);
+        if (values.length === 0) return 'idle';
+        if (hasActiveRun) return 'running';
+        
+        const hasError = values.some(r => r.status === 'error');
+        const hasSuccess = values.some(r => r.status === 'success');
+        
+        if (hasError) return 'error';
+        if (hasSuccess) return 'success';
+        return 'idle';
+    }, [results, hasActiveRun]);
 
     // History State
     const [view, setView] = useState<'live' | 'history' | 'detail'>('live');
     const [runHistory, setRunHistory] = useState<FlowRun[]>([]);
     const [selectedRun, setSelectedRun] = useState<FlowRun | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [liveRun, setliveRun] = useState(false);
-    const [runSummaryStatus, setRunSummaryStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
 
     // --- FLAT LIST BUILDER ---
     // Simple topological sort approximation using Y position
@@ -74,16 +85,15 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
             });
     }, [nodes]);
 
-    // Track active run status
+    // Track run duration start
     useEffect(() => {
-        const isRunning = Object.values(results).some(r => r.status === 'running');
-        setHasActiveRun(isRunning);
-
-        // Track run duration
-        if (isRunning && !runStartTime) {
+        if (hasActiveRun && !prevHasActiveRun.current) {
+            // Fresh run detected (transition from idle to running)
             setRunStartTime(new Date());
+            setRunDuration(0);
         }
-    }, [results]);
+        prevHasActiveRun.current = hasActiveRun;
+    }, [hasActiveRun]);
 
     // Update run duration timer
     useEffect(() => {
@@ -103,12 +113,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
     const handleRunClick = (run: FlowRun) => {
         setSelectedRun(run);
         setView('detail');
-        setRunSummaryStatus('idle');
     };
 
     const handleViewChange = (newView: 'live' | 'history' | 'detail') => {
         setView(newView);
-        if (newView !== 'live') setRunSummaryStatus('idle');
     };
 
     // Derived results for rendering
@@ -152,110 +160,15 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
         return results;
     }, [view, selectedRun, results, nodes]);
 
+    // Socket listeners for run progress - REMOVED redundant internal state management
+    // results are now passed as props from AutomationEditor.tsx
     useEffect(() => {
-        if (socket) {
-            const normalizeId = (id: string) => {
-                const triggerIds = ['webhook', 'trigger', 'schedule', 'form'];
-                if (triggerIds.includes(id)) return '1';
-                return id;
-            };
-
-            const handleStepStart = (data: any) => {
-                const nodeId = normalizeId(data.nodeId);
-                setliveRun(true);
-                
-                // If this is the trigger node (usually first node) or we have no results, start fresh
-                const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-                const isFirstNode = sortedNodes[0]?.id === nodeId;
-                const noActiveResults = Object.keys(resultsRef.current).length === 0;
-
-                if (isFirstNode || noActiveResults) {
-                    setResults({});
-                    setRunStartTime(new Date());
-                    setRunDuration(0);
-                    setRunSummaryStatus('idle');
-                    console.log("Run started fresh");
-                }
-
-                if (view !== 'live') setView('live');
-
-                setResults(prev => ({
-                    ...prev,
-                    [nodeId]: {
-                        nodeId: nodeId,
-                        status: 'running',
-                        output: null,
-                        duration: 0
-                    }
-                }));
-            };
-
-            const handleStepFinish = (data: any) => {
-                const nodeId = normalizeId(data.nodeId);
-                console.log("run finish", nodeId);
-                setResults(prev => ({
-                    ...prev,
-                    [nodeId]: {
-                        nodeId: nodeId,
-                        status: data.status,
-                        output: data.output,
-                        duration: data.duration
-                    }
-                }));
-            };
-
-           const handleRunComplete = () => {
-                console.log("run complete");
-
-                // Mark nodes that didn't run as skipped
-                setResults(prev => {
-                    const next = { ...prev };
-                    nodes.forEach(node => {
-                        if (node.type === 'end' || node.data.isPlaceholder) return;
-                        if (!next[node.id]) {
-                            next[node.id] = {
-                                nodeId: node.id,
-                                status: 'skipped', // Type cast if needed, but StepStatus now includes skipped
-                                output: null,
-                                duration: 0
-                            } as any; // Cast to avoid strict type issues if local StepStatus def is outdated 
-                        }
-                    });
-                    return next;
-                });
-                
-                // Determine summary status based on results
-                const hasError = Object.values(resultsRef.current as Record<string, StepResult>).some(r => r.status === 'error');
-                const newStatus = hasError ? 'error' : 'success';
-                
-                // Only set summary status if we're in live view
-                if (view === 'live') {
-                    setRunSummaryStatus(newStatus);
-                }
-
-                setRunStartTime(prev => prev); // Keep start time for duration display
-                setliveRun(false);
-                // Removed 5s timeout that resets summary status to idle
-            };
-
-            const handleFlowFailed = (_data: any) => {
-                setRunSummaryStatus('error');
-                setliveRun(false);
-            };
-
-            socket.on('step-run-start', handleStepStart);
-            socket.on('step-run-finish', handleStepFinish);
-            socket.on('run-complete', handleRunComplete);
-            socket.on('flow-failed', handleFlowFailed);
-
-            return () => {
-                socket.off('step-run-start', handleStepStart);
-                socket.off('step-run-finish', handleStepFinish);
-                socket.off('run-complete', handleRunComplete);
-                socket.off('flow-failed', handleFlowFailed);
-            };
+        // Reset local timer if results are cleared
+        if (Object.keys(results).length === 0) {
+            setRunStartTime(null);
+            setRunDuration(0);
         }
-    }, [socket, view, nodes]);
+    }, [results]);
 
 
     const fetchHistory = async () => {
@@ -399,7 +312,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, socket, flowId, onV
                         Workflow Activity
                         {liveRun && <Badge variant="destructive" className="animate-pulse px-1.5 h-5 text-[10px]">LIVE</Badge>}
                     </SheetTitle>
-                    <SheetDescription>{getDescriptionText()}</SheetDescription>
+                    <SheetDescription asChild>
+                        <div className="text-sm text-muted-foreground">{getDescriptionText()}</div>
+                    </SheetDescription>
 
                     {view !== 'detail' && (
                         <div className="flex gap-2 mt-4">

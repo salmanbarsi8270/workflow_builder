@@ -1,276 +1,386 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Sparkles } from 'lucide-react';
+import { Loader2, SearchIcon, ArrowRight, LayoutGrid, List } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import axios from 'axios';
 import { API_URL } from '@/ui_components/api/apiurl';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { HugeiconsIcon } from "@hugeicons/react";
-import { 
-    SlackIcon, 
-    GoogleIcon, 
-    GithubIcon, 
-    Mail01Icon, 
-    Calendar03Icon, 
-    ZapIcon, 
-    MessageProgrammingIcon,
-    File01Icon
-} from "@hugeicons/core-free-icons";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { SlackIcon, GithubIcon, ZapIcon, DiscordIcon, TiktokIcon, WhatsappIcon, TelegramIcon, SmartPhoneIcon } from "@hugeicons/core-free-icons";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AppLogoMap } from '../utils/Applogo';
+import moment from "moment-timezone";
 
 interface Template {
-    id: string;
-    name: string;
-    description: string;
+  id: string;
+  name: string;
+  description: string;
+  category?: string;
+  apps?: string[];
+  savings?: string;
+  created_at?: string;
+}
+
+export interface TemplateGalleryHandle {
+  refresh: () => void;
 }
 
 interface TemplateGalleryProps {
-    userId: string;
-    onSuccess?: (flowId: string) => void;
-    showNameInput?: boolean; // Kept for prop compatibility, but functionality moved to modal
-    headerClassName?: string;
-    gridClassName?: string;
+  userId: string;
+  onSuccess?: (flowId: string) => void;
+  hideTitle?: boolean;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
-// Helper to determine icon based on text
-const getTemplateIcon = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('slack')) return { icon: SlackIcon, color: "text-amber-500 bg-amber-500/10" };
-    if (lower.includes('google') || lower.includes('gmail') || lower.includes('sheet')) return { icon: GoogleIcon, color: "text-blue-500 bg-blue-500/10" };
-    if (lower.includes('github') || lower.includes('git')) return { icon: GithubIcon, color: "text-zinc-800 dark:text-zinc-200 bg-zinc-500/10" };
-    if (lower.includes('email') || lower.includes('mail')) return { icon: Mail01Icon, color: "text-indigo-500 bg-indigo-500/10" };
-    if (lower.includes('schedule') || lower.includes('cron')) return { icon: Calendar03Icon, color: "text-green-500 bg-green-500/10" };
-    if (lower.includes('http') || lower.includes('webhook')) return { icon: MessageProgrammingIcon, color: "text-pink-500 bg-pink-500/10" };
-    return { icon: ZapIcon, color: "text-violet-500 bg-violet-500/10" };
+const getAppLogo = (appName: string) => {
+  const lower = appName.toLowerCase();
+  
+  // Try to find in AppLogoMap first
+  for (const [key, value] of Object.entries(AppLogoMap)) {
+    if (lower.includes(key)) return value;
+  }
+
+  // Handle aliases
+  if (lower.includes('gmail') || lower.includes('google mail')) return AppLogoMap['gmail'];
+  if (lower.includes('sheet')) return AppLogoMap['sheets'];
+  if (lower.includes('doc')) return AppLogoMap['docs'];
+  if (lower.includes('drive')) return AppLogoMap['drive'];
+  if (lower.includes('excel')) return AppLogoMap['excel'];
+  if (lower.includes('word')) return AppLogoMap['word'];
+  if (lower.includes('onenote') || lower.includes('onedrive')) return AppLogoMap['onedrive'];
+  if (lower.includes('http')) return AppLogoMap['http'];
+  if (lower.includes('delay') || lower.includes('wait')) return AppLogoMap['wait'];
+  
+  return null;
 };
 
-export function TemplateGallery({ userId, onSuccess, gridClassName }: TemplateGalleryProps) {
-    const navigate = useNavigate();
-    const [templates, setTemplates] = useState<Template[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-    const [newAutomationName, setNewAutomationName] = useState("");
-    const [isInstantiating, setIsInstantiating] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+// Fallback for icons not in AppLogoMap
+const getFallbackIcon = (appName: string) => {
+  const lower = appName.toLowerCase();
+  if (lower.includes('slack')) return { icon: SlackIcon, color: "bg-[#4A154B]" };
+  if (lower.includes('github')) return { icon: GithubIcon, color: "bg-[#181717]" };
+  if (lower.includes('discord')) return { icon: DiscordIcon, color: "bg-[#5865F2]" };
+  if (lower.includes('whatsapp')) return { icon: WhatsappIcon, color: "bg-[#25D366]" };
+  if (lower.includes('telegram')) return { icon: TelegramIcon, color: "bg-[#0088cc]" };
+  if (lower.includes('tiktok')) return { icon: TiktokIcon, color: "bg-black" };
+  if (lower.includes('twilio')) return { icon: SmartPhoneIcon, color: "bg-[#F22F46]" };
+  return { icon: ZapIcon, color: "bg-violet-600" };
+};
 
-    const fetchTemplates = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const response = await axios.get(`${API_URL}/api/templates`, {
-                withCredentials: true
-            });
-            if (response.data.success) {
-                setTemplates(response.data.data || []);
-            }
-        } catch (error) {
-            console.error("Error fetching templates:", error);
-            toast.error("Failed to load templates");
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGalleryProps>(({ 
+  userId, 
+  onSuccess, 
+  hideTitle,
+  onLoadingChange 
+}, ref) => {
+  const navigate = useNavigate();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [newAutomationName, setNewAutomationName] = useState("");
+  const [isInstantiating, setIsInstantiating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-    useEffect(() => {
-        fetchTemplates();
-    }, [fetchTemplates]);
+  const fetchTemplates = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/templates`, {
+        withCredentials: true
+      });
+      // response.data is now the array directly based on user feedback
+      const fetchedTemplates = Array.isArray(response.data) ? response.data : 
+                               (response.data.data || []);
+      
+      setTemplates(fetchedTemplates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast.error("Failed to load templates");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    // Update name when template is selected
-    useEffect(() => {
-        if (selectedTemplate) {
-             setNewAutomationName(`My ${selectedTemplate.name}`);
-             setIsDialogOpen(true);
-        }
-    }, [selectedTemplate]);
+  useImperativeHandle(ref, () => ({
+    refresh: fetchTemplates
+  }));
 
-    const handleCloseDialog = () => {
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  useEffect(() => {
+    if (selectedTemplate) {
+      setNewAutomationName(`My ${selectedTemplate.name}`);
+      setIsDialogOpen(true);
+    }
+  }, [selectedTemplate]);
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedTemplate(null);
+    setNewAutomationName("");
+  };
+
+  const handleInstantiate = async () => {
+    if (!selectedTemplate) return;
+    if (!newAutomationName.trim()) {
+      toast.error("Please enter a name");
+      return;
+    }
+
+    setIsInstantiating(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/templates/${selectedTemplate.id}/instantiate`, {
+        name: newAutomationName,
+        userId: userId
+      }, {
+        withCredentials: true
+      });
+
+      if (response.data.success) {
+        toast.success("Automation created!");
+        const newId = response.data.data?.id;
         setIsDialogOpen(false);
-        // data.state.selectedTemplate is cleared after animation to prevent UI jump? 
-        // Or just clear it:
-        setSelectedTemplate(null);
-        setNewAutomationName("");
-    };
-
-    const handleInstantiate = async () => {
-        if (!selectedTemplate) return;
-        if (!newAutomationName.trim()) {
-            toast.error("Please enter a name for your automation");
-            return;
+        if (onSuccess) {
+          onSuccess(newId);
+        } else if (newId) {
+          navigate(`/automation/${newId}`);
         }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to create automation");
+    } finally {
+      setIsInstantiating(false);
+    }
+  };
 
-        setIsInstantiating(true);
-        try {
-            const response = await axios.post(`${API_URL}/api/templates/${selectedTemplate.id}/instantiate`, {
-                name: newAutomationName || `My ${selectedTemplate.name}`,
-                userId: userId
-            }, {
-                withCredentials: true
-            });
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }, [templates, searchQuery]);
 
-            if (response.data.success) {
-                toast.success("Automation created successfully!");
-                const newId = response.data.data?.id;
-                setIsDialogOpen(false); // Close dialog immediately on success
-                if (onSuccess) {
-                    onSuccess(newId);
-                } else if (newId) {
-                    navigate(`/automation/${newId}`);
-                }
-            } else {
-                toast.error("Failed to create automation", {
-                    description: response.data.error || "Unknown error occurred"
-                });
-            }
-        } catch (error) {
-            console.error("Error instantiating template:", error);
-            toast.error("Failed to create automation from template");
-        } finally {
-            setIsInstantiating(false);
-        }
-    };
+  return (
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
+      {/* Header Section */}
+      {!hideTitle && (
+        <div className="px-8 pt-8 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1 max-w-2xl group">
+               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
+                  <SearchIcon className="h-4 w-4" />
+               </div>
+               <Input
+                  placeholder="Search templates by name or description"
+                  className="h-12 pl-12 pr-4 bg-muted/50 border-border focus:bg-background transition-all text-sm rounded-lg"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+               />
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-10 w-10 text-muted-foreground", viewMode === 'grid' && "bg-secondary text-foreground")}
+                  onClick={() => setViewMode('grid')}
+               >
+                  <LayoutGrid className="h-4 w-4" />
+               </Button>
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-10 w-10 text-muted-foreground", viewMode === 'list' && "bg-secondary text-foreground")}
+                  onClick={() => setViewMode('list')}
+               >
+                  <List className="h-4 w-4" />
+               </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-    const filteredTemplates = templates.filter(t => 
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return (
-        <div className="flex flex-col gap-6 h-full">
-            <div className="flex flex-col gap-4 flex-1 min-h-0 p-2">
-                <div className="flex flex-col items-center justify-center">
-                    <div className="relative w-full p-1 mt-2">
-                        <Input 
-                            placeholder="Search templates..." 
-                            className="h-9 text-sm bg-muted/30 border-none focus-visible:ring-1 placeholder:ml-3 placeholder:text-muted-foreground focus-visible:ring-violet-500/50 transition-all font-medium"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+      <div className="flex-1 overflow-y-auto px-8 pb-12">
+        {isLoading ? (
+          <div className={cn(viewMode === 'grid' ? "flex flex-wrap gap-4" : "flex flex-col gap-3")}>
+            {[...Array(viewMode === 'grid' ? 8 : 10)].map((_, i) => (
+              <div key={i} className={cn("p-6 bg-card border border-border/50 rounded-xl relative overflow-hidden", viewMode === 'grid' ? "h-[200px] w-[500px]" : "w-full h-[100px]")}>
+                <div className={cn("space-y-4", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
+                  <div className="space-y-3 flex-1">
+                    <Skeleton className="h-5 w-3/4 bg-muted/20" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-full bg-muted/20" />
+                      <Skeleton className="h-3 w-5/6 bg-muted/20" />
                     </div>
+                  </div>
+                  {viewMode === 'list' && (
+                    <Skeleton className="h-6 w-24 rounded-full bg-muted/20 shrink-0" />
+                  )}
                 </div>
                 
-                <div className={cn("grid gap-4 overflow-y-auto pr-2 flex-1 min-h-0 pb-4", gridClassName || "grid-cols-1")}>
-                    {isLoading ? (
-                         <div className="flex flex-col items-center justify-center col-span-full py-12 gap-3 text-muted-foreground">
-                            <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-                            <p className="text-sm font-medium animate-pulse">Loading templates...</p>
-                        </div>
-                    ) : filteredTemplates.length > 0 ? (
-                        <AnimatePresence mode='popLayout'>
-                            {filteredTemplates.map((template, idx) => {
-                                const { icon: Icon, color } = getTemplateIcon(template.name);
-                                const isSelected = selectedTemplate?.id === template.id;
-
-                                return (
-                                    <motion.div
-                                        key={template.id}
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.2, delay: idx * 0.05 }}
-                                        onClick={() => setSelectedTemplate(template)}
-                                        className={cn(
-                                            "relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden",
-                                            isSelected 
-                                                ? "border-violet-500 bg-violet-50/50 dark:bg-violet-900/10 shadow-lg shadow-violet-500/10 ring-1 ring-violet-500" 
-                                                : "border-border/60 bg-card hover:bg-accent/50 hover:border-violet-500/30 hover:shadow-md"
-                                        )}
-                                    >
-                                        <div className="flex items-start gap-4">
-                                            <div className={cn("h-12 w-12 min-w-12 rounded-xl flex items-center justify-center transition-colors", color)}>
-                                                <HugeiconsIcon icon={Icon} className="h-6 w-6" strokeWidth={2} />
-                                            </div>
-                                            <div className="space-y-1.5 flex-1 min-w-0">
-                                                <h3 className={cn("font-bold text-sm leading-none tracking-tight truncate pr-6 text-foreground")}>
-                                                    {template.name}
-                                                </h3>
-                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                                                    {template.description}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Hover Effect specific to card */}
-                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-linear-to-r from-transparent via-violet-500/50 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out origin-left" />
-                                    </motion.div>
-                                )
-                            })}
-                        </AnimatePresence>
-                    ) : (
-                        <motion.div 
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                            className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground border-2 border-dashed rounded-2xl bg-muted/10 gap-3"
-                        >
-                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                                <Sparkles className="h-5 w-5 text-muted-foreground/50" />
-                            </div>
-                            <span className="text-sm font-medium">No templates found</span>
-                        </motion.div>
-                    )}
+                <div className={cn(
+                  "flex items-center justify-between pt-6 border-t border-border/50",
+                  viewMode === 'grid' ? "mt-4" : "mt-2"
+                )}>
+                  <div className="flex -space-x-2">
+                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
+                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
+                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg bg-muted/20" />
                 </div>
-            </div>
-
-            <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Name your Automation</DialogTitle>
-                        <DialogDescription>
-                            Create a new automation from the <strong>{selectedTemplate?.name}</strong> template.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Automation Name</Label>
-                            <div className="relative">
-                                <Input
-                                    id="name"
-                                    value={newAutomationName}
-                                    onChange={(e) => setNewAutomationName(e.target.value)}
-                                    placeholder="e.g. My Automation"
-                                    className="pl-10"
-                                    autoFocus
-                                />
-                                <div className="absolute left-3 top-2.5 text-muted-foreground/50">
-                                    <HugeiconsIcon icon={File01Icon} className="h-5 w-5" />
-                                </div>
-                            </div>
-                        </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredTemplates.length > 0 ? (
+          <div className={cn(
+            viewMode === 'grid' 
+              ? "flex flex-wrap gap-4" 
+              : "flex flex-col gap-3"
+          )}>
+            {filteredTemplates.map((template) => (
+              <motion.div
+                key={template.id}
+                layoutId={template.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => setSelectedTemplate(template)}
+                className={cn(
+                  "group relative flex flex-col justify-between p-6 bg-card border border-border/50 hover:border-border hover:bg-accent/40 rounded-xl cursor-pointer transition-all hover:shadow-xl overflow-hidden",
+                  viewMode === 'grid' ? "h-[200px] w-[500px]" : "w-full h-auto"
+                )}
+              >
+                <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-base leading-snug group-hover:text-primary transition-colors line-clamp-1 text-foreground">
+                      {template.name}
+                    </h3>
+                    <p className={cn(
+                      "text-xs text-muted-foreground leading-relaxed",
+                      viewMode === 'grid' ? "line-clamp-2" : "line-clamp-1"
+                    )}>
+                      {template.description}
+                    </p>
+                  </div>
+                  {template.created_at && (
+                    <div className="inline-flex mt-1 items-center px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{moment(template.created_at).format("DD MMMM YYYY, hh:mm:ss A")}</span>
                     </div>
-                    <DialogFooter className="sm:justify-end gap-2">
-                        <Button variant="secondary" onClick={handleCloseDialog}>
-                            Cancel
-                        </Button>
-                        <Button 
-                            onClick={handleInstantiate} 
-                            disabled={isInstantiating}
-                            className="bg-violet-600 hover:bg-violet-700 text-white"
-                        >
-                            {isInstantiating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
-                                </>
-                            ) : (
-                                <>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Create Automation
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
-}
+                  )}
+                </div>
+
+                <div className={cn(
+                  "flex items-center justify-between pt-4 border-t border-border/50",
+                  viewMode === 'list' && "mt-4"
+                )}>
+                   <div className="flex -space-x-2">
+                      {template.apps?.map((app, i) => {
+                         const logo = getAppLogo(app);
+                         if (logo) {
+                           return (
+                             <div 
+                               key={i} 
+                               className="h-7 w-7 rounded-md flex items-center justify-center border border-border bg-background p-1 relative z-10 shadow-sm transition-transform hover:-translate-y-0.5"
+                               title={app}
+                             >
+                               <img src={logo} alt={app} className="h-full w-full object-contain" />
+                             </div>
+                           );
+                         }
+                         
+                         const fallback = getFallbackIcon(app);
+                         return (
+                           <div 
+                             key={i} 
+                             className={cn(
+                               "h-7 w-7 rounded-md flex items-center justify-center border relative z-10 shadow-sm transition-transform hover:-translate-y-0.5", 
+                               fallback.color
+                             )}
+                             title={app}
+                           >
+                             <HugeiconsIcon icon={fallback.icon} className="h-3.5 w-3.5 text-white" />
+                           </div>
+                         );
+                      })}
+                   </div>
+                   <motion.div 
+                     initial={{ opacity: 0, x: -10 }}
+                     whileHover={{ opacity: 1, x: 0 }}
+                     className="h-8 w-8 bg-foreground rounded-lg flex items-center justify-center text-background shadow-lg"
+                   >
+                      <ArrowRight className="h-4 w-4" />
+                   </motion.div>
+                </div>
+
+                <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-40 gap-4 text-center">
+             <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center border border-border text-muted-foreground">
+                <SearchIcon className="h-8 w-8" />
+             </div>
+             <div>
+                <h3 className="text-base font-bold text-foreground">No results found</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                   We couldn't find any templates for "{searchQuery}". Try broadening your search.
+                </p>
+             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Instantiate Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
+        <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Give it a name</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Personalize your new <strong>{selectedTemplate?.name}</strong> automation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+             <Input
+                value={newAutomationName}
+                onChange={(e) => setNewAutomationName(e.target.value)}
+                placeholder="Marketing Campaign Automation"
+                className="bg-muted focus:bg-background border-border h-11"
+                autoFocus
+             />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleCloseDialog} className="hover:bg-accent text-muted-foreground hover:text-foreground">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleInstantiate} 
+              disabled={isInstantiating}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isInstantiating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+              ) : (
+                "Save & Continue"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+});
+
+export default TemplateGallery;
