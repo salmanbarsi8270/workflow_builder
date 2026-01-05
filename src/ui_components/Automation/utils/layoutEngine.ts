@@ -12,6 +12,101 @@ const NODE_GAP_X = 60;
  * - Loop Bypasses (visual routing around loops)
  * - Dynamic Branch Sorting
  */
+
+
+/**
+ * Helper to find the "closing" merge node for a block (Logic Node).
+ * Useful for deletion logic to identify the scope of a block.
+ */
+export const findMergeNodeForBlock = (nodes: Node[], edges: Edge[], startNodeId: string): string | undefined => {
+    const node = nodes.find(n => n.id === startNodeId);
+    if (node?.data?.mergeNodeId) return node.data.mergeNodeId as string;
+
+    // Build Adjacency
+    const adjacency: Record<string, string[]> = {};
+    edges.forEach(e => {
+        if (!adjacency[e.source]) adjacency[e.source] = [];
+        adjacency[e.source].push(e.target);
+    });
+
+    const isLogicNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        return n && (n.type === 'condition' || n.type === 'parallel' || n.type === 'loop');
+    };
+    
+    const isMergeNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        return n && (n.data?.isMergePlaceholder || n.data?.isMergeNode);
+    }
+
+    // DFS with Depth Tracking
+    // We only need ONE valid path to the merge node.
+    // We assume the graph is structured such that all paths converge.
+    
+    // Stack: { id, currentDepth }
+    // However, depth is path-dependent. 
+    // We just walk ONE PATH.
+    // If we hit a dead end, backtrack?
+    // A simple DFS works.
+    
+    const stack = [{ id: startNodeId, depth: 0 }];
+    const visited = new Set<string>();
+    
+    // Safety limit
+    let iterations = 0;
+    
+    while(stack.length > 0 && iterations < 1000) {
+        iterations++;
+        const { id, depth } = stack.pop()!;
+        
+        let newDepth = depth;
+        // Logic Node -> Increment Nesting
+        // (But checking StartNode itself: When we START, depth is 0. 
+        // processing StartNode makes it 1.
+        // processing Closer makes it 0. -> Return CLOSER.
+        
+        // Wait, if we pop 'startNode' (depth 0).
+        // It IS logic. newDepth = 1.
+        // Push children with depth 1.
+        // Pop child.
+        // If child is merge -> newDepth = 0. Found! matches.
+        
+        if (isLogicNode(id)) newDepth++;
+        if (isMergeNode(id)) newDepth--;
+        
+        // Check finding condition:
+        // If we found a merge node AND it brought us back to initial level (or below if start was included)
+        // Actually, start node increases depth.
+        // So we are looking for the node that brings balance back to 0.
+        // But we incremented at Start.
+        // So balance 0 is correct.
+        
+        if (newDepth === 0 && isMergeNode(id)) {
+            // Found it!
+            return id;
+        }
+        
+        // If depth drops below 0? partial graph? ignore.
+        if (newDepth < 0) continue; 
+        
+        if (visited.has(id)) continue; 
+        visited.add(id);
+
+        const children = adjacency[id] || [];
+        // DFS: Push children
+        // We push reversed to traverse first child first? Doesn't matter.
+        children.forEach(child => {
+            stack.push({ id: child, depth: newDepth });
+        });
+        
+        // Optional optimization: If we found a path, break?
+        // But we returned above.
+    }
+
+    return undefined;
+}
+
+
 export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
     if (nodes.length === 0) return nodes;
 

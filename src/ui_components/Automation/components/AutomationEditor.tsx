@@ -43,7 +43,7 @@ import StepSelector from './StepSelector';
 import RunSidebar from './RunSidebar';
 import RunHistoryViewer from './RunHistoryViewer';
 import NodeContextMenu from './NodeContextMenu';
-import { calculateLayout } from '../utils/layoutEngine';
+import { calculateLayout, findMergeNodeForBlock } from '../utils/layoutEngine';
 import { API_URL } from '@/ui_components/api/apiurl';
 
 // Define custom types
@@ -208,7 +208,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
-                console.log("Run complete auto");
+                console.log("Socket update success");
                 // Mark nodes that didn't run as skipped
                 setResults(prev => {
                     const next = { ...prev };
@@ -604,6 +604,29 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (!nodesToRemove.has(childId)) queue.push(childId);
                 });
             }
+        } else if ((nodeToDelete.type === 'condition' || nodeToDelete.type === 'parallel' || nodeToDelete.type === 'loop')) {
+            console.log("[Delete] Attempting dynamic block deletion for", idToDelete);
+            // Fallback: Try to find the merge node dynamically if ID is missing
+            const dynamicMergeId = findMergeNodeForBlock(nodes, edges, idToDelete);
+            console.log("[Delete] Found dynamic merge node:", dynamicMergeId);
+            if (dynamicMergeId) {
+                const queue = [idToDelete];
+                while (queue.length > 0) {
+                    const currentId = queue.shift()!;
+                    if (currentId !== idToDelete && nodesToRemove.has(currentId)) continue;
+                    nodesToRemove.add(currentId);
+
+                    if (currentId === dynamicMergeId) continue;
+
+                    const children = edges.filter(e => e.source === currentId).map(e => e.target);
+                    children.forEach(childId => {
+                        if (!nodesToRemove.has(childId)) queue.push(childId);
+                    });
+                }
+                console.log("[Delete] Nodes to remove (Block):", Array.from(nodesToRemove));
+            } else {
+                console.warn("[Delete] Could not find merge node for block", idToDelete);
+            }
         }
 
         const incomingEdges = edges.filter(e => e.target === idToDelete);
@@ -612,9 +635,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // 3. Strategy: Reset or Remove
         const isStartNode = idToDelete === '1';
         const isPopulatedMerge = incomingEdges.length > 1 && !nodeToDelete.data.isPlaceholder;
-        const isPopulatedLinear = !mergeNodeId && incomingEdges.length <= 1 && outgoingEdges.length <= 1 && !nodeToDelete.data.isPlaceholder;
+        // FIX: Removed isPopulatedLinear check. We WANT to delete linear nodes, not reset them.
+        // const isPopulatedLinear = !mergeNodeId && incomingEdges.length <= 1 && outgoingEdges.length <= 1 && !nodeToDelete.data.isPlaceholder;
 
-        if (isStartNode || isPopulatedMerge || isPopulatedLinear) {
+        if (isStartNode || isPopulatedMerge) {
             // "RESET" to Placeholder
             nextNodes = nextNodes.map(n => {
                 if (n.id === idToDelete) {
@@ -641,6 +665,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }
 
         // 4. "TRUE DELETE" with Bridging
+        console.log("[Delete] True Delete. Removing:", Array.from(nodesToRemove));
         // Remove nodes and edges in scope
         nextNodes = nextNodes.filter(n => !nodesToRemove.has(n.id));
         nextEdges = nextEdges.filter(e => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target));
@@ -1071,9 +1096,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
                             <HistoryIcon className="mr-2 h-4 w-4" /> Runs
                         </Button>
-                        <Button 
-                            variant="default" 
-                            className="bg-violet-600 hover:bg-violet-700 text-white" 
+                        <Button
+                            variant="default"
+                            className="bg-violet-600 hover:bg-violet-700 text-white"
                             onClick={() => {
                                 setTemplateName(automationName || "");
                                 setIsPublishDialogOpen(true);
@@ -1224,7 +1249,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsPublishDialogOpen(false)}>Cancel</Button>
-                            <Button 
+                            <Button
                                 onClick={async () => {
                                     if (!templateName.trim()) {
                                         toast.error("Template name is required");
@@ -1257,7 +1282,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                     } finally {
                                         setIsPublishing(false);
                                     }
-                                }} 
+                                }}
                                 disabled={isPublishing}
                             >
                                 {isPublishing ? "Publishing..." : "Publish Template"}
