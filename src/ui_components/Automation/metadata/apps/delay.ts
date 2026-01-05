@@ -11,7 +11,7 @@ export const delay: AppDefinition = {
     {
       id: 'wait',
       name: 'Wait',
-      description: 'Pause the workflow for a duration or approval.',
+      description: 'Pause the workflow for a duration...',
       type: 'action',
       parameters: [
           {

@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Split, Check, X, Loader2, Slash } from "lucide-react";
+import { AppLogoMap } from '../utils/Applogo';
 
 // Matches CustomNode StatusColors
 const StatusColors = {
@@ -54,13 +55,16 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
     const subLabel = (data.subLabel as string) || "Check condition";
     const colorConfig = StatusColors[status];
 
+    const iconKey = (data.icon as string) || (data.piece as string) || 'condition';
+    const logoUrl = AppLogoMap[iconKey];
+
     return (
         <div className="relative group">
             {/* Input Handle */}
             <Handle
                 type="target"
                 position={Position.Top}
-                className="!w-3 !h-3 !top-[-6px] !border-2 !border-background !bg-muted-foreground/30"
+                className="w-3! h-3! top-[-6px]! border-2! border-background! bg-muted-foreground/30!"
             />
 
             <Card
@@ -78,7 +82,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                 <div className="flex items-start gap-4">
                     {/* Icon Container */}
                     <div className={cn(
-                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
+                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110",
                         status === 'pending' ? "bg-amber-100 dark:bg-amber-900/30" : colorConfig.bg
                     )}>
                         {status === 'running' ? (
@@ -86,10 +90,14 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                         ) : status === 'skipped' ? (
                              <Slash className={cn("h-6 w-6", colorConfig.icon)} />
                         ) : (
-                             <Split className={cn(
-                                "h-6 w-6", 
-                                status === 'pending' ? "text-amber-600 dark:text-amber-400" : colorConfig.icon
-                             )} />
+                             logoUrl ? (
+                                <img src={logoUrl} alt={iconKey} className="h-6 w-6 object-contain" />
+                             ) : (
+                                <Split className={cn(
+                                    "h-6 w-6", 
+                                    status === 'pending' ? "text-amber-600 dark:text-amber-400" : colorConfig.icon
+                                 )} />
+                             )
                         )}
                     </div>
 
@@ -109,7 +117,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                     type="source"
                     position={Position.Bottom}
                     id="true"
-                    className="!w-3 !h-3 !relative !transform-none !left-auto !top-auto !bg-transparent !border-0 opacity-0 z-50"
+                    className="w-3! h-3! relative! transform-none! left-auto! top-auto! bg-transparent! border-0! opacity-0 z-50"
                 />
                 <div className={cn(
                     "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",
@@ -125,7 +133,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                     type="source"
                     position={Position.Bottom}
                     id="false"
-                    className="!w-3 !h-3 !relative !transform-none !left-auto !top-auto !bg-transparent !border-0 opacity-0 z-50"
+                    className="w-3! h-3! relative! transform-none! left-auto! top-auto! bg-transparent! border-0! opacity-0 z-50"
                 />
                 <div className={cn(
                     "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",

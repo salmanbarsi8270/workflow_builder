@@ -561,6 +561,7 @@ export default function AutomationIndex() {
                                                 <TemplateGallery 
                                                     userId={user?.id || ""} 
                                                     onSuccess={() => setIsCreateModalOpen(false)}
+                                                    hideTitle={true}
                                                 />
                                             </div>
                                         </TabsContent>
@@ -582,7 +583,7 @@ export default function AutomationIndex() {
         );
     }
 
-    return (
+    return ( 
         <>
             <AutomationEditor
                 key={id}

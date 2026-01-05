@@ -46,19 +46,7 @@ import NodeContextMenu from './NodeContextMenu';
 import { calculateLayout, findMergeNodeForBlock, getNodesInBlock } from '../utils/layoutEngine';
 import { API_URL } from '@/ui_components/api/apiurl';
 
-// Define custom types
-const nodeTypes = {
-    custom: CustomNode,
-    condition: ConditionNode,
-    parallel: ParallelNode,
-    loop: LoopNode,
-    wait: WaitNode,
-    end: EndNode,
-};
 
-const edgeTypes = {
-    custom: CustomEdge,
-};
 
 interface AutomationEditorProps {
     automationName: string;
@@ -75,7 +63,7 @@ interface AutomationEditorProps {
     flowId?: string;
 }
 
-export type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped';
+export type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped' | 'waiting';
 
 export interface StepResult {
     nodeId: string;
@@ -98,6 +86,20 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+
+    // --- Memoized Node & Edge Types to avoid re-render warnings ---
+    const nodeTypes = React.useMemo(() => ({
+        custom: CustomNode,
+        condition: ConditionNode,
+        parallel: ParallelNode,
+        loop: LoopNode,
+        wait: WaitNode,
+        end: EndNode,
+    }), []);
+
+    const edgeTypes = React.useMemo(() => ({
+        custom: CustomEdge,
+    }), []);
     const [swappingNodeId, setSwappingNodeId] = useState<string | null>(null);
 
     // Publish Template State
@@ -208,44 +210,84 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             };
 
             const handleRunComplete = () => {
-                console.log("Socket update success");
-                // Mark nodes that didn't run as skipped
+                console.log("Socket update success: Run Complete");
                 setResults(prev => {
                     const next = { ...prev };
                     const allNodes = nodesRef.current;
 
                     allNodes.forEach(node => {
                         if (node.type === 'end' || node.data.isPlaceholder) return;
+                        const current = next[node.id];
 
-                        if (!next[node.id]) {
+                        if (!current) {
                             next[node.id] = {
                                 nodeId: node.id,
                                 status: 'skipped',
                                 output: null,
                                 duration: 0
                             };
+                        } else if (current.status === 'running' || current.status === 'waiting') {
+                            next[node.id] = {
+                                ...current,
+                                status: 'success'
+                            };
                         }
                     });
                     return next;
                 });
+            };
 
-                // Clear results after 2.5 seconds so user sees final state briefly
-                // (Wait, actually user might want to see it? Let's leave it unless they run again)
-                // Existing code had timeout logic in RunSidebar, here we just keep results?
+            const handleRunWaiting = (data: any) => {
+                const nodeId = normalizeId(data.nodeId);
+                setResults(prev => ({
+                    ...prev,
+                    [nodeId]: {
+                        nodeId: nodeId,
+                        status: 'waiting',
+                        output: data.output || null,
+                        duration: data.duration || 0
+                    }
+                }));
             };
 
             const handleFlowFailed = () => {
-                // handle flow failure if needed
+                console.log("Socket update: Flow Failed");
+                setResults(prev => {
+                    const next = { ...prev };
+                    const allNodes = nodesRef.current;
+
+                    allNodes.forEach(node => {
+                        if (node.type === 'end' || node.data.isPlaceholder) return;
+                        const current = next[node.id];
+
+                        if (!current) {
+                            next[node.id] = {
+                                nodeId: node.id,
+                                status: 'skipped',
+                                output: null,
+                                duration: 0
+                            };
+                        } else if (current.status === 'running' || current.status === 'waiting') {
+                            next[node.id] = {
+                                ...current,
+                                status: 'error'
+                            };
+                        }
+                    });
+                    return next;
+                });
             };
 
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
+            socket.on('run-waiting', handleRunWaiting);
             socket.on('run-complete', handleRunComplete);
             socket.on('flow-failed', handleFlowFailed);
 
             return () => {
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
+                socket.off('run-waiting', handleRunWaiting);
                 socket.off('run-complete', handleRunComplete);
                 socket.off('flow-failed', handleFlowFailed);
             };
@@ -1195,13 +1237,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         onClose={() => setIsRunSidebarOpen(false)}
                         nodes={nodes}
                         edges={edges}
-                        socket={socket}
                         flowId={flowId}
+                        results={results}
                         onViewRun={(run) => {
                             setViewingRun(run);
-                            // Optionally close sidebar or keep it open?
-                            // User said 'separate reactflow open show history'
-                            // Let's keep sidebar or overlay? Overlay is better.
                         }}
                     />
 
