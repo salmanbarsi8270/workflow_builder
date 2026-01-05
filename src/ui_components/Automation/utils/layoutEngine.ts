@@ -104,6 +104,100 @@ export const findMergeNodeForBlock = (nodes: Node[], edges: Edge[], startNodeId:
     }
 
     return undefined;
+};
+
+/**
+ * Calculates the set of Node IDs that belong to a Logic Block.
+ * Includes: The Start Node, The Merge Node, and ALL nodes in between (Branches).
+ * Stops traversing downstream when the Merge Node is reached.
+ */
+export const getNodesInBlock = (nodes: Node[], edges: Edge[], startNodeId: string, mergeNodeId: string): Set<string> => {
+    const nodesToRemove = new Set<string>();
+    nodesToRemove.add(startNodeId);
+    
+    // If the merge node exists, add it (we will delete it too)
+    if (nodes.some(n => n.id === mergeNodeId)) {
+        nodesToRemove.add(mergeNodeId);
+    }
+
+    const queue = [startNodeId];
+    const visited = new Set<string>([startNodeId]);
+
+    // Safety
+    let iterations = 0;
+
+    while (queue.length > 0 && iterations < 5000) {
+        iterations++;
+        const currentId = queue.shift()!;
+
+        // If this is the merge node, we DO NOT traverse its children (that would go outside the block)
+        if (currentId === mergeNodeId) continue;
+
+        // Find outgoing edges
+        const children = edges.filter(e => e.source === currentId).map(e => e.target);
+        
+        children.forEach(childId => {
+            if (!visited.has(childId)) {
+                visited.add(childId);
+                nodesToRemove.add(childId);
+                queue.push(childId);
+            }
+        });
+    }
+
+    return nodesToRemove;
+};
+export const findBlockStarter = (nodes: Node[], edges: Edge[], mergeNodeId: string): string | undefined => {
+    // Reverse Adjacency (Target -> Source)
+    const reverseAdjacency: Record<string, string[]> = {};
+    edges.forEach(e => {
+        if (!reverseAdjacency[e.target]) reverseAdjacency[e.target] = [];
+        reverseAdjacency[e.target].push(e.source);
+    });
+
+    const isLogicNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        return n && (n.type === 'condition' || n.type === 'parallel' || n.type === 'loop');
+    };
+    
+    const isMergeNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        // We consider it a merge if it is marked as one (layout) or placeholder
+        return n && (n.data?.isMergePlaceholder || n.data?.isMergeNode);
+    }
+
+    let balance = 0; 
+    const visited = new Set<string>();
+    visited.add(mergeNodeId);
+
+    const parents = reverseAdjacency[mergeNodeId];
+    // Start from the parent of the merge node
+    // Note: Merge node might have multiple parents. Any path upwards should lead to the Logic Node.
+    let ptr = parents && parents.length > 0 ? parents[0] : null;
+    
+    let safety = 0;
+    while (ptr && safety < 1000) {
+        safety++;
+        if (visited.has(ptr)) break; 
+        visited.add(ptr);
+        
+        if (isMergeNode(ptr)) {
+            balance++;
+        } else if (isLogicNode(ptr)) {
+            balance--;
+        }
+
+        if (balance < 0) return ptr;
+
+        const nextParents = reverseAdjacency[ptr];
+        if (nextParents && nextParents.length > 0) {
+            ptr = nextParents[0];
+        } else {
+            ptr = null; // Dead end
+        }
+    }
+
+    return undefined;
 }
 
 
@@ -285,20 +379,58 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         return undefined;
     };
 
+    const getEffectiveBranches = (nodeId: string): (string | null)[] => {
+        const node = layoutNodes.find(n => n.id === nodeId);
+        if (!node) return [];
+
+        const outgoing = layoutEdges.filter(e => e.source === nodeId);
+        
+        if (node.type === 'condition') {
+             // Expect True/False
+             const trueEdge = outgoing.find(e => e.sourceHandle === 'true' || e.data?.label === 'true');
+             const falseEdge = outgoing.find(e => e.sourceHandle === 'false' || e.data?.label === 'false');
+             
+             // If connection exists (even to Merge), it counts as a branch.
+             // If no connection, we generally don't reserve big space, but standard condition implies 2 paths.
+             // Let's rely on CONNECTED branches.
+             const branches: (string|null)[] = [];
+             if (trueEdge) branches.push(trueEdge.target);
+             if (falseEdge) branches.push(falseEdge.target);
+             
+             // Fix for "Single Branch" condition (rare but possible):
+             // If only one exists, we might want to still center? 
+             // But layout collapse usually happens when both exist but one is "invisible".
+             return branches;
+        }
+        
+        if (node.type === 'parallel') {
+             // Use edge counting or params?
+             // Best to use Edges to match topology.
+             // Group by handle?
+             // Parallel outgoing usually have unique handles or just mapped.
+             return outgoing.map(e => e.target);
+        }
+        
+        return adjacency[nodeId] || []; // Default linear
+    };
+
     const getSubtreeWidth = (nodeId: string, d: number, visited: Set<string> = new Set()): number => {
         if (visited.has(nodeId)) return NODE_WIDTH + NODE_GAP_X;
         visited.add(nodeId);
 
-        const children = adjacency[nodeId] || [];
         const node = layoutNodes.find(n => n.id === nodeId);
-        if (!node) return NODE_WIDTH + NODE_GAP_X;
+        const children = adjacency[nodeId] || [];
+        
+        const isLoop = node?.type === 'loop';
+        const isParallel = node?.type === 'parallel';
+        const isCondition = node?.type === 'condition';
 
-        const isLoop = node.type === 'loop';
-        const isParallel = node.type === 'parallel';
-        const isCondition = node.type === 'condition';
-
-        // Base case: Leaf node
-        if (children.length === 0) {
+        // Base case: Leaf node (visually)
+        // If Logic Node has NO outgoing edges at all -> leaf.
+        // If it has edges to Merges -> Not leaf in width sense.
+        const effectiveBranches = (isParallel || isCondition) ? getEffectiveBranches(nodeId) : children;
+        
+        if (effectiveBranches.length === 0) {
              const depth = loopNestDepths[nodeId] || 1;
              const LOOP_PADDING = 80 + (depth * 40);
              return NODE_WIDTH + NODE_GAP_X + (isLoop ? LOOP_PADDING : 0);
@@ -309,13 +441,18 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
 
         if (isParallel || isCondition) {
              // SYMMETRY FIX: For logic blocks, we find the MAX branch width and apply it to all.
-             // This ensures the parent expands to accommodate wide nested subtrees.
              let maxBranchWidth = 0;
-             children.forEach(childId => {
-                 const bw = getSubtreeWidth(childId, d + 1, new Set(visited));
-                 if (bw > maxBranchWidth) maxBranchWidth = bw;
+             effectiveBranches.forEach(targetId => {
+                 if (!targetId || mergeNodeIds.has(targetId)) {
+                     // Empty/Virtual Branch (Direct to Merge) -> Minimum Width
+                     if ((NODE_WIDTH + NODE_GAP_X) > maxBranchWidth) maxBranchWidth = (NODE_WIDTH + NODE_GAP_X);
+                 } else {
+                     // Real Branch
+                     const bw = getSubtreeWidth(targetId, d + 1, new Set(visited));
+                     if (bw > maxBranchWidth) maxBranchWidth = bw;
+                 }
              });
-             width = maxBranchWidth * children.length;
+             width = maxBranchWidth * effectiveBranches.length;
         } else {
              // Standard Linear path or Loop
              children.forEach(childId => {
@@ -329,9 +466,6 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
              }
         }
 
-        // We no longer add mergeWidth to the branches sum because branch recursion 
-        // already reaches the merge node eventually. 
-        // EXCEPT: We must ensure the block starter is at least as wide as the tail.
         const mergeId = getClosestMergeNode(nodeId);
         let tailWidth = 0;
         if (mergeId) {
@@ -345,73 +479,61 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
         if (visited.has(nodeId)) return;
         visited.add(nodeId);
 
-        const children = adjacency[nodeId] || [];
         const y = d * (NODE_HEIGHT + NODE_GAP_Y);
-
         const node = layoutNodes.find(n => n.id === nodeId);
-        const isLoop = node?.type === 'loop';
-        const depth = loopNestDepths[nodeId] || 1;
-        const LOOP_PADDING = 80 + (depth * 40);
-
+        
         // STOP RECURSION at Merge Nodes
-        if (mergeNodeIds.has(nodeId) && d > 0) {
-             // We DO NOT set positions for Merge Nodes here (handled in Stitching Pass).
-             // But we consumed space in the parent's layout, which is correct.
-             return;
-        }
+        if (mergeNodeIds.has(nodeId) && d > 0) return;
 
-        if (children.length === 0) {
-            // Fix: Center the node within its allocated subtree width
+        const isLoop = node?.type === 'loop';
+        const isParallel = node?.type === 'parallel';
+        const isCondition = node?.type === 'condition';
+
+        const effectiveBranches = (isParallel || isCondition) ? getEffectiveBranches(nodeId) : (adjacency[nodeId] || []);
+
+        if (effectiveBranches.length === 0) {
             const totalWidth = getSubtreeWidth(nodeId, d);
-            // ReactFlow Position is Top-Left. 
             positions[nodeId] = { x: startX + (totalWidth / 2) - (NODE_WIDTH / 2), y };
             return;
         }
 
-        // If Loop, shift children to the right by half padding (Left Gutter)
+        // Child Positioning Cursor
+        const depth = loopNestDepths[nodeId] || 1;
+        const LOOP_PADDING = 80 + (depth * 40);
         let childCursorX = startX + (isLoop ? (LOOP_PADDING / 2) : 0);
 
-        // SYMMETRY FIX: Use Max Branch Width for increments if Parent is a Logic Block
-        const isParallel = node?.type === 'parallel';
-        const isCondition = node?.type === 'condition';
+        // Branch Width Calculation (match getSubtreeWidth logic)
         let branchWidthToUse = 0;
         if (isParallel || isCondition) {
             let maxBW = 0;
-            children.forEach(cid => {
-                const bw = getSubtreeWidth(cid, d + 1, new Set(visited));
-                if (bw > maxBW) maxBW = bw;
+            effectiveBranches.forEach(targetId => {
+                 if (!targetId || mergeNodeIds.has(targetId)) {
+                     const bw = NODE_WIDTH + NODE_GAP_X;
+                     if (bw > maxBW) maxBW = bw;
+                 } else {
+                     const bw = getSubtreeWidth(targetId, d + 1, new Set(visited));
+                     if (bw > maxBW) maxBW = bw;
+                 }
             });
             branchWidthToUse = maxBW;
         }
 
-        children.forEach(childId => {
-            const w = (isParallel || isCondition) ? branchWidthToUse : getSubtreeWidth(childId, d + 1, new Set(visited));
-            setPositions(childId, d + 1, childCursorX, new Set(visited));
+        effectiveBranches.forEach(targetId => {
+            const w = (isParallel || isCondition) ? branchWidthToUse : getSubtreeWidth(targetId!, d + 1, new Set(visited));
+            
+            // If Target is a Node (not Merge), set its position
+            if (targetId && !mergeNodeIds.has(targetId)) {
+                setPositions(targetId, d + 1, childCursorX, new Set(visited));
+            }
+            // If target is Merge or Null (Empty), we just skip setting position but consume space
+            
             childCursorX += w;
         });
 
         // Center parent
-        if (children.length > 0) {
-            // We need to find the "Center of the Branches"
-            // Start of First Child (Visual) is `startX + loopPadding`.
-            // End of Last Child (Visual) is `childCursorX`.
-            // Average?
-            // Wait, `startX` is the left-most edge allocated to us.
-            // `childCursorX` is the right-most edge used.
-            // Center = (startX + childCursorX) / 2 ?
-            // Yes, roughly. But children might be loops with padding.
-            // Let's use the actual assigned X of children?
-            // But some children (Merges) don't have assigned X yet!
-            // So relying on `positions[child]` is unsafe if child is Merge.
-            
-            // Better to center based on the allocated SPAN.
-            // Span Center = startX + (TotalWidth / 2).
-            // This is robust.
-            
-            const totalWidth = getSubtreeWidth(nodeId, d);
-            const centerX = startX + (totalWidth / 2);
-            positions[nodeId] = { x: centerX - (NODE_WIDTH / 2), y };
-        }
+        const totalWidth = getSubtreeWidth(nodeId, d);
+        const centerX = startX + (totalWidth / 2);
+        positions[nodeId] = { x: centerX - (NODE_WIDTH / 2), y };
     };
     
     // Run Layout for all detached trees

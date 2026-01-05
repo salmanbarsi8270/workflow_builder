@@ -1,7 +1,58 @@
 
 // Mock Types
 interface Node { id: string;  type?: string; data: any; }
-interface Edge { source: string; target: string; }
+interface Edge { source: string; target: string; sourceHandle?: string; }
+
+const findBlockStarter = (nodes: Node[], edges: Edge[], mergeNodeId: string): string | undefined => {
+    // Reverse Adjacency (Target -> Source)
+    const reverseAdjacency: Record<string, string[]> = {};
+    edges.forEach(e => {
+        if (!reverseAdjacency[e.target]) reverseAdjacency[e.target] = [];
+        reverseAdjacency[e.target].push(e.source);
+    });
+
+    const isLogicNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        return n && (n.type === 'condition' || n.type === 'parallel' || n.type === 'loop');
+    };
+    
+    const isMergeNode = (id: string) => {
+        const n = nodes.find(x => x.id === id);
+        return n && (n.data?.isMergePlaceholder || n.data?.isMergeNode);
+    }
+
+    let balance = 0; 
+    const visited = new Set<string>();
+    visited.add(mergeNodeId);
+
+    const parents = reverseAdjacency[mergeNodeId];
+    // Start from the parent of the merge node
+    let ptr = parents && parents.length > 0 ? parents[0] : null;
+    
+    let safety = 0;
+    while (ptr && safety < 1000) {
+        safety++;
+        if (visited.has(ptr)) break; 
+        visited.add(ptr);
+        
+        if (isMergeNode(ptr)) {
+            balance++;
+        } else if (isLogicNode(ptr)) {
+            balance--;
+        }
+
+        if (balance < 0) return ptr;
+
+        const nextParents = reverseAdjacency[ptr];
+        if (nextParents && nextParents.length > 0) {
+            ptr = nextParents[0];
+        } else {
+            ptr = null;
+        }
+    }
+
+    return undefined;
+}
 
 // Paste the function to test
 const findMergeNodeForBlock = (nodes: Node[], edges: Edge[], startNodeId: string): string | undefined => {
@@ -135,7 +186,36 @@ const edges3: Edge[] = [
 // If it follows Branch 2: Cond(1) -> Nested(2) -> NestedMerge(1) -> Merge(0). Correct.
 // If it follows Branch 1: Cond(1) -> Step1(1) -> Step2(1) -> Merge(0). Correct.
 
-console.log("Test 3 (Unbalanced Nested):", findMergeNodeForBlock(nodes3, edges3, 'cond'));
-// Expected: 'merge'.
+console.log("Test 3 (Real Merge Node):", findMergeNodeForBlock(nodes3, edges3, 'cond'));
+
+// Test 4: Logic Node appearing AT the Merge Point (Populated Merge)
+// Condition 1 -> (True) -> Step A -> Condition 2 (Merge)
+// Condition 1 -> (False) -> Step B -> Condition 2 (Merge)
+// If we run findBlockStarter(Condition 2), it should returned Condition 1.
+
+const nodes4: Node[] = [
+    { id: 'start', data: {} },
+    { id: 'c1', type: 'condition', data: {} },
+    { id: 'stepA', data: {} },
+    { id: 'stepB', data: {} },
+    { id: 'c2', type: 'condition', data: { isMergeNode: true } } // Identified as Merge by Layout
+];
+
+const edges4: Edge[] = [
+    { source: 'start', target: 'c1' },
+    { source: 'c1', target: 'stepA', sourceHandle: 'true' },
+    { source: 'c1', target: 'stepB', sourceHandle: 'false' },
+    { source: 'stepA', target: 'c2' },
+    { source: 'stepB', target: 'c2' },
+];
+
+// Note: layoutEngine.ts export was named 'findBlockStarter'
+// We need to import it or paste it here if we are mocking. 
+// Since we are running this file standalone with tsx, we need the function definition here.
+// I will assume I need to copy `findBlockStarter` implementation here for the test context.
+
+console.log("Test 4 (Find Block Starter for Populated Merge):", findBlockStarter(nodes4, edges4, 'c2'));
+// Expected: 'c1'
+
 
 
