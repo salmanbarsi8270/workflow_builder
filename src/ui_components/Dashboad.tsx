@@ -118,7 +118,7 @@ export default function WorkflowDashboard() {
   };
 
   const handleNewWorkflow = () => {
-    navigate('/automation');
+    navigate('/automation', { state: { openNew: true } });
   };
 
   const statsConfig = [

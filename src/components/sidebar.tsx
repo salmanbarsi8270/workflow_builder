@@ -39,6 +39,11 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  /* Resize Props */
+  width: string
+  setWidth: (width: string) => void
+  isDragging: boolean
+  startDragging: (event: React.MouseEvent | React.TouchEvent) => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -112,6 +117,40 @@ function SidebarProvider({
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed"
 
+  // Resize State
+  const [width, setWidth] = React.useState(SIDEBAR_WIDTH)
+  const [isDragging, setIsDragging] = React.useState(false)
+
+  const startDragging = React.useCallback((event: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true)
+    
+    const startX = 'touches' in event ? event.touches[0].clientX : event.clientX
+    const startWidth = parseFloat(width.endsWith('rem') ? (parseFloat(width) * 16).toString() : width)
+
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+      const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX
+      const diff = currentX - startX
+      const newWidth = Math.max(200, Math.min(600, startWidth + diff)) // Min 200px, Max 600px
+      setWidth(`${newWidth}px`)
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('touchmove', handleMouseMove)
+      document.removeEventListener('touchend', handleMouseUp)
+      // Remove text selection prevention style if added
+      document.body.style.userSelect = ''
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchmove', handleMouseMove)
+    document.addEventListener('touchend', handleMouseUp)
+    document.body.style.userSelect = 'none' // Prevent selection while dragging
+  }, [width])
+
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
       state,
@@ -121,8 +160,12 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      width,
+      setWidth,
+      isDragging,
+      startDragging
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, width, setWidth, isDragging, startDragging]
   )
 
   return (
@@ -131,7 +174,7 @@ function SidebarProvider({
         data-slot="sidebar-wrapper"
         style={
           {
-            "--sidebar-width": SIDEBAR_WIDTH,
+            "--sidebar-width": width,
             "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
             ...style,
           } as React.CSSProperties
@@ -278,7 +321,7 @@ function SidebarTrigger({
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar()
+  const { startDragging, isDragging } = useSidebar()
 
   return (
     <button
@@ -286,8 +329,21 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       data-slot="sidebar-rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      onMouseDown={(e) => {
+         // Only start dragging on left click
+         if (e.button === 0) {
+            startDragging(e)
+            e.preventDefault() // Prevent text selection/native drag
+         }
+      }}
+      onClick={() => {
+         // If we were dragging, don't toggle. 
+         // Since isDragging might be reset on mouseUp *before* onClick fires, 
+         // we might need a better heuristic or just allow toggle if it was a short click.
+         // For now, let's just let the rail be a resize handle primarily.
+         // If we want toggle, we can check if width changed?
+      }}
+      title="Drag to resize, Click to toggle"
       className={cn(
         "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
@@ -295,6 +351,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         "hover:group-data-[collapsible=offExamples]:bg-sidebar group-data-[collapsible=offExamples]:translate-x-0 group-data-[collapsible=offExamples]:after:left-full",
         "[[data-side=left][data-collapsible=offExamples]_&]:-right-2",
         "[[data-side=right][data-collapsible=offExamples]_&]:-left-2",
+        isDragging && "cursor-col-resize after:bg-sidebar-border",
         className
       )}
       {...props}

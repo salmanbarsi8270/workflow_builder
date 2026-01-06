@@ -3,15 +3,16 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toaster, toast } from 'sonner';
 import { type Node, type Edge } from '@xyflow/react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 import AutomationList, { type AutomationItem } from '@/ui_components/Automation/components/AutomationList';
 import AutomationEditor from '@/ui_components/Automation/components/AutomationEditor';
 import { TemplateGallery } from '@/ui_components/Automation/components/TemplateGallery';
+import { ResizableSheetContent } from '../Utility/ResizableSheet';
 
 import { API_URL } from '@/ui_components/api/apiurl';
 import { useUser } from '@/context/UserContext';
@@ -42,7 +43,9 @@ export default function AutomationIndex() {
     const { theme } = useTheme()
     const { user, isLoading: isUserLoading } = useUser();
     const { id } = useParams(); // Get ID from URL
+
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [automations, setAutomations] = useState<AutomationItem[]>([]);
     const [search, setSearch] = useState("");
@@ -248,6 +251,15 @@ export default function AutomationIndex() {
         }
     };
 
+    // Check for openNew state from navigation
+    useEffect(() => {
+        if (location.state?.openNew) {
+            handleOpenModal();
+            // Clear state to prevent reopening on refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, location.pathname]);
+
     const handleEditNameClick = (automation: AutomationItem) => {
         setNewAutomationName(automation.name);
         setEditingId(automation.id);
@@ -448,7 +460,12 @@ export default function AutomationIndex() {
                 />
 
                 <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                    <SheetContent side="right" className="sm:max-w-md border-l-0 shadow-2xl p-0">
+                    <ResizableSheetContent 
+                        side="right" 
+                        storageKey="create-automation-width" 
+                        defaultWidth={480} 
+                        className="sm:max-w-none border-l-0 shadow-2xl p-0"
+                    >
                         <div className="h-full flex flex-col">
                             <div className="p-6 pb-4 border-b bg-linear-to-b from-primary/5 to-transparent">
                                 <div className="flex items-center gap-4 mb-4">
@@ -538,7 +555,7 @@ export default function AutomationIndex() {
                                             </div>
 
                                             <Button 
-                                                className="w-full h-14 text-lg font-bold bg-linear-to-br from-primary to-primary/80 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl" 
+                                                className="w-full h-12 text-lg font-bold bg-linear-to-br from-primary to-primary/80 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl" 
                                                 disabled={createsutomationloading || !newAutomationName.trim()} 
                                                 onClick={handleSaveAutomationName}
                                             >
@@ -569,7 +586,7 @@ export default function AutomationIndex() {
                                 )}
                             </div>
                         </div>
-                    </SheetContent>
+                    </ResizableSheetContent>
                 </Sheet>
                 <Toaster />
             </>

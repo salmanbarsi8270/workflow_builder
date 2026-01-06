@@ -141,6 +141,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
     };
+    
+    // Store the results of the LAST run to show in Sidebar even after canvas clears
+    const [lastRunResults, setLastRunResults] = useState<Record<string, StepResult>>({});
 
     const handleRunToggle = (checked: boolean) => {
         onToggleStatus();
@@ -211,6 +214,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const handleRunComplete = () => {
                 console.log("Socket update success: Run Complete");
+                
+                // 1. Calculate the final state including skipped steps
+                let finalResults: Record<string, StepResult> = {};
+                
                 setResults(prev => {
                     const next = { ...prev };
                     const allNodes = nodesRef.current;
@@ -233,8 +240,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             };
                         }
                     });
+                    
+                    finalResults = next; // Capture for LastRun
                     return next;
                 });
+
+                // 2. Persist to LastRunResults (so sidebar keeps showing data)
+                setLastRunResults(finalResults);
+
+                // 3. Clear Canvas Status after 5 seconds
+                setTimeout(() => {
+                    setResults({}); 
+                }, 5000);
             };
 
             const handleRunWaiting = (data: any) => {
@@ -1244,7 +1261,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         nodes={nodes}
                         edges={edges}
                         flowId={flowId}
-                        results={results}
+                        results={Object.keys(results).length > 0 ? results : lastRunResults}
                         onViewRun={(run) => {
                             setViewingRun(run);
                         }}

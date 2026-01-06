@@ -301,7 +301,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                          }
                          
                          const fallback = getFallbackIcon(app);
-                         return (
+                         return ( 
                            <div 
                              key={i} 
                              className={cn(

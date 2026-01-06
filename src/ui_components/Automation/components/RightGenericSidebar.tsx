@@ -9,7 +9,7 @@ import { APP_DEFINITIONS } from "../metadata";
 import ScheduleForm from "../../Utility/ScheduleForm";
 import HTTPForm from "../../Utility/HTTPForm";
 import GitHubForm from "../../Connections/GitHubForm";
-import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronLeft, ChevronRight, Sparkles, Shield, Zap, AlertCircle } from "lucide-react";
+import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronLeft, ChevronRight, Sparkles, Shield, Zap, AlertCircle, RotateCcw, GripVertical } from "lucide-react";
 import { AppLogoMap } from "../utils/Applogo";
 import { cn } from "@/lib/utils";
 import { usePiecesMetadata } from "../hooks/usePiecesMetadata";
@@ -104,6 +104,47 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const [activeTab, setActiveTab] = useState("configuration");
     const tabsListRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ left: false, right: false });
+
+    // Resizable Logic
+    const DEFAULT_WIDTH = 384;
+    const [width, setWidth] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('right-sidebar-width');
+            if (saved) return Number(saved);
+        }
+        return DEFAULT_WIDTH;
+    });
+    const [isDragging, setIsDragging] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('right-sidebar-width', width.toString());
+    }, [width]);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+        const startX = e.clientX;
+        const startWidth = width;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const delta = moveEvent.clientX - startX;
+            const newWidth = Math.max(300, Math.min(startWidth - delta, window.innerWidth - 100));
+            setWidth(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.userSelect = '';
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.body.style.userSelect = 'none';
+    };
+
+    const handleResetWidth = () => setWidth(DEFAULT_WIDTH);
 
     useEffect(() => {
         const checkScroll = () => {
@@ -314,7 +355,30 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
 
     return (
         <TooltipProvider>
-            <div className="w-96 border-l bg-linear-to-b from-background to-background/95 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+            <div 
+                className={cn(
+                    "border-l bg-linear-to-b from-background to-background/95 backdrop-blur-sm flex flex-col h-full overflow-hidden relative group/sidebar shadow-xl",
+                    isDragging && "transition-none select-none"
+                )}
+                style={{ width: `${width}px`, transition: isDragging ? 'none' : 'width 0.2s ease' }}
+            >
+                {/* Resize Handle */}
+                <div
+                    className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-50 flex items-center justify-center group/handle"
+                    onMouseDown={handleMouseDown}
+                >
+                    <div className={cn(
+                        "h-8 w-4 bg-background border shadow-sm rounded-full flex items-center justify-center transition-all",
+                        isDragging && "bg-primary/10 border-primary/20"
+                    )}>
+                        <GripVertical className="h-2.5 w-2.5 text-muted-foreground" />
+                    </div>
+                    {/* Active Line Indicator */}
+                    <div className={cn(
+                        "absolute left-1.5 top-0 bottom-0 w-px bg-primary/0 transition-colors",
+                         (isDragging) && "bg-primary/20"
+                    )} />
+                </div>
                 {/* Header */}
                 <div className="border-b p-6">
                     <div className="flex items-start justify-between mb-4">
@@ -333,8 +397,22 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                     {actionDef?.type || 'action'}
                                 </p>
                             </div>
+                            </div>
+
+                        <div className="flex items-center gap-1">
+                             {width !== DEFAULT_WIDTH && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-muted-foreground/50 hover:text-foreground" 
+                                    onClick={handleResetWidth}
+                                    title="Reset Width"
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8"><X className="h-4 w-4" /></Button>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8"><X className="h-4 w-4" /></Button>
                     </div>
 
                     <div className="flex items-center justify-between">

@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ResizableSheetContent } from "../../Utility/ResizableSheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Check, X, ChevronRight, ChevronDown, ArrowLeft, History as HistoryIcon, RefreshCcw, Play, Slash } from "lucide-react";
 import { type Node, type Edge } from '@xyflow/react';
@@ -280,7 +281,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                         {isExpanded && (
                             <div className="animate-in slide-in-from-top-1 fade-in duration-200">
                                 {(result?.output || status === 'running' || status === 'pending') && (
-                                    <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto max-h-[300px]">
+                                    <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto w-full max-h-[300px]">
                                         <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Output Payload</div>
                                         {status === 'running' ? (
                                             <div className="flex items-center gap-2 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" /> Executing...</div>
@@ -301,7 +302,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent side="left" className="w-full sm:max-w-md p-0 flex flex-col gap-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <ResizableSheetContent side="left" storageKey="run-sidebar-width" defaultWidth={450} className="w-full sm:max-w-none flex flex-col gap-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <SheetHeader className="p-6 border-b shrink-0">
                     <SheetTitle className="text-xl flex items-center gap-2">
                         {view === 'detail' && (
@@ -359,7 +360,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                         </div>
                     )}
                 </ScrollArea>
-            </SheetContent>
+
+            </ResizableSheetContent>
         </Sheet>
     );
 }
