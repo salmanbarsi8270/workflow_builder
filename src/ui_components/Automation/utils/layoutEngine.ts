@@ -111,12 +111,12 @@ export const findMergeNodeForBlock = (nodes: Node[], edges: Edge[], startNodeId:
  * Includes: The Start Node, The Merge Node, and ALL nodes in between (Branches).
  * Stops traversing downstream when the Merge Node is reached.
  */
-export const getNodesInBlock = (nodes: Node[], edges: Edge[], startNodeId: string, mergeNodeId: string): Set<string> => {
+export const getNodesInBlock = (nodes: Node[], edges: Edge[], startNodeId: string, mergeNodeId: string, includeMergeNode: boolean = true): Set<string> => {
     const nodesToRemove = new Set<string>();
     nodesToRemove.add(startNodeId);
     
-    // If the merge node exists, add it (we will delete it too)
-    if (nodes.some(n => n.id === mergeNodeId)) {
+    // If the merge node exists and we requested to include it, add it
+    if (includeMergeNode && nodes.some(n => n.id === mergeNodeId)) {
         nodesToRemove.add(mergeNodeId);
     }
 

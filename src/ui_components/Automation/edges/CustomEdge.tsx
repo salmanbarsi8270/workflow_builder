@@ -166,7 +166,7 @@ export default function CustomEdge({
 
   // Hide if distance too short, OR target is a "Step" placeholder, OR Loop Bypass, OR source is placeholder.
   // We DO share buttons before Merge Nodes (to extend the branch), unless the source itself is empty.
-  const showAddButton = distanceY > 45 && !isLoopBypass && !isPlaceholder && !isTargetRealPlaceholder;
+  const showAddButton = distanceY > 15 && !isLoopBypass && !isPlaceholder && !isTargetRealPlaceholder;
 
   if (isLoopBypass) {
     // Force a "wide bracket" shape

@@ -472,25 +472,26 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (branchTargets.length > targetCount) {
             const toRemove = branchTargets.slice(targetCount);
             toRemove.forEach(({ edge, node }) => {
+                // 1. Remove the Edge entering the branch
                 nextEdges = nextEdges.filter(e => e.id !== edge.id);
+
                 if (node) {
-                    // If it's a placeholder, remove it safely
-                    // If it's a real node, we also remove it because the user explicitly reduced the branch count.
-                    // Ideally we should warn, but for now we follow the config.
-                    // We need to recursively remove downstream if we want to be clean,
-                    // but basic removal of the head node disconnects the branch.
-                    // For now, let's just remove the edge and the head node if it's a placeholder/branch head.
-                    // Actually, if we just remove the edge, the node becomes orphaned.
-                    // Let's reuse handleDeleteNode logic if possible? No, too complex here.
-                    // We will remove the node if it is a placeholder. If real, we disconnect it.
-                    // Better: Just disconnect the edge. The user can clean up the orphaned node.
-                    // BUT, if it's a placeholder, we SHOULD delete it to keep it clean.
-                    if (node.data.isBranchPlaceholder) {
-                        nextNodes = nextNodes.filter(n => n.id !== node.id);
-                        nextEdges = nextEdges.filter(e => e.source !== node.id);
-                    } else {
-                        // Real node: Just disconnect (edge removed above)
-                    }
+                    // 2. Cascade Delete: Remove all nodes in this branch
+                    // We use getNodesInBlock to find the scope up to the Merge Node
+                    // Note: We use the CURRENT state of nextNodes/nextEdges (which still has the branch structure)
+                    // But we just removed the *incoming* edge. getNodesInBlock traverses downstream, so it works.
+                    const branchScope = getNodesInBlock(nextNodes, nextEdges, node.id, mergeNodeId, false);
+
+                    // Add the head node itself if not included (implementation dependent, usually included)
+                    branchScope.add(node.id);
+
+                    // Remove Nodes
+                    nextNodes = nextNodes.filter(n => !branchScope.has(n.id));
+
+                    // Remove Edges (Internal and Outgoing to Merge)
+                    nextEdges = nextEdges.filter(e =>
+                        !branchScope.has(e.source) && !branchScope.has(e.target)
+                    );
                 }
             });
         }
@@ -671,7 +672,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         // FIX: Removed isPopulatedLinear check. We WANT to delete linear nodes, not reset them.
         // const isPopulatedLinear = !mergeNodeId && incomingEdges.length <= 1 && outgoingEdges.length <= 1 && !nodeToDelete.data.isPlaceholder;
 
-        if (isStartNode || isPopulatedMerge) {
+        // Strategy: Soft Delete (Reset to Placeholder) vs Hard Delete (Remove & Bridge)
+        // Soft Delete: Start Node, Populated Merge Nodes, and Standard Actions (User wants "swap to placeholder")
+        // Hard Delete: Logic Blocks (Heads) and existing Placeholders
+        const shouldSoftDelete = isStartNode || isPopulatedMerge || (!isLogicNode && !nodeToDelete.data.isPlaceholder);
+
+        if (shouldSoftDelete) {
             // "RESET" to Placeholder: Strictly clean data to ensure "Complete Deletion" of settings
             nextNodes = nextNodes.map(n => {
                 if (n.id === idToDelete) {
