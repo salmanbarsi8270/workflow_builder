@@ -3,14 +3,14 @@ import type { AppDefinition } from "../types";
 
 export const openrouter: AppDefinition = {
   id: 'openrouter',
-  name: 'OpenRouter',
-  description: 'A unified interface for LLMs.',
+  name: 'AI',
+  description: 'AI, Agents, and Tools work together to understand inputs, make decisions, and take actions automatically.They power intelligent workflows by combining reasoning, planning, and real-world execution.',
   icon: Sparkles,
-  category: 'app',
+  category: 'agent',
   actions: [
     {
       id: 'chat',
-      name: 'Chat with AI',
+      name: 'Ask with AI',
       description: 'Generate a chat completion using an LLM.',
       type: 'action',
       parameters: [
@@ -41,6 +41,19 @@ export const openrouter: AppDefinition = {
             { name: 'total_tokens', type: 'number' }
         ]}
       ]
+    },
+    {
+        id: 'run_agent',
+        name: 'Run Agent',
+        description: 'Execute a pre-configured AI Agent.',
+        type: 'action',
+        parameters: [
+            { name: 'agentId', type: 'agent', label: 'Select Agent', required: true },
+            { name: 'input', type: 'string', label: 'User Input', required: true, description: 'The prompt for the agent.' }
+        ],
+        outputSchema: [
+            { name: 'response', type: 'string', description: 'The agent response.' }
+        ]
     }
   ]
 };

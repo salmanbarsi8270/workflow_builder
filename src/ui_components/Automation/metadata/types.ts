@@ -1,6 +1,6 @@
 export interface ActionParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select' | 'object' | 'dynamic-select';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'connection' | 'select' | 'object' | 'dynamic-select' | 'agent';
   label: string;
   description?: string;
   required?: boolean;
@@ -32,6 +32,6 @@ export interface AppDefinition {
   name: string;
   description: string;
   icon: any;
-  category: 'app' | 'utility';
+  category: 'app' | 'utility' | 'agent';
   actions: ActionDefinition[];
 }

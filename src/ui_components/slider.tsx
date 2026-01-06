@@ -35,11 +35,11 @@ import {
   SidebarTrigger,
 } from '@/components/sidebar'
 import { HugeiconsIcon } from "@hugeicons/react"
-import {  RoboticIcon, Settings05Icon, UnfoldMoreIcon, DashboardSquare02Icon, Layout01Icon } from "@hugeicons/core-free-icons"
+import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon } from 'lucide-react'
+import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Cable, Workflow, } from 'lucide-react'
 import Logout from './Logout'
 import { useUser } from '@/context/UserContext';
 
@@ -73,12 +73,12 @@ export function SidebarIconExample() {
     {
       title: "Dashboard",
       url: "/",
-      icon: <HugeiconsIcon icon={DashboardSquare02Icon} strokeWidth={2} />,
+      icon: <LayoutDashboard size={20} strokeWidth={2} />,
     },
     {
       title: "Integration",
       url: "/integration",
-      icon: <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} />,
+      icon: <Cable size={20} strokeWidth={2} />,
     },
     {
       title: "Connections",
@@ -86,14 +86,19 @@ export function SidebarIconExample() {
       icon: <LinkIcon size={20} strokeWidth={2} />,
     },
     {
-      title: "Automation",
-      url: "/automation",
-      icon: <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />,
-    },
-    {
       title: "Templates",
       url: "/templates",
       icon: <HugeiconsIcon icon={Layout01Icon} strokeWidth={2} />,
+    },
+    {
+      title: "Agents",
+      url: "/agents",
+      icon: <Bot size={20} strokeWidth={2} />,
+    },
+    {
+      title: "Automation",
+      url: "/automation",
+      icon: <Workflow size={20} strokeWidth={2} />,
     },
   ]
 

@@ -12,6 +12,7 @@ import Integration from './ui_components/Integration';
 import Automation from './ui_components/Automation';
 import Connections from './ui_components/Connections';
 import Templates from './ui_components/Templates';
+import Agents from './ui_components/Agents';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const location = useLocation();
@@ -48,6 +49,7 @@ export function App() {
                         <Route path="/templates" element={<Templates />} />
                         <Route path="/automation" element={<Automation />} />
                         <Route path="/automation/:id" element={<Automation />} />
+                        <Route path="/agents" element={<Agents />} />
                     </Route>
                     
                     <Route path="*" element={<ErrorPage />} />

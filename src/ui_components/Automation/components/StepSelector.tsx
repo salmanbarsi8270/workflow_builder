@@ -14,7 +14,7 @@ interface StepSelectorProps {
 
 export default function StepSelector({ onSelect, onClose, mode = 'action' }: StepSelectorProps) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [activeTab, setActiveTab] = useState<'app' | 'utility'>('app');
+    const [activeTab, setActiveTab] = useState<'app' | 'utility' | 'agent'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
 
     useEffect(() => {
@@ -97,7 +97,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
             {/* Tabs (Only if no app selected) */}
             {!selectedApp && (
                 <div className="flex border-b">
-                    <button
+                     <button
                         onClick={() => setActiveTab('app')}
                         className={cn(
                             "flex-1 py-3 text-sm font-medium transition-colors border-b-2",
@@ -105,6 +105,15 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                         )}
                     >
                         Apps
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('agent')}
+                        className={cn(
+                            "flex-1 py-3 text-sm font-medium transition-colors border-b-2",
+                            activeTab === 'agent' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        Agents
                     </button>
                     <button
                         onClick={() => setActiveTab('utility')}

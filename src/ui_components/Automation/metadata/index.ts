@@ -29,7 +29,7 @@ export const APP_DEFINITIONS: AppDefinition[] = [
   onedrive,
   excel,
   word,
-  word,
+
   http,
   openrouter
 ];

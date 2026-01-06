@@ -14,7 +14,7 @@ export const github: AppDefinition = {
       description: 'Creates a new GitHub repository.', 
       type: 'action',
       parameters: [
-           { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+           { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
            { name: 'name', type: 'string', label: 'Name', description: 'Name of the new repository', required: true },
            { name: 'description', type: 'string', label: 'Description', description: 'Optional description' },
            { name: 'private', type: 'boolean', label: 'Private', default: false }
@@ -26,7 +26,7 @@ export const github: AppDefinition = {
       description: 'Permanently deletes a GitHub repository.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { 
           name: 'repository', 
           type: 'dynamic-select', 
@@ -43,7 +43,7 @@ export const github: AppDefinition = {
       description: 'Creates a new GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
         { name: 'title', type: 'string', label: 'Title', description: 'Title of the new issue', required: true },
         { name: 'body', type: 'string', label: 'Body', description: 'Body of the new issue', required: true }
@@ -55,7 +55,7 @@ export const github: AppDefinition = {
       description: 'Updates a GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { name: 'repository', type: 'string', label: 'Repository', description: 'Name of the repository', required: true },
         { name: 'issueNumber', type: 'number', label: 'Issue Number', description: 'Number of the issue to update', required: true },
         { name: 'title', type: 'string', label: 'Title', description: 'Title of the issue', required: true },
@@ -78,7 +78,7 @@ export const github: AppDefinition = {
       description: 'Closes a GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { 
           name: 'repository', 
           type: 'dynamic-select', 
@@ -96,7 +96,7 @@ export const github: AppDefinition = {
       description: 'Reopens a GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { 
           name: 'repository', 
           type: 'dynamic-select', 
@@ -114,7 +114,7 @@ export const github: AppDefinition = {
       description: 'Locks a GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { 
           name: 'repository', 
           type: 'dynamic-select', 
@@ -132,7 +132,7 @@ export const github: AppDefinition = {
       description: 'Unlocks a GitHub issue.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true },
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true },
         { 
           name: 'repository', 
           type: 'dynamic-select', 
@@ -150,7 +150,7 @@ export const github: AppDefinition = {
       description: 'Lists all available GitHub repositories.',
       type: 'action',
       parameters: [
-        { name: 'connection', type: 'connection', label: 'GitHub Connection', required: true }
+        { name: 'authId', type: 'connection', label: 'GitHub Connection', required: true }
       ],
       outputSchema: [
         { name: 'repos', type: 'array', items: { name: 'repo', type: 'object', properties: [

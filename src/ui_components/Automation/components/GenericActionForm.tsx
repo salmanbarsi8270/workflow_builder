@@ -202,6 +202,58 @@ const DynamicSelect = ({
     );
 };
 
+const AgentSelector = ({
+    value,
+    onChange,
+    disabled
+}: {
+    value: string,
+    onChange: (val: string) => void,
+    disabled?: boolean
+}) => {
+    const [agents, setAgents] = useState<{ id: string, name: string }[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchAgents = async () => {
+            setLoading(true);
+            try {
+                const res = await axios.get(`${API_URL}/api/v1/agents`);
+                if (Array.isArray(res.data)) {
+                    setAgents(res.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch agents", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAgents();
+    }, []);
+
+    return (
+        <Select
+            value={value || ''}
+            onValueChange={onChange}
+            disabled={disabled || loading}
+        >
+            <SelectTrigger>
+                <SelectValue placeholder={loading ? "Loading agents..." : "Select an Agent"} />
+            </SelectTrigger>
+            <SelectContent>
+                {agents.length === 0 && !loading && (
+                    <div className="p-2 text-center text-xs text-muted-foreground">No agents found</div>
+                )}
+                {agents.map(agent => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+};
+
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
@@ -270,6 +322,14 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                         param.label?.includes('Docs') ? 'Google Docs' :
                                             param.label?.includes('Sheets') ? 'Google Sheets' :
                                                 appName}
+                                value={params[param.name] || ''}
+                                onChange={(val) => handleChange(param.name, val)}
+                                disabled={disabled}
+                            />
+                        )}
+
+                        {param.type === 'agent' && (
+                            <AgentSelector
                                 value={params[param.name] || ''}
                                 onChange={(val) => handleChange(param.name, val)}
                                 disabled={disabled}
