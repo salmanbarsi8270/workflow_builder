@@ -259,9 +259,15 @@ export default function WorkflowDashboard() {
                     <div key={run.id} className="flex items-center gap-4">
                       <div className={cn(
                         "h-8 w-8 rounded-full flex items-center justify-center text-white",
-                        run.status === 'Success' ? "bg-green-500" : run.status === 'Running' ? "bg-blue-500" : "bg-red-500"
+                        run.status.toLowerCase() === 'success' || run.status.toLowerCase() === 'completed' ? "bg-green-500" : 
+                        run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'waiting' ? "bg-blue-500" : 
+                        "bg-red-500"
                       )}>
-                        {run.status === 'Success' ? <CheckCheckIcon className="h-4 w-4" /> : run.status === 'Running' ? <Play className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                        {
+                            (run.status.toLowerCase() === 'success' || run.status.toLowerCase() === 'completed') ? <CheckCheckIcon className="h-4 w-4" /> : 
+                            (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'waiting') ? <Play className="h-4 w-4" /> : 
+                            <X className="h-4 w-4" />
+                        }
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">{run.name}</p>

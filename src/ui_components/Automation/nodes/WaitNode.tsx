@@ -110,6 +110,9 @@ const WaitNode = ({ data, selected }: NodeProps) => {
 
     const iconKey = (nodeData.icon as string) || (nodeData.piece as string) || 'wait';
     const logoUrl = AppLogoMap[iconKey];
+    
+    // Fix for white icons being invisible in light mode
+    const isWhiteIcon = ['wait', 'delay', 'utility'].includes(iconKey);
 
     return (
         <div className="relative group">
@@ -139,7 +142,14 @@ const WaitNode = ({ data, selected }: NodeProps) => {
                         )}
                     >
                         {logoUrl ? (
-                            <img src={logoUrl} alt={iconKey} className="h-6 w-6 object-contain" />
+                            <img 
+                                src={logoUrl} 
+                                alt={iconKey} 
+                                className={cn(
+                                    "h-6 w-6 object-contain",
+                                    isWhiteIcon && "invert dark:invert-0"
+                                )} 
+                            />
                         ) : (
                             <Clock
                                 className={cn(

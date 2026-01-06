@@ -248,6 +248,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const actionId = selectedNode.data.actionId as string;
     const actionName = selectedNode.data.actionName as string;
     const actionIcon = selectedNode.data.icon as string;
+    const isWhiteIcon = ['wait', 'delay', 'utility'].includes(actionIcon || '');
 
     const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === selectedNode.data.icon);
     const actionDef: any = appDef?.actions.find(a => a.id === actionId);
@@ -384,7 +385,15 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center relative", getStatusColor(nodeStatus).split(' ')[1])}>
-                                {AppLogoMap[actionIcon] ? <img src={AppLogoMap[actionIcon]} className="w-6 h-6" alt={appName} /> : <Zap className="h-5 w-5" />}
+                                {AppLogoMap[actionIcon] ? (
+                                    <img 
+                                        src={AppLogoMap[actionIcon]} 
+                                        className={cn("w-6 h-6", isWhiteIcon && "invert dark:invert-0")} 
+                                        alt={appName} 
+                                    />
+                                ) : (
+                                    <Zap className="h-5 w-5" />
+                                )}
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold leading-none flex items-center gap-2">
@@ -607,6 +616,8 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                     {(() => {
                                         const service = selectedNode.data.icon as string;
                                         const piece = pieces[service];
+                                        const actionIcon = actionDef?.icon || actionDef?.piece || 'zap';
+                                        const isWhiteIcon = ['wait', 'delay', 'utility'].includes(actionIcon);
                                         const actionType = actionDef?.type === 'trigger' ? 'triggers' : 'actions';
                                         const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema;
 

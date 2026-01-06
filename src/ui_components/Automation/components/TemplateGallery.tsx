@@ -295,7 +295,14 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                                className="h-7 w-7 rounded-md flex items-center justify-center border border-border bg-background p-1 relative z-10 shadow-sm transition-transform hover:-translate-y-0.5"
                                title={app}
                              >
-                               <img src={logo} alt={app} className="h-full w-full object-contain" />
+                               <img 
+                                   src={logo} 
+                                   alt={app} 
+                                   className={cn(
+                                       "h-full w-full object-contain",
+                                       ['wait', 'delay', 'utility'].some(k => app.toLowerCase().includes(k)) && "invert dark:invert-0"
+                                   )} 
+                               />
                              </div>
                            );
                          }

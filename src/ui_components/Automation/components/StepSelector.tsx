@@ -130,7 +130,14 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                             >
                                 <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center shrink-0 overflow-hidden">
                                     {AppLogoMap[app.id] ? (
-                                        <img src={AppLogoMap[app.id]} alt={app.name} className="h-7 w-7 object-contain" />
+                                        <img 
+                                            src={AppLogoMap[app.id]} 
+                                            alt={app.name} 
+                                            className={cn(
+                                                "h-7 w-7 object-contain",
+                                                ['wait', 'delay', 'utility'].includes(app.id) && "invert dark:invert-0"
+                                            )} 
+                                        />
                                     ) : (
                                         <app.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                                     )}

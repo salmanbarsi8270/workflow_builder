@@ -107,43 +107,47 @@ export default function AutomationIndex() {
     }, [socket, id]);
 
 
-    // Fetch Automations on Load (List View)
-    useEffect(() => {
-        const fetchAutomations = async (showLoading = true) => {
-            if (!user?.id || !socket) {
-                // Wait for socket
-                return;
+    // Fetch Automations Function
+    const fetchAutomations = useCallback(async (showLoading = true) => {
+        if (!user?.id || !socket) {
+            return;
+        }
+
+        if (showLoading) setIsListLoading(true);
+
+        socket.emit('list-flows', user.id, (response: any) => {
+            if (showLoading) setIsListLoading(false);
+            if (response.error) {
+                console.error("Failed to fetch automations:", response.error);
+            } else if (response.success && response.flows) {
+                const mappedFlows: AutomationItem[] = response.flows.map((flow: any) => ({
+                    id: flow.id,
+                    name: flow.name,
+                    createdDate: new Date(flow.created_at).toISOString().split('T')[0],
+                    status: flow.is_active,
+                    nodes: [],
+                    edges: []
+                }));
+                setAutomations(mappedFlows);
             }
+        });
+    }, [user?.id, socket]);
 
-            if (showLoading) setIsListLoading(true);
+    // Initial Fetch & Polling
+    useEffect(() => {
+        // Only fetch if we are in list mode (no ID)
+        if (!id) {
+            fetchAutomations();
+        }
 
-            socket.emit('list-flows', user.id, (response: any) => {
-                if (showLoading) setIsListLoading(false);
-                if (response.error) {
-                    console.error("Failed to fetch automations:", response.error);
-                } else if (response.success && response.flows) {
-                    const mappedFlows: AutomationItem[] = response.flows.map((flow: any) => ({
-                        id: flow.id,
-                        name: flow.name,
-                        createdDate: new Date(flow.created_at).toISOString().split('T')[0],
-                        status: flow.is_active,
-                        nodes: [],
-                        edges: []
-                    }));
-                    setAutomations(mappedFlows);
-                }
-            });
-        };
-
-        fetchAutomations();
-
-        // Background polling every 30 seconds
         const intervalId = setInterval(() => {
-            fetchAutomations(false); // Fetch silently in background
+            // Poll regardless? Or only if !id?
+            // If we are in editor, we don't strictly need to poll the list, but it keeps cache fresh.
+            if (!id) fetchAutomations(false);
         }, 30000);
 
         return () => clearInterval(intervalId);
-    }, [user?.id, isUserLoading, id, socket]); // Re-run when navigation happens or socket connects
+    }, [fetchAutomations, id, location.pathname]); // Re-run when ID changes (navigating back to list)
 
     // Handle URL Change / Editor Loading
     useEffect(() => {
@@ -328,6 +332,9 @@ export default function AutomationIndex() {
                         } else if (response.success && response.flow) {
                             const createdFlow = response.flow;
                             const newId = createdFlow.id || (createdFlow.flow && createdFlow.flow.id) || (createdFlow.flow && createdFlow.flow._id) || createdFlow._id;
+
+                            // Refresh list so it's there when we come back
+                            fetchAutomations(false);
 
                             // Navigate to new flow
                             setIsCreateModalOpen(false);
@@ -577,7 +584,13 @@ export default function AutomationIndex() {
                                             <div className="h-full overflow-hidden border border-border/40 rounded-2xl shadow-inner bg-muted/5">
                                                 <TemplateGallery 
                                                     userId={user?.id || ""} 
-                                                    onSuccess={() => setIsCreateModalOpen(false)}
+                                                    onSuccess={(newId) => {
+                                                        fetchAutomations(false); 
+                                                        setIsCreateModalOpen(false);
+                                                        if (newId) {
+                                                            navigate(`/automation/${newId}`);
+                                                        }
+                                                    }}
                                                     hideTitle={true}
                                                 />
                                             </div>
