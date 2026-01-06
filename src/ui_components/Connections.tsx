@@ -146,6 +146,7 @@ export default function Connections() {
   const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedAccounts = filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
+  console.log(paginatedAccounts);
 
   const fetchAccounts = () => {
     if (user?.id) {
@@ -194,9 +195,9 @@ export default function Connections() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(acc => 
-        acc.username.toLowerCase().includes(query) ||
-        acc.serviceName.toLowerCase().includes(query) ||
-        acc.externalId.toLowerCase().includes(query)
+        (acc.username || '').toLowerCase().includes(query) ||
+        (acc.serviceName || '').toLowerCase().includes(query) ||
+        (acc.externalId || '').toLowerCase().includes(query)
       );
     }
     
@@ -209,12 +210,12 @@ export default function Connections() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.username.localeCompare(b.username);
+          return (a.username || '').localeCompare(b.username || '');
         case 'service':
-          return a.serviceName.localeCompare(b.serviceName);
+          return (a.serviceName || '').localeCompare(b.serviceName || '');
         case 'date':
         default:
-          return new Date(b.connectedAt).getTime() - new Date(a.connectedAt).getTime();
+          return new Date(b.connectedAt || 0).getTime() - new Date(a.connectedAt || 0).getTime();
       }
     });
     

@@ -11,6 +11,7 @@ import { logic } from './apps/logic';
 import { delay } from './apps/delay';
 import { schedule } from './apps/schedule';
 import { http } from './apps/http';
+import { openrouter } from './apps/openrouter';
 import type { AppDefinition } from './types';
 
 export * from './types';
@@ -28,7 +29,9 @@ export const APP_DEFINITIONS: AppDefinition[] = [
   onedrive,
   excel,
   word,
-  http
+  word,
+  http,
+  openrouter
 ];
 
 export const getAppDefinition = (id: string) => APP_DEFINITIONS.find(app => app.id === id);

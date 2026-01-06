@@ -45,6 +45,7 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLocalLoading, setIsLocalLoading] = useState(false);
     const [connectionName, setConnectionName] = useState('');
+    const [apiKey, setApiKey] = useState('');
 
     const mappedService = SERVICE_MAP[appName.toLowerCase()] || appName.toLowerCase().replace(/\s+/g, '_');
 
@@ -102,17 +103,46 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
 
     const handleConnectClick = () => {
         setConnectionName(`${appName} Account ${connections.length + 1}`);
+        setApiKey('');
         setIsModalOpen(true);
     };
 
-    const handleConfirmConnect = () => {
-        if (user?.id) {
-            const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
-            const nameParam = connectionName ? `&name=${encodeURIComponent(connectionName)}` : '';
-            window.location.href = `${API_URL}/auth/connect/${mappedService}?userId=${user.id}&callbackUrl=${callbackUrl}${nameParam}`;
-        } else {
+    const handleConfirmConnect = async () => {
+        if (!user?.id) {
             console.error("User ID missing");
+            return;
         }
+
+        if (mappedService === 'openrouter') {
+             try {
+                 const response = await fetch(`${API_URL}/api/connections/key`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: user.id,
+                      service: 'openrouter',
+                      apiKey: apiKey,
+                      name: connectionName
+                    })
+                 });
+                 const data = await response.json();
+                 if (data.success) {
+                     sonner.success("Connection saved!");
+                     setIsModalOpen(false);
+                     await fetchConnections();
+                 } else {
+                     sonner.error(data.error || "Failed to save key");
+                 }
+             } catch (err) {
+                 console.error(err);
+                 sonner.error("Failed to save key");
+             }
+             return;
+        }
+
+        const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        const nameParam = connectionName ? `&name=${encodeURIComponent(connectionName)}` : '';
+        window.location.href = `${API_URL}/auth/connect/${mappedService}?userId=${user.id}&callbackUrl=${callbackUrl}${nameParam}`;
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -166,29 +196,64 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                 </Button>
 
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>Connect {appName}</DialogTitle>
+                            <DialogTitle>{mappedService === 'openrouter' ? "Add OpenRouter Provider" : `Connect ${appName}`}</DialogTitle>
                             <DialogDescription>
-                                Give this connection a name to identify it later.
+                                {mappedService === 'openrouter' 
+                                    ? "Configure credentials for OpenRouter." 
+                                    : "Give this connection a name to identify it later."}
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label>Connection Name</Label>
-                                <Input
-                                    value={connectionName}
-                                    onChange={(e) => setConnectionName(e.target.value)}
-                                    placeholder="e.g. My Work Gmail"
-                                />
+                        {mappedService === 'openrouter' ? (
+                            <div className="space-y-4 py-2">
+                                <div className="rounded-md bg-muted p-4 border text-sm text-muted-foreground flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 font-medium text-foreground">
+                                        <div className="h-4 w-4 rounded-full border border-foreground/30 flex items-center justify-center text-[10px]">i</div>
+                                         Follow these instructions to get your OpenRouter API Key:
+                                    </div>
+                                    <ol className="list-decimal pl-5 space-y-1">
+                                        <li>
+                                            Visit the following website: <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://openrouter.ai/settings/keys</a>.
+                                        </li>
+                                        <li>
+                                            Once on the website, locate and click on the option to obtain your OpenRouter API Key.
+                                        </li>
+                                    </ol>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>API Key <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder="sk-or-..."
+                                        type="password"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Your key is encrypted and stored securely.</p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>Connection Name</Label>
+                                    <Input
+                                        value={connectionName}
+                                        onChange={(e) => setConnectionName(e.target.value)}
+                                        placeholder="e.g. My Work Gmail"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
-                            <Button onClick={handleConfirmConnect} disabled={disabled || !connectionName.trim()}>
-                                Connect & Authenticate
+                            <Button 
+                                onClick={handleConfirmConnect} 
+                                disabled={disabled || (mappedService === 'openrouter' ? !apiKey.trim() : !connectionName.trim())}
+                            >
+                                {mappedService === 'openrouter' ? "Save" : "Connect & Authenticate"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -270,7 +335,9 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                     <DialogHeader>
                         <DialogTitle>Connect {appName}</DialogTitle>
                         <DialogDescription>
-                            Give this connection a name to identify it later.
+                            {mappedService === 'openrouter' 
+                                ? "Enter your OpenRouter API Key." 
+                                : "Give this connection a name to identify it later."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -280,15 +347,29 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                             <Input
                                 value={connectionName}
                                 onChange={(e) => setConnectionName(e.target.value)}
-                                placeholder="e.g. My Work Gmail"
+                                placeholder="e.g. My API Key"
                             />
                         </div>
+                        {mappedService === 'openrouter' && (
+                            <div className="space-y-2">
+                                <Label>API Key</Label>
+                                <Input
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="sk-or-..."
+                                    type="password"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
-                        <Button onClick={handleConfirmConnect} disabled={disabled || !connectionName.trim()}>
-                            Connect & Authenticate
+                        <Button 
+                            onClick={handleConfirmConnect} 
+                            disabled={disabled || !connectionName.trim() || (mappedService === 'openrouter' && !apiKey.trim())}
+                        >
+                            {mappedService === 'openrouter' ? "Save Connection" : "Connect & Authenticate"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

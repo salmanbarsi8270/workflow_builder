@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { OpenRouterModel } from "./Utility/openroutermodel"
 
 interface ConnectedAccount {
   id: string;
@@ -312,9 +313,8 @@ const IntegrationGridCard = ({ app, onConnect, connectingApp }: { app: Integrati
           variant={app.connected ? "outline" : "default"}
           className={`
             w-full font-semibold transition-all duration-300 relative overflow-hidden
-            ${app.connected 
-              ? 'border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary' 
-              : 'bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'}
+            ${app.connected ? 'border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary' 
+             : 'bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'}
           `}
           onClick={() => onConnect(app)}
           disabled={connectingApp === app.id}
@@ -462,6 +462,7 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'popular' | 'name' | 'recent'>('popular');
+  const [openroutermodel, setOpenroutermodel] = useState(false)
 
   useEffect(() => {
     fetchConnections();
@@ -578,7 +579,11 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
     const returnPath = window.location.pathname; 
     if (app.id === 'github') {
       window.location.href = `${API_URL}/auth/connect/github?userId=${user?.id}&callbackUrl=${returnPath}`;
-    } else {
+    } 
+    else if (app.id === 'openrouter') {
+      handleOpenRouterModel()
+    }
+    else {
       window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user?.id}&callbackUrl=${returnPath}`;
     }
   };
@@ -602,6 +607,16 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
     return Array.from(categories);
   }, [apps]);
 
+  const handleOpenRouterModel = () => {
+    setOpenroutermodel(true);
+  }
+
+  const handleOpenRouterChange = (open: boolean) => {
+    setOpenroutermodel(open);
+    if (!open) {
+        setConnectingApp(null);
+    }
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -790,26 +805,18 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
             ))}
           </div>
         ) : filteredApps.length === 0 ? (
-          <Card className="text-center py-16 border-dashed">
-            <CardContent className="space-y-4">
-              <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center">
-                <AlertCircle className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold">
-                {searchQuery || categoryFilter !== 'all' ? 'No matching integrations' : 'No integrations found'}
-              </h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                {searchQuery 
-                  ? 'Try adjusting your search terms or filters to find what you\'re looking for.'
-                  : 'Start by connecting your first integration to automate your workflows.'}
-              </p>
-              {(searchQuery || categoryFilter !== 'all' || statusFilter !== 'all') && (
-                <Button onClick={handleClearFilters} className="mt-4">
-                  Clear all filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <div className="text-center py-12 rounded-lg border-2 border-dashed border-border/50 bg-muted/20">
+            <div className="bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No matching integrations</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+              Try adjusting your search terms or filters to find what you're looking for.
+            </p>
+            <Button variant="outline" onClick={handleClearFilters}>
+              Clear all filters
+            </Button>
+          </div>
         ) : viewMode === 'grid' ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
             {filteredApps.map((app) => (
@@ -822,7 +829,7 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
             ))}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredApps.map((app) => (
               <IntegrationListItem 
                 key={app.id || app.name} 
@@ -834,6 +841,11 @@ export default function Integration({ defaultTab = 'all' }: IntegrationProps) {
           </div>
         )}
       </div>
+      <OpenRouterModel 
+        open={openroutermodel} 
+        onOpenChange={handleOpenRouterChange}
+        onSuccess={fetchConnections}
+      />
     </div>
   );
 }
