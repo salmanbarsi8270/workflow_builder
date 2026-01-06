@@ -616,8 +616,6 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                     {(() => {
                                         const service = selectedNode.data.icon as string;
                                         const piece = pieces[service];
-                                        const actionIcon = actionDef?.icon || actionDef?.piece || 'zap';
-                                        const isWhiteIcon = ['wait', 'delay', 'utility'].includes(actionIcon);
                                         const actionType = actionDef?.type === 'trigger' ? 'triggers' : 'actions';
                                         const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema;
 
