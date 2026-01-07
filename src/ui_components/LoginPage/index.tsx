@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { API_URL } from "./api/apiurl";
-import { useUser } from '../context/UserContext';
+import { API_URL } from "../api/apiurl";
+import { useUser } from '../../context/UserContext';
 import axios from 'axios';
 
 export default function LoginPage() {
@@ -52,14 +52,14 @@ export default function LoginPage() {
             <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-border/50">
                 <CardHeader className="text-center space-y-2 pb-8">
                     <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 ring-8 ring-primary/5">
-                        <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2.5" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                             className="h-7 w-7 text-primary"
                         >
                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -76,10 +76,10 @@ export default function LoginPage() {
                     <form onSubmit={handleEmailLogin} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
-                            <Input 
-                                id="email" 
-                                type="email" 
-                                placeholder="test@example.com" 
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="test@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -90,9 +90,9 @@ export default function LoginPage() {
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password">Password</Label>
                             </div>
-                            <Input 
-                                id="password" 
-                                type="password" 
+                            <Input
+                                id="password"
+                                type="password"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -100,14 +100,14 @@ export default function LoginPage() {
                                 className="h-11 px-4 focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                         </div>
-                        
+                       
                         {error && (
                             <p className="text-sm font-medium text-destructive text-center">{error}</p>
                         )}
 
-                        <Button 
-                            type="submit" 
-                            className="w-full h-11 text-base font-semibold shadow-md hover:shadow-lg transition-all" 
+                        <Button
+                            type="submit"
+                            className="w-full h-11 text-base font-semibold shadow-md hover:shadow-lg transition-all"
                             disabled={isLoading}
                         >
                             {isLoading ? (
@@ -134,10 +134,10 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full h-11 text-base font-medium relative hover:bg-muted/50 transition-colors border-border/60"
-                        onClick={handleGoogleLogin} 
+                        onClick={handleGoogleLogin}
                         disabled={isLoading}
                     >
                         <div className="flex items-center justify-center gap-3">
@@ -155,5 +155,3 @@ export default function LoginPage() {
         </div>
     );
 }
-
-

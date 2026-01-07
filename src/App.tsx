@@ -1,14 +1,14 @@
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { SidebarIconExample } from "./ui_components/slider";
-import ErrorPage from "./ui_components/Errorpage";
+import { SidebarIconExample } from "./ui_components/Slider";
+import ErrorPage from "./ui_components/ErrorPage";
 import LoginPage from "./ui_components/LoginPage";
 import React from 'react';
 import { UserProvider, useUser } from './context/UserContext';
 import { Loader2 } from 'lucide-react';
 
 // Page Imports
-import WorkflowDashboard from './ui_components/Dashboad';
-import Integration from './ui_components/Integration';
+import WorkflowDashboard from './ui_components/Dashboard';
+import Connectors from './ui_components/Integration';
 import Automation from './ui_components/Automation';
 import Connections from './ui_components/Connections';
 import Templates from './ui_components/Templates';
@@ -44,7 +44,7 @@ export function App() {
                     {/* Protected Routes with Sidebar Layout */}
                     <Route element={<RequireAuth><SidebarIconExample /></RequireAuth>}>
                         <Route path="/" element={<WorkflowDashboard />} />
-                        <Route path="/integration" element={<Integration />} />
+                        <Route path="/connectors" element={<Connectors />} />
                         <Route path="/connections" element={<Connections />} />
                         <Route path="/templates" element={<Templates />} />
                         <Route path="/automation" element={<Automation />} />

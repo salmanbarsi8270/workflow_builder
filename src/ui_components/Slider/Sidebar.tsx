@@ -40,7 +40,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
 import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Cable, Workflow, } from 'lucide-react'
-import Logout from './Logout'
+import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 
 export function SidebarIconExample() {
@@ -62,6 +62,8 @@ export function SidebarIconExample() {
         return "Automation";
       case "/templates":
         return "Templates";
+      case "/agents":
+        return "Agents"; // Added check for agents just in case
       default:
         return "Dashboard";
     }
@@ -76,8 +78,8 @@ export function SidebarIconExample() {
       icon: <LayoutDashboard size={20} strokeWidth={2} />,
     },
     {
-      title: "Integration",
-      url: "/integration",
+      title: "Connectors",
+      url: "/connectors",
       icon: <Cable size={20} strokeWidth={2} />,
     },
     {

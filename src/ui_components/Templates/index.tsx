@@ -1,4 +1,4 @@
-import { TemplateGallery, type TemplateGalleryHandle } from './Automation/components/TemplateGallery';
+import { TemplateGallery, type TemplateGalleryHandle } from '../Automation/components/TemplateGallery';
 import { useUser } from '@/context/UserContext';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ export default function Templates() {
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100vh-6rem)] p-2 overflow-hidden rounded-2xl border border-border shadow-2xl bg-background">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-4">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
                           <div className="p-2 rounded-xl bg-linear-to-br from-primary/20 to-primary/10">

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, ChevronRight, ChevronLeft, Filter, Sparkles, Zap, ChevronLast, ChevronFirst, Globe, Plus, LayoutGrid, List } from "lucide-react"
-import { getServices, deleteConnection } from "./api/connectionlist"
+import { getServices, deleteConnection } from "../api/connectionlist"
 import { useUser } from '@/context/UserContext';
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
@@ -146,7 +146,6 @@ export default function Connections() {
   const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedAccounts = filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
-  console.log(paginatedAccounts);
 
   const fetchAccounts = () => {
     if (user?.id) {
@@ -195,9 +194,9 @@ export default function Connections() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(acc => 
-        (acc.username || '').toLowerCase().includes(query) ||
-        (acc.serviceName || '').toLowerCase().includes(query) ||
-        (acc.externalId || '').toLowerCase().includes(query)
+        acc.username.toLowerCase().includes(query) ||
+        acc.serviceName.toLowerCase().includes(query) ||
+        acc.externalId.toLowerCase().includes(query)
       );
     }
     
@@ -210,12 +209,12 @@ export default function Connections() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return (a.username || '').localeCompare(b.username || '');
+          return a.username.localeCompare(b.username);
         case 'service':
-          return (a.serviceName || '').localeCompare(b.serviceName || '');
+          return a.serviceName.localeCompare(b.serviceName);
         case 'date':
         default:
-          return new Date(b.connectedAt || 0).getTime() - new Date(a.connectedAt || 0).getTime();
+          return new Date(b.connectedAt).getTime() - new Date(a.connectedAt).getTime();
       }
     });
     
@@ -276,9 +275,9 @@ export default function Connections() {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => navigate('/integration')} className="gap-2 h-10 px-4 bg-linear-to-r from-primary to-primary/80">
+          <Button size="sm" onClick={() => navigate('/connectors')} className="gap-2 h-10 px-4 bg-linear-to-r from-primary to-primary/80">
             <Plus className="h-4 w-4" />
-            Add Account
+            Add Connector
           </Button>
         </div>
       </motion.div>

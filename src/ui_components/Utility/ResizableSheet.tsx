@@ -83,13 +83,14 @@ export function ResizableSheetContent({
         <SheetContent 
             side={side} 
             className={cn(
-                "transition-[width] duration-0 ease-linear p-0 flex flex-col gap-0", // Remove standard transition for smooth drag
+                "p-0 flex flex-col gap-0", // Remove standard transition for smooth drag
                 isDragging && "select-none",
                 className
             )}
             style={{ 
                 maxWidth: 'none', 
-                width: `${width}px` 
+                width: `${width}px`,
+                transition: 'width 0s'
             }}
             {...props}
         >
