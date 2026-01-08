@@ -1,3 +1,11 @@
+export interface MCPConfig {
+  name: string;
+  type: 'stdio' | 'sse' | 'http' | 'streamable-http';
+  url?: string;
+  command?: string;
+  args?: string[];
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -8,9 +16,15 @@ export interface Agent {
   connectionId?: string;
   connection_id?: string;
   parent_agent?: string | null;
-  tools?: { name: string; piece?: string; action?: string; mcpConfig?: any; connectionId?: string }[];
-  sub_agents?: Agent[]; // List of sub-agent objects
-  subagents?: Agent[]; // Alternative key from backend
+  tools?: { 
+      name: string; 
+      piece?: string; 
+      action?: string; 
+      mcpConfig?: MCPConfig; 
+      connectionId?: string 
+  }[];
+  sub_agents?: Agent[];
+  subagents?: Agent[];
 }
 
 export interface ConnectionOption {
