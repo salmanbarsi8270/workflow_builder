@@ -40,8 +40,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     input: input,
-                    userId: userId,
-                    stream: true
+                    userId: userId
                 })
             });
 
@@ -55,20 +54,41 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 return;
             }
 
-            if (!res.body) {
-                setResponse("Error: No response body received.");
-                return;
-            }
+            // Check if response is JSON
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const data = await res.json();
+                // Prefer 'text', then 'output', then stringify the object if neither exists
+                const reply = data.text || data.output || data._output || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+                setResponse(reply);
+            } else {
+                // Fallback to streaming reader if it's not JSON
+                if (!res.body) {
+                    setResponse("Error: No response body received.");
+                    return;
+                }
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                setResponse(prev => prev + chunk);
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullText += chunk;
+                    setResponse(fullText);
+                }
+
+                // After streaming, try to see if the whole thing was a JSON object
+                try {
+                    const parsed = JSON.parse(fullText);
+                    const reply = parsed.text || parsed.output || parsed._output || fullText;
+                    setResponse(reply);
+                } catch (e) {
+                    // Not a JSON, keep as is
+                }
             }
 
         } catch (error) {

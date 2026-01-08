@@ -288,7 +288,30 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                                         ) : status === 'pending' ? (
                                             <span className="text-muted-foreground italic">Waiting to start...</span>
                                         ) : (
-                                            <pre>{JSON.stringify(result?.output, null, 2) || '{}'}</pre>
+                                            <div className="space-y-3">
+                                                {(() => {
+                                                    const out = result?.output;
+                                                    const isAgentResponse = out && typeof out === 'object' && (out.text || out.output || out._output);
+                                                    
+                                                    if (isAgentResponse) {
+                                                        const reply = out.text || out.output || out._output;
+                                                        return (
+                                                            <>
+                                                                <div className="p-3 bg-white dark:bg-black/20 rounded-lg border border-border/50 text-sm font-sans whitespace-pre-wrap leading-relaxed">
+                                                                    {reply}
+                                                                </div>
+                                                                <details className="mt-2 text-[10px]">
+                                                                    <summary className="cursor-pointer hover:text-primary transition-colors">Show raw payload</summary>
+                                                                    <pre className="mt-1 p-2 bg-black/5 dark:bg-white/5 rounded overflow-auto max-h-[200px]">
+                                                                        {JSON.stringify(out, null, 2)}
+                                                                    </pre>
+                                                                </details>
+                                                            </>
+                                                        );
+                                                    }
+                                                    return <pre>{JSON.stringify(out, null, 2) || '{}'}</pre>;
+                                                })()}
+                                            </div>
                                         )}
                                     </div>
                                 )}

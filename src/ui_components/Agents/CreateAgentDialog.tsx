@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,29 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
     const [api_key, setApiKey] = useState<string>('');
     
     console.log("selectedSubAgents", selectedSubAgents);
+    // Flattened agents list for easier lookup and selection
+    const allAvailableAgents = useMemo(() => {
+        const flat: Agent[] = [];
+        const seen = new Set<string>();
+        
+        const traverse = (list: Agent[]) => {
+            if (!list || !Array.isArray(list)) return;
+            list.forEach(agent => {
+                if (!seen.has(agent.id)) {
+                    flat.push(agent);
+                    seen.add(agent.id);
+                }
+                const sub = agent.sub_agents || agent.subagents;
+                if (sub && Array.isArray(sub)) {
+                    traverse(sub);
+                }
+            });
+        };
+        
+        traverse(availableAgents);
+        return flat;
+    }, [availableAgents]);
+
     useEffect(() => {
         if (open) {
             if (initialAgent) {
@@ -49,9 +72,10 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     toolId: `${t.piece}:${t.action}`,
                     connectionId: t.connectionId
                 })) || []);
-                setSelectedSubAgents(initialAgent.sub_agents?.map(a => a.id) || []);
+                const subAgents = initialAgent.sub_agents || initialAgent.subagents || [];
+                setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
-                setSelectedConnection(initialAgent.connectionId || '');
+                setSelectedConnection(initialAgent.connectionId || initialAgent.connection_id || '');
                 // Ensure connection logic is handled if backend returns it
             } else {
                 // Create Mode
@@ -381,7 +405,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     <CommandList className="max-h-[300px]">
                                         <CommandEmpty>No agents found.</CommandEmpty>
                                         <CommandGroup heading="Available Agents">
-                                            {availableAgents
+                                            {allAvailableAgents
                                                 .filter(a => a.id !== initialAgent?.id) // Prevent self-selection
                                                 .map(agent => {
                                                 const isSelected = selectedSubAgents.includes(agent.id);
@@ -420,7 +444,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         {selectedSubAgents.length > 0 && (
                             <div className="flex flex-col gap-2 mt-2 max-h-[150px] overflow-y-auto">
                                 {selectedSubAgents.map(agentId => {
-                                    const agent = availableAgents.find(a => a.id === agentId);
+                                    const agent = allAvailableAgents.find(a => a.id === agentId);
                                     if (!agent) return null;
                                     return (
                                         <div key={agent.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-violet-200 dark:hover:border-violet-500/30 transition-all">
