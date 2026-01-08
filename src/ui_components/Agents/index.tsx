@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
 import { getServices } from '../api/connectionlist';
-import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw } from "lucide-react";
+import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -20,18 +20,11 @@ interface AgentTreeNodeProps {
   onRunClick: (agent: Agent, e: React.MouseEvent) => void;
   onEditClick: (agent: Agent, e: React.MouseEvent) => void;
   onDeleteClick: (agentId: string, e: React.MouseEvent) => void;
+  isDeleting?: boolean;
   level?: number;
 }
 
-function AgentTreeNode({ 
-  agent, 
-  idx, 
-  onCardClick, 
-  onRunClick, 
-  onEditClick, 
-  onDeleteClick,
-  level = 0
-}: AgentTreeNodeProps) {
+function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDeleteClick, isDeleting, level = 0 }: AgentTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubagents = (agent.subagents && agent.subagents.length > 0) || (agent.sub_agents && agent.sub_agents.length > 0);
   const subagentsList = agent.subagents || agent.sub_agents || [];
@@ -114,9 +107,10 @@ function AgentTreeNode({
             </button>
             <button 
               onClick={(e) => onDeleteClick(agent.id, e)}
-              className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400"
+              disabled={isDeleting}
+              className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Trash2 className="h-4 w-4" />
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -134,6 +128,7 @@ function AgentTreeNode({
               onRunClick={onRunClick}
               onEditClick={onEditClick}
               onDeleteClick={onDeleteClick}
+              isDeleting={isDeleting}
             />
           ))}
         </div>
@@ -146,6 +141,7 @@ export default function Agents() {
   const { user } = useUser();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [aiConnections, setAiConnections] = useState<ConnectionOption[]>([]);
   const [allConnections, setAllConnections] = useState<ConnectionOption[]>([]);
   
@@ -233,6 +229,7 @@ console.log("agents", agents);
     e.stopPropagation(); // Prevent card click
     if (!confirm("Are you sure you want to delete this agent? This action cannot be undone.")) return;
 
+    setDeletingId(agentId);
     try {
         const response = await fetch(`${API_URL}/api/v1/agents/${agentId}`, {
             method: 'DELETE',
@@ -243,14 +240,17 @@ console.log("agents", agents);
         });
 
         if (response.ok) {
-            setAgents(agents.filter(a => a.id !== agentId));
             toast.success("Agent deleted successfully");
+            await fetchAgents();
         } else {
-            toast.error("Failed to delete agent");
+            const errorData = await response.json().catch(() => ({}));
+            toast.error(errorData.message || "Failed to delete agent");
         }
     } catch (error) {
         console.error("Error deleting agent:", error);
         toast.error("Something went wrong");
+    } finally {
+        setDeletingId(null);
     }
   };
 
@@ -411,6 +411,7 @@ console.log("agents", agents);
               onRunClick={handleRunClick}
               onEditClick={handleEditClick}
               onDeleteClick={handleDeleteAgent}
+              isDeleting={deletingId === agent.id}
             />
           ))}
 

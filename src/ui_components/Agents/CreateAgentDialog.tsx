@@ -69,10 +69,13 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                 setName(initialAgent.name);
                 setInstructions(initialAgent.instructions);
                 setModel(initialAgent.model);
-                setSelectedTools(initialAgent.tools?.map(t => ({
-                    toolId: `${t.piece}:${t.action}`,
-                    connectionId: t.connectionId
-                })) || []);
+                const standardTools = initialAgent.tools
+                    ?.filter(t => !t.mcpConfig && t.piece && t.piece !== 'undefined')
+                    .map(t => ({
+                        toolId: `${t.piece}:${t.action}`,
+                        connectionId: t.connectionId
+                    })) || [];
+                setSelectedTools(standardTools);
                 const subAgents = initialAgent.sub_agents || initialAgent.subagents || [];
                 setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
@@ -245,7 +248,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions</Label>
+                        <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
                         <Textarea
                             id="instructions"
                             placeholder="You are a helpful assistant..."
@@ -256,7 +259,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="model" className="text-slate-700 dark:text-white font-medium">Model ID</Label>
+                        <Label htmlFor="model" className="text-slate-700 dark:text-white font-medium">Model ID <span className="text-red-500">*</span></Label>
                         <Input
                             id="model"
                             placeholder="e.g. openai/gpt-4-turbo"
@@ -267,7 +270,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection (OpenRouter)</Label>
+                        <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection (OpenRouter) <span className="text-red-500">*</span></Label>
                         <Select value={selectedConnection} onValueChange={setSelectedConnection}>
                             <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500">
                                 <SelectValue placeholder="Select Connection" />
@@ -582,7 +585,14 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     </Button>
                     <Button
                         onClick={handleSave}
-                        disabled={isSubmitting || hasMissingRequiredConnections}
+                        disabled={
+                            isSubmitting || 
+                            !name.trim() || 
+                            !instructions.trim() || 
+                            !model.trim() || 
+                            !selectedConnection ||
+                            hasMissingRequiredConnections
+                        }
                         className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 rounded-lg px-6"
                     >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
