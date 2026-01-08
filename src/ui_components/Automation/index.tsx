@@ -592,6 +592,7 @@ export default function AutomationIndex() {
                                                         }
                                                     }}
                                                     hideTitle={true}
+                                                    viewMode1={true}
                                                 />
                                             </div>
                                         </TabsContent>

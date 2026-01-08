@@ -34,6 +34,7 @@ interface TemplateGalleryProps {
   onSuccess?: (flowId: string) => void;
   hideTitle?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
+  viewMode1?: boolean
 }
 
 const getAppLogo = (appName: string) => {
@@ -75,7 +76,8 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
   userId, 
   onSuccess, 
   hideTitle,
-  onLoadingChange 
+  onLoadingChange ,
+  viewMode1
 }, ref) => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -85,7 +87,8 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
   const [isInstantiating, setIsInstantiating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(viewMode1 ? "list" : "grid");
+  console.log(viewMode);
 
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -174,49 +177,54 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
   }, [templates, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-slate-900 dark:text-white">
+    <div className={cn(
+      "flex flex-col h-full bg-transparent text-slate-900 dark:text-white",
+      hideTitle ? "px-0" : ""
+    )}>
       {/* Header Section */}
       {!hideTitle && (
-        <div className="px-8 pt-8 pb-4">
+        <div className={cn("pt-8 pb-4", hideTitle ? "px-4" : "px-8")}>
           <div className="flex items-center justify-between">
             <div className="relative flex-1 max-w-2xl group">
                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
                   <SearchIcon className="h-4 w-4" />
                </div>
                <Input
-                  placeholder="Search templates by name or description"
-                  className="h-12 pl-12 pr-4 bg-muted/50 border-border focus:bg-background transition-all text-sm rounded-lg"
+                  placeholder="Search templates..."
+                  className="h-10 pl-10 pr-4 bg-muted/50 border-border focus:bg-background transition-all text-sm rounded-lg"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                />
             </div>
-            <div className="flex items-center gap-2 ml-4">
-               <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("h-10 w-10 text-muted-foreground", viewMode === 'grid' && "bg-secondary text-foreground")}
-                  onClick={() => setViewMode('grid')}
-               >
-                  <LayoutGrid className="h-4 w-4" />
-               </Button>
-               <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("h-10 w-10 text-muted-foreground", viewMode === 'list' && "bg-secondary text-foreground")}
-                  onClick={() => setViewMode('list')}
-               >
-                  <List className="h-4 w-4" />
-               </Button>
-            </div>
+            {!hideTitle && (
+              <div className="flex items-center gap-2 ml-4">
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-10 w-10 text-muted-foreground", viewMode === 'grid' && "bg-secondary text-foreground")}
+                    onClick={() => setViewMode('grid')}
+                 >
+                    <LayoutGrid className="h-4 w-4" />
+                 </Button>
+                 <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-10 w-10 text-muted-foreground", viewMode === 'list' && "bg-secondary text-foreground")}
+                    onClick={() => setViewMode('list')}
+                 >
+                    <List className="h-4 w-4" />
+                 </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-8 pb-12 pt-10">
+      <div className={cn("flex-1 overflow-y-auto pb-12 pt-6", hideTitle ? "px-4" : "px-8")}>
         {isLoading ? (
-          <div className={cn(viewMode === 'grid' ? "flex flex-wrap gap-4" : "flex flex-col gap-3")}>
-            {[...Array(viewMode === 'grid' ? 8 : 10)].map((_, i) => (
-              <div key={i} className={cn("p-6 bg-card border border-border/50 rounded-xl relative overflow-hidden", viewMode === 'grid' ? "h-[200px] w-[500px]" : "w-full h-[100px]")}>
+          <div className={cn(viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-3")}>
+            {[...Array(viewMode === 'grid' ? 6 : 10)].map((_, i) => (
+              <div key={i} className={cn("p-6 bg-card border border-border/50 rounded-xl relative overflow-hidden", viewMode === 'grid' ? "h-[220px] w-full" : "w-full h-[100px]")}>
                 <div className={cn("space-y-4", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
                   <div className="space-y-3 flex-1">
                     <Skeleton className="h-5 w-3/4 bg-muted/20" />
@@ -245,24 +253,24 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
             ))}
           </div>
         ) : filteredTemplates.length > 0 ? (
-          <div className={cn(
-            viewMode === 'grid' 
-              ? "flex flex-wrap gap-4" 
-              : "flex flex-col gap-3"
-          )}>
-            {filteredTemplates.map((template, index) => (
-              <motion.div
-                key={template.id}
-                layoutId={template.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
-                onClick={() => setSelectedTemplate(template)}
-                className={cn(
-                  "group relative cursor-pointer", // Wrapper for positioning
-                  viewMode === 'grid' ? "h-[220px] w-full md:w-[calc(50%-1rem)] xl:w-[calc(33.33%-1rem)]" : "w-full h-auto"
-                )}
-              >
+            <div className={cn(
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" 
+                : "flex flex-col gap-3"
+            )}>
+              {filteredTemplates.map((template, index) => (
+                <motion.div
+                  key={template.id}
+                  layoutId={template.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+                  onClick={() => setSelectedTemplate(template)}
+                  className={cn(
+                    "group relative cursor-pointer", // Wrapper for positioning
+                    viewMode === 'grid' ? "h-[220px] w-full" : "w-full h-auto"
+                  )}
+                >
                  {/* Stabilized Hover Glow */}
                 <div className={cn(
                     "absolute -inset-0.5 bg-linear-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
@@ -273,12 +281,12 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                 )}>
                   <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
                     <div className="space-y-2">
-                      <h3 className="text-xl font-bold mb-1 text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors duration-300 line-clamp-1">
+                      <h3 className="text-lg font-bold mb-1 text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors duration-300 line-clamp-1">
                         {template.name}
                       </h3>
                       <p className={cn(
-                        "text-sm text-slate-500 dark:text-slate-400 leading-relaxed",
-                        viewMode === 'grid' ? "line-clamp-2" : "line-clamp-1"
+                        "text-xs text-slate-500 dark:text-slate-400 leading-relaxed",
+                        viewMode === 'grid' ? "line-clamp-3" : "line-clamp-1"
                       )}>
                         {template.description}
                       </p>

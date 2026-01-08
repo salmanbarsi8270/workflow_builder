@@ -159,7 +159,6 @@ export default function Agents() {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
 
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
 console.log("agents", agents);
   useEffect(() => {
@@ -169,13 +168,6 @@ console.log("agents", agents);
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-        setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const fetchAgents = async () => {
     setIsLoading(true);

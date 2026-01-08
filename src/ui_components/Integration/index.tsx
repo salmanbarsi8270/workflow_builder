@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles } from "lucide-react"
 import { getServices } from "../api/connectionlist"
