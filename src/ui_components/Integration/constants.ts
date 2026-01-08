@@ -50,9 +50,9 @@ export const categoryColors: Record<string, { bg: string, text: string, border: 
     border: 'border-green-200 dark:border-green-800'
   },
   'e-commerce': { 
-    bg: 'bg-violet-500/10 dark:bg-violet-500/20', 
-    text: 'text-violet-700 dark:text-violet-300',
-    border: 'border-violet-200 dark:border-violet-800'
+    bg: 'bg-indigo-500/10 dark:bg-indigo-500/20', 
+    text: 'text-indigo-700 dark:text-indigo-300',
+    border: 'border-indigo-200 dark:border-indigo-800'
   },
   'ai': { 
     bg: 'bg-cyan-500/10 dark:bg-cyan-500/20', 

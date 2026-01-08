@@ -33,12 +33,12 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                         <div className="p-6 pb-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-[#0f0f0f]">
                             <SheetHeader className="text-left space-y-1">
                                 <div className="flex items-center gap-4 mb-2">
-                                    <div className="p-3 rounded-xl bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm">
+                                    <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 shadow-sm">
                                         <Bot className="h-7 w-7" />
                                     </div>
                                     <div>
                                         <SheetTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{agent.name}</SheetTitle>
-                                         <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono mt-1">
+                                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono mt-1">
                                             <span className="bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10">
                                                 {agent.id.slice(0, 8)}...
                                             </span>
@@ -58,7 +58,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                             
                             {/* Model Section */}
                             <div className="space-y-3">
-                                <Label className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-2">
+                                <Label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
                                     <Terminal className="h-3 w-3" />
                                     Model Configuration
                                 </Label>
@@ -76,11 +76,11 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                 {agent.connectionId && (
                                     <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm mt-2">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">AI Service Connection</span>
+                                            <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">AI Service Connection</span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
-                                                <Key className="h-4 w-4 text-violet-500" />
+                                                <Key className="h-4 w-4 text-blue-500" />
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -95,7 +95,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
 
                             {/* System Instructions */}
                             <div className="space-y-3">
-                                <Label className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">System Instructions</Label>
+                                <Label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">System Instructions</Label>
                                 <div className="p-5 rounded-xl bg-white dark:bg-[#151515] text-sm whitespace-pre-wrap border border-slate-200 dark:border-white/5 shadow-sm leading-relaxed text-slate-600 dark:text-slate-300">
                                     {agent.instructions || <span className="text-muted-foreground italic">No instructions provided.</span>}
                                 </div>
@@ -104,7 +104,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                             {/* Tools Section */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">Active Tools ({agent.tools?.length || 0})</Label>
+                                    <Label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Active Tools ({agent.tools?.length || 0})</Label>
                                 </div>
                                 
                                 {agent.tools && agent.tools.length > 0 ? (
@@ -132,7 +132,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                                         <TabsTrigger 
                                                             key={index} 
                                                             value={`tool-${index}`}
-                                                            className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:border-violet-600 px-4 py-2 text-xs font-medium min-w-fit snap-start transition-all hover:border-violet-300 dark:hover:border-violet-500/50"
+                                                            className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 px-4 py-2 text-xs font-medium min-w-fit snap-start transition-all hover:border-blue-300 dark:hover:border-blue-500/50"
                                                         >
                                                             {tool.name}
                                                         </TabsTrigger>
@@ -156,18 +156,18 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
 
                                         {agent.tools.map((tool, index) => (
                                             <TabsContent key={index} value={`tool-${index}`} className="mt-0 animate-in fade-in-50 slide-in-from-top-1">
-                                                <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#151515] text-card-foreground shadow-sm p-5 space-y-4 hover:border-violet-200 dark:hover:border-violet-500/20 transition-colors">
+                                                <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#151515] text-card-foreground shadow-sm p-5 space-y-4 hover:border-blue-200 dark:hover:border-blue-500/20 transition-colors">
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {tool.mcpConfig ? (
                                                             <>
                                                                 <div className="space-y-1.5">
-                                                                    <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">Type</span>
+                                                                    <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Type</span>
                                                                     <div className="flex items-center gap-2 font-mono text-sm bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
                                                                         {tool.mcpConfig.type || 'MCP'}
                                                                     </div>
                                                                 </div>
                                                                 <div className="space-y-1.5">
-                                                                    <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">Source</span>
+                                                                    <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Source</span>
                                                                     <div className="flex items-center gap-2 font-mono text-sm bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300 truncate">
                                                                         {tool.mcpConfig.name || 'External'}
                                                                     </div>
@@ -176,13 +176,13 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                                         ) : (
                                                             <>
                                                                 <div className="space-y-1.5">
-                                                                    <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">App Principle</span>
+                                                                    <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">App Principle</span>
                                                                     <div className="flex items-center gap-2 font-mono text-sm bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
                                                                         {tool.piece || '-'}
                                                                     </div>
                                                                 </div>
                                                                  <div className="space-y-1.5">
-                                                                    <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">Action ID</span>
+                                                                    <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Action ID</span>
                                                                     <div className="flex items-center gap-2 font-mono text-sm bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
                                                                         {tool.action || '-'}
                                                                     </div>
@@ -195,7 +195,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                                     {tool.connectionId && (
                                                         <div className="pt-2 border-t border-slate-100 dark:border-white/5">
                                                             <div className="flex items-center justify-between mb-1">
-                                                                <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider">Connected Account</span>
+                                                                <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Connected Account</span>
                                                                 <span className="text-[10px] font-mono text-slate-400 truncate ml-2 opacity-50">#{tool.connectionId.slice(0, 8)}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2 bg-slate-50 dark:bg-white/5 p-3 rounded-lg border border-slate-100 dark:border-white/5">
@@ -210,7 +210,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                                     )}
 
                                                     <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-                                                        <span className="text-[10px] uppercase text-violet-600 dark:text-violet-400 font-bold tracking-wider block mb-1">Full Tool Name</span>
+                                                        <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider block mb-1">Full Tool Name</span>
                                                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{tool.name}</p>
                                                     </div>
                                                 </div>
@@ -229,7 +229,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                         {/* Sub-Agents Section */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">Sub-Agents ({subagentsList.length})</Label>
+                                <Label className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Sub-Agents ({subagentsList.length})</Label>
                             </div>
                             
                             {subagentsList.length > 0 ? (
@@ -244,7 +244,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                                     <TabsTrigger 
                                                         key={index} 
                                                         value={`subagent-${index}`}
-                                                        className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:border-violet-600 px-4 py-2 text-xs font-medium min-w-fit snap-start transition-all hover:border-violet-300 dark:hover:border-violet-500/50"
+                                                        className="rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 px-4 py-2 text-xs font-medium min-w-fit snap-start transition-all hover:border-blue-300 dark:hover:border-blue-500/50"
                                                     >
                                                         {subAgent.name}
                                                     </TabsTrigger>
@@ -255,11 +255,11 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
 
                                     {subagentsList.map((subAgent, index) => (
                                         <TabsContent key={index} value={`subagent-${index}`} className="mt-0 animate-in fade-in-50 slide-in-from-top-1">
-                                            <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#151515] text-card-foreground shadow-sm p-5 space-y-4 hover:border-violet-200 dark:hover:border-violet-500/20 transition-colors">
+                                            <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#151515] text-card-foreground shadow-sm p-5 space-y-4 hover:border-blue-200 dark:hover:border-blue-500/20 transition-colors">
                                                 <div className="space-y-3">
                                                         <div className="flex items-center gap-3">
-                                                        <div className="h-8 w-8 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center shrink-0">
-                                                            <Bot className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                                                        <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
+                                                            <Bot className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                         </div>
                                                         <div>
                                                             <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{subAgent.name}</h4>
@@ -292,7 +292,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                     onOpenChange(false);
                                     onRun(agent);
                                 }}
-                                className="flex-1 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/20"
+                                className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20"
                             >
                                 <Play className="h-4 w-4 mr-2" />
                                 Run Agent

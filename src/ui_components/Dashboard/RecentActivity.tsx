@@ -11,7 +11,7 @@ export function RecentActivity({ recentRuns }: RecentActivityProps) {
     return (
         <Card className="col-span-4 lg:col-span-4 bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl">
             <CardHeader className="pb-4">
-                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-violet-300/50 font-black">Timeline</CardTitle>
+                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-blue-300/50 font-black">Timeline</CardTitle>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Recent Activity</h3>
             </CardHeader>
             <CardContent>
@@ -45,7 +45,7 @@ export function RecentActivity({ recentRuns }: RecentActivityProps) {
                         </div>
                     </div>
                     <div className="text-right shrink-0">
-                        <p className="text-[10px] font-black text-slate-400 dark:text-violet-300/50 uppercase tracking-widest">Just now</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-blue-300/50 uppercase tracking-widest">Just now</p>
                     </div>
                 </div>
                 ))}

@@ -8,7 +8,7 @@ import axios from 'axios';
 import { API_URL } from '@/ui_components/api/apiurl';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from "@hugeicons/react";
 import { SlackIcon, GithubIcon, ZapIcon, DiscordIcon, TiktokIcon, WhatsappIcon, TelegramIcon, SmartPhoneIcon } from "@hugeicons/core-free-icons";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,7 +69,7 @@ const getFallbackIcon = (appName: string) => {
   if (lower.includes('telegram')) return { icon: TelegramIcon, color: "bg-[#0088cc]" };
   if (lower.includes('tiktok')) return { icon: TiktokIcon, color: "bg-black" };
   if (lower.includes('twilio')) return { icon: SmartPhoneIcon, color: "bg-[#F22F46]" };
-  return { icon: ZapIcon, color: "bg-violet-600" };
+  return { icon: ZapIcon, color: "bg-blue-600" };
 };
 
 export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGalleryProps>(({ 
@@ -88,7 +88,6 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">(viewMode1 ? "list" : "grid");
-  console.log(viewMode);
 
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -224,17 +223,17 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
         {isLoading ? (
           <div className={cn(viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-3")}>
             {[...Array(viewMode === 'grid' ? 6 : 10)].map((_, i) => (
-              <div key={i} className={cn("p-6 bg-card border border-border/50 rounded-xl relative overflow-hidden", viewMode === 'grid' ? "h-[220px] w-full" : "w-full h-[100px]")}>
+              <div key={i} className={cn("overflow-hidden bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 p-6 space-y-4 rounded-xl relative", viewMode === 'grid' ? "h-[220px] w-full" : "w-full h-[100px]")}>
                 <div className={cn("space-y-4", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
                   <div className="space-y-3 flex-1">
-                    <Skeleton className="h-5 w-3/4 bg-muted/20" />
+                    <Skeleton className="h-5 w-3/4 bg-slate-200 dark:bg-white/10" />
                     <div className="space-y-2">
-                      <Skeleton className="h-3 w-full bg-muted/20" />
-                      <Skeleton className="h-3 w-5/6 bg-muted/20" />
+                      <Skeleton className="h-3 w-full bg-slate-200 dark:bg-white/10" />
+                      <Skeleton className="h-3 w-5/6 bg-slate-200 dark:bg-white/10" />
                     </div>
                   </div>
                   {viewMode === 'list' && (
-                    <Skeleton className="h-6 w-24 rounded-full bg-muted/20 shrink-0" />
+                    <Skeleton className="h-6 w-24 rounded-full bg-gray-200 shrink-0" />
                   )}
                 </div>
                 
@@ -243,21 +242,29 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                   viewMode === 'grid' ? "mt-4" : "mt-2"
                 )}>
                   <div className="flex -space-x-2">
-                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
-                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
-                     <Skeleton className="h-7 w-7 rounded-md bg-muted/20" />
+                     <Skeleton className="h-7 w-7 rounded-md bg-slate-200 dark:bg-white/10" />
+                     <Skeleton className="h-7 w-7 rounded-md bg-slate-200 dark:bg-white/10" />
+                     <Skeleton className="h-7 w-7 rounded-md bg-slate-200 dark:bg-white/10" />
                   </div>
-                  <Skeleton className="h-8 w-8 rounded-lg bg-muted/20" />
+                  <Skeleton className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-white/10" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredTemplates.length > 0 ? (
-            <div className={cn(
-              viewMode === 'grid' 
-                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" 
-                : "flex flex-col gap-3"
-            )}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className={cn(
+                viewMode === 'grid' 
+                  ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" 
+                  : "flex flex-col gap-3"
+              )}
+            >
               {filteredTemplates.map((template, index) => (
                 <motion.div
                   key={template.id}
@@ -273,15 +280,15 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                 >
                  {/* Stabilized Hover Glow */}
                 <div className={cn(
-                    "absolute -inset-0.5 bg-linear-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
+                    "absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
                 )} />
 
                 <div className={cn(
-                  "relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-violet-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden",
+                  "relative bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden",
                 )}>
                   <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
                     <div className="space-y-2">
-                      <h3 className="text-lg font-bold mb-1 text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors duration-300 line-clamp-1">
+                      <h3 className="text-lg font-bold mb-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
                         {template.name}
                       </h3>
                       <p className={cn(
@@ -292,7 +299,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                       </p>
                     </div>
                     {template.created_at && (
-                       <div className="inline-flex mt-1 items-center px-2 py-1 bg-violet-100 dark:bg-violet-500/10 rounded-lg text-xs font-mono text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 shrink-0">
+                       <div className="inline-flex mt-1 items-center px-2 py-1 bg-blue-100 dark:bg-blue-500/10 rounded-lg text-xs font-mono text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 shrink-0">
                          {moment(template.created_at).format("DD MMM YYYY")}
                       </div>
                     )}
@@ -340,15 +347,16 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                         })}
                      </div>
                      <motion.div 
-                       className="h-8 w-8 rounded-full bg-violet-100 dark:bg-white/10 flex items-center justify-center text-violet-600 dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+                       className="h-8 w-8 rounded-full bg-blue-100 dark:bg-white/10 flex items-center justify-center text-blue-600 dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
                      >
                         <ArrowRight className="h-4 w-4" />
                      </motion.div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         ) : (
           <div className="flex flex-col items-center justify-center py-40 gap-4 text-center">
              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center border border-border text-muted-foreground">
@@ -389,7 +397,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
             <Button 
               onClick={handleInstantiate} 
               disabled={isInstantiating}
-              className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg hover:shadow-violet-500/25 transition-all duration-300"
+              className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-300"
             >
               {isInstantiating ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>

@@ -108,14 +108,14 @@ export function SidebarIconExample() {
               <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
                 <Link to="/" className="flex items-center gap-3">
                     <div className="relative group">
-                      <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-xl group-hover:bg-violet-500/30 transition-all" />
-                      <div className="relative h-10 w-10 rounded-xl bg-linear-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20">
+                      <div className="absolute inset-0 bg-blue-500/20 blur-lg rounded-xl group-hover:bg-blue-500/30 transition-all" />
+                      <div className="relative h-10 w-10 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                         <LayoutDashboard size={22} className="group-hover:scale-110 transition-transform" />
                       </div>
                     </div>
                     <div className="flex flex-col leading-tight">
                       <span className="truncate font-black text-slate-900 dark:text-white tracking-tighter text-base">WORKFLOW</span>
-                      <span className="truncate text-[10px] font-bold text-violet-500 uppercase tracking-widest">Faaz Tech</span>
+                      <span className="truncate text-[10px] font-bold text-blue-500 uppercase tracking-widest">Faaz Tech</span>
                     </div>
                 </Link>
               </SidebarMenuButton>
@@ -141,14 +141,14 @@ export function SidebarIconExample() {
                                     className={cn(
                                         "h-11 rounded-xl transition-all duration-300 relative group",
                                         isActive 
-                                            ? "bg-linear-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 border-none" 
-                                            : "text-slate-500 dark:text-slate-400 hover:bg-violet-500/10 hover:text-violet-600 dark:hover:text-violet-400"
+                                            ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border-none" 
+                                            : "text-slate-500 dark:text-slate-400 hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400"
                                     )}
                                 >
                                     <Link to={item.url} className="flex items-center gap-3 font-bold text-sm tracking-tight">
                                         <div className={cn(
                                             "transition-colors",
-                                            isActive ? "text-white" : "group-hover:text-violet-500"
+                                            isActive ? "text-white" : "group-hover:text-blue-500"
                                         )}>
                                             {item.icon}
                                         </div>
@@ -174,7 +174,7 @@ export function SidebarIconExample() {
                     <div className="relative">
                         <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm">
                             <AvatarImage src={user?.picture} alt={user?.name || 'User'} />
-                            <AvatarFallback className="bg-violet-100 text-violet-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
+                            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
                         </Avatar>
                         <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
                     </div>
@@ -213,7 +213,7 @@ export function SidebarIconExample() {
                         <Switch
                           checked={theme === "dark"}
                           onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                          className="data-[state=checked]:bg-violet-600"
+                          className="data-[state=checked]:bg-blue-600"
                         />
                     </div>
                   </DropdownMenuGroup>
@@ -240,7 +240,7 @@ export function SidebarIconExample() {
             >
                 {theme === "dark" ? <Sun className='h-4 w-4 text-yellow-500' /> : <Moon className='h-4 w-4 text-slate-900' />}
             </button>
-            <div className="h-10 w-10 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 p-[1px] shadow-lg shadow-violet-500/20 active:scale-95 transition-all">
+            <div className="h-10 w-10 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 p-[1px] shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
                 <div className="h-full w-full rounded-[11px] bg-slate-50 dark:bg-slate-950 flex items-center justify-center overflow-hidden">
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.picture} />

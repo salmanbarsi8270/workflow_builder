@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight, Plus, Search, X,} from "lucide-react"
+import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight, Plus, Search, X, RefreshCw,} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 export interface AutomationItem {
   id: string;
@@ -37,12 +38,12 @@ interface AutomationListProps {
     onExport?: (item: AutomationItem) => void;
     onImport?: () => void;
     isLoading?: boolean;
+    onRefresh?: () => void;
 }
 
 type SortType = 'name' | 'date' | 'recent' | 'runs';
 
-export default function AutomationList({ automations, search, setSearch, onToggleStatus, onDelete, onEditName, onOpenEditor, onCreate, isLoading = false
-}: AutomationListProps) {
+export default function AutomationList({ automations, search, setSearch, onToggleStatus, onDelete, onEditName, onOpenEditor, onCreate, isLoading = false, onRefresh }: AutomationListProps) {
     const [sortBy, setSortBy] = useState<SortType>('name');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -76,12 +77,12 @@ export default function AutomationList({ automations, search, setSearch, onToggl
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
 
-        <Card className="bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+        <Card className="flex flex-col h-[calc(100vh-4rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           <CardHeader className="pb-3">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Workflow className="h-6 w-6 text-violet-500" />
+                  <Workflow className="h-6 w-6 text-blue-500" />
                   Automation Workflows
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2">
@@ -122,7 +123,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                       placeholder="Search automations..." 
                       value={search} 
                       onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                      className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500"
                     />
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
                     {search && (
@@ -131,13 +132,22 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                       </Button>
                     )}
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-11 w-11 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className={cn("h-4 w-4 text-slate-500", isLoading && "animate-spin")} />
+                  </Button>
                 </div>
                 
                 <Button 
-                  className="group relative px-6 py-3 bg-linear-to-r from-violet-600 to-indigo-600 rounded-xl font-semibold shadow-lg hover:shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+                  className="group relative px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
                   onClick={onCreate}
                 >
-                  <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="relative flex items-center gap-2 text-white">
                     <Plus className="h-5 w-5" />
                     Create New
@@ -147,7 +157,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
             </div>
           </CardHeader>
 
-          <CardContent className="p-0 h-[calc(90vh-250px)]">
+          <CardContent className="flex-1 overflow-y-auto p-0">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -155,27 +165,60 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  className="p-6 pt-2"
                 >
-                  {Array.from({ length: 9 }).map((_, i) => (
-                    <div key={i} className="h-[220px] rounded-2xl border border-border/50 bg-muted/20 animate-pulse p-6 flex flex-col justify-between">
-                      <div className="flex justify-between items-start">
-                         <div className="flex items-center gap-3">
-                            <Skeleton className="h-12 w-12 rounded-xl" />
-                            <div className="space-y-2">
-                               <Skeleton className="h-5 w-32" />
-                               <Skeleton className="h-3 w-48" />
-                            </div>
-                         </div>
-                         <Skeleton className="h-6 w-12 rounded-full" />
-                      </div>
-                      <div className="flex gap-2">
-                         <Skeleton className="h-9 flex-1 rounded-lg" />
-                         <Skeleton className="h-9 w-9 rounded-lg" />
-                         <Skeleton className="h-9 w-9 rounded-lg" />
-                      </div>
-                    </div>
-                  ))}
+                  <div className="rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50/50 dark:bg-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 border-slate-200 dark:border-white/10">
+                          <TableHead className="w-[80px] text-center font-bold text-slate-500 dark:text-slate-400">#</TableHead>
+                          <TableHead className="font-bold text-slate-900 dark:text-white">Automation Name</TableHead>
+                          <TableHead className="text-center font-bold text-slate-900 dark:text-white">Created</TableHead>
+                          <TableHead className="text-center font-bold text-slate-900 dark:text-white">Stats</TableHead>
+                          <TableHead className="text-center font-bold text-slate-900 dark:text-white">Status</TableHead>
+                          <TableHead className="text-right pr-8 font-bold text-slate-900 dark:text-white">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Array.from({ length: itemsPerPage }).map((_, i) => (
+                          <TableRow key={i} className="border-slate-100 dark:border-white/5 w-full">
+                            <TableCell className="text-center">
+                              <Skeleton className="h-4 w-6 mx-auto bg-slate-200 dark:bg-white/10" />
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Skeleton className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-white/10" />
+                                <div className="space-y-2">
+                                  <Skeleton className="h-4 w-40 bg-slate-200 dark:bg-white/10" />
+                                  <Skeleton className="h-3 w-24 bg-slate-200 dark:bg-white/10" />
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <Skeleton className="h-4 w-24 mx-auto bg-slate-200 dark:bg-white/10" />
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <Skeleton className="h-4 w-16 mx-auto bg-slate-200 dark:bg-white/10" />
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <Skeleton className="h-5 w-10 mx-auto rounded-full bg-slate-200 dark:bg-white/10" />
+                            </TableCell>
+
+                            <TableCell className="text-right pr-6">
+                              <div className="flex justify-end gap-2">
+                                <Skeleton className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-white/10" />
+                                <Skeleton className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-white/10" />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -202,7 +245,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                           {paginatedAutomations.map((item, index) => (
                             <TableRow 
                               key={item.id}
-                              className="group cursor-pointer border-slate-100 dark:border-white/5 hover:bg-violet-500/[0.02] dark:hover:bg-violet-500/[0.05] transition-colors"
+                              className="group cursor-pointer border-slate-100 dark:border-white/5 hover:bg-blue-500/[0.02] dark:hover:bg-blue-500/[0.05] transition-colors"
                               onClick={() => onOpenEditor(item)}
                             >
                               <TableCell className="text-center font-mono text-xs text-slate-400">
@@ -210,11 +253,11 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500 border border-violet-500/10">
+                                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/10">
                                     <Workflow className="h-4 w-4" />
                                   </div>
                                   <div>
-                                    <div className="font-bold text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
+                                    <div className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
                                       {item.name}
                                     </div>
                                     {item.tags && item.tags.length > 0 && (
@@ -238,7 +281,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                               <TableCell className="text-center">
                                 <div className="flex items-center justify-center gap-3">
                                   <div className="flex items-center gap-1 text-xs">
-                                    <Layers className="h-3 w-3 text-violet-500" />
+                                    <Layers className="h-3 w-3 text-blue-500" />
                                     {item.nodes?.length || 0}
                                   </div>
                                   <div className="flex items-center gap-1 text-xs">
@@ -265,7 +308,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-white/5 transition-colors"
+                                    className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-white/5 transition-colors"
                                     onClick={() => onOpenEditor(item)}
                                   >
                                     <EyeIcon className="h-4 w-4" />
@@ -311,8 +354,8 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                           {search ? "No automations match your search criteria." : "Create your first automation to start automating workflows."}
                         </p>
                       </div>
-                      <Button 
-                        className="gap-2 bg-linear-to-r from-violet-600 to-indigo-600 rounded-xl"
+                       <Button 
+                        className="gap-2 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl"
                         onClick={onCreate}
                       >
                         <PlusIcon className="h-4 w-4" />
@@ -327,74 +370,71 @@ export default function AutomationList({ automations, search, setSearch, onToggl
 
           {/* Footer */}
           {filteredAutomations.length > 0 && (
-            <div className="flex items-center justify-between p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-md">
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <span className="font-medium whitespace-nowrap">View count:</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 w-[72px] rounded-lg border-slate-200 dark:border-white/10 bg-white dark:bg-white/5">
-                        {itemsPerPage}
-                        <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-[72px]">
-                      {[6, 12, 24, 48].map((pageSize) => (
-                        <DropdownMenuItem
-                          key={pageSize}
-                          onClick={() => {
-                            setItemsPerPage(pageSize);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          {pageSize}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="font-medium">
-                  Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredAutomations.length)} of {filteredAutomations.length}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentPage(p => Math.max(1, p - 1));
-                    }}
-                    disabled={currentPage === 1}
-                    className="h-8 px-4 rounded-lg border-slate-200 dark:border-white/10 bg-white dark:bg-white/5"
+  <div className="sticky bottom-0 z-20 border-t border-slate-100 dark:border-white/5 
+                  bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md">
+    <div className="flex items-center justify-between p-6">
+      
+      {/* Left */}
+      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="font-medium whitespace-nowrap">View count:</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 w-[72px] rounded-lg">
+                {itemsPerPage}
+                <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {[5, 10, 15, 20].map(size => (
+                <DropdownMenuItem
+                  key={size}
+                  onClick={() => {
+                    setItemsPerPage(size)
+                    setCurrentPage(1)
+                  }}
                 >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Prev
-                </Button>
-                <div className="flex items-center gap-1 mx-2">
-                   {Array.from({ length: totalPages }).map((_, i) => (
-                      <div 
-                         key={i} 
-                         className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentPage === i + 1 ? 'w-4 bg-violet-500' : 'bg-slate-300 dark:bg-white/20'}`} 
-                      />
-                   ))}
-                </div>
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentPage(p => Math.min(totalPages, p + 1));
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="h-8 px-4 rounded-lg border-slate-200 dark:border-white/10 bg-white dark:bg-white/5"
-                >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
+                  {size}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="font-medium">
+          Showing {((currentPage - 1) * itemsPerPage) + 1}–
+          {Math.min(currentPage * itemsPerPage, filteredAutomations.length)} of{" "}
+          {filteredAutomations.length}
+        </div>
+      </div>
+
+      {/* Right */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Prev
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+        >
+          Next
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
+
+    </div>
+  </div>
+)}
+
         </Card>
       </div>
     );

@@ -20,12 +20,12 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
   
   return (
-    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col">
+    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col">
       <CardHeader className="p-6 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-violet-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className={`
                 relative h-16 w-16 rounded-2xl flex items-center justify-center shadow-sm 
                 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500
@@ -37,7 +37,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                   className="w-10 h-10 object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=8b5cf6&color=fff`;
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=3b82f6&color=fff`;
                   }}
                 />
               </div>
@@ -49,7 +49,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
             </div>
             
             <div className="min-w-0">
-              <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors uppercase tracking-tight">
+              <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-tight">
                 {app.name}
               </h4>
               <Badge 
@@ -64,7 +64,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
       </CardHeader>
       
       <CardContent className="px-6 pb-6 flex-1 flex flex-col">
-        <p className="text-sm font-medium text-slate-500 dark:text-violet-200/70 leading-relaxed mb-6 line-clamp-2">
+        <p className="text-sm font-medium text-slate-500 dark:text-blue-200/70 leading-relaxed mb-6 line-clamp-2">
           {app.description}
         </p>
 
@@ -72,7 +72,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
           <div className="mt-auto space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Connected Accounts</span>
-              <div className="px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-black border border-violet-200 dark:border-violet-500/30">
+              <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black border border-blue-200 dark:border-blue-500/30">
                 {app.accounts.length}
               </div>
             </div>
@@ -86,7 +86,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                           {account.avatarUrl ? (
                             <img src={account.avatarUrl} alt={account.username} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-violet-500">
+                            <div className="w-full h-full flex items-center justify-center text-blue-500">
                               <UserCircle className="h-5 w-5" />
                             </div>
                           )}
@@ -111,7 +111,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
         <div className="mt-4 flex flex-wrap gap-2">
           {app.lastSynced && (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              <RefreshCw className="h-3 w-3 text-violet-500" />
+              <RefreshCw className="h-3 w-3 text-blue-500" />
               <span>Synced {new Date(app.lastSynced).toLocaleDateString()}</span>
             </div>
           )}
@@ -121,12 +121,12 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-slate-400">
               <span className="flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin text-violet-500" />
+                <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
                 Syncing
               </span>
-              <span className="text-violet-600 dark:text-violet-400">{app.syncProgress}%</span>
+              <span className="text-blue-600 dark:text-blue-400">{app.syncProgress}%</span>
             </div>
-            <Progress value={app.syncProgress} className="h-1.5 bg-slate-100 dark:bg-white/10" indicatorClassName="bg-linear-to-r from-violet-600 to-indigo-600" />
+            <Progress value={app.syncProgress} className="h-1.5 bg-slate-100 dark:bg-white/10" indicatorClassName="bg-linear-to-r from-blue-600 to-indigo-600" />
           </div>
         )}
       </CardContent>
@@ -140,7 +140,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
               asChild
             >
               <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
-                <UserCircle className="h-4 w-4 mr-2 text-violet-500" />
+                <UserCircle className="h-4 w-4 mr-2 text-blue-500" />
                 Manage Accounts
               </Link>
             </Button>
@@ -151,8 +151,8 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
             className={`
               h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden
               ${app.connected 
-                ? 'border-dashed border-violet-400 dark:border-violet-500/50 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-violet-600 dark:text-violet-400' 
-                : 'bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02]'}
+                ? 'border-dashed border-blue-400 dark:border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                : 'bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]'}
             `}
             onClick={() => onConnect(app)}
             disabled={connectingApp === app.id}

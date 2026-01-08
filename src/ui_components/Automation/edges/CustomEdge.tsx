@@ -37,10 +37,10 @@ const EdgeStatusColors = {
     glow: 'drop-shadow(0_0_8px_rgba(245,158,11,0.4))'
   },
   conditional: {
-    stroke: '#8b5cf6',
+    stroke: '#3b82f6',
     width: 2,
     dasharray: '10,5',
-    glow: 'drop-shadow(0_0_8px_rgba(139,92,246,0.3))'
+    glow: 'drop-shadow(0_0_8px_rgba(59,130,246,0.3))'
   },
   skipped: {
     stroke: '#e4e4e7', // zinc-200
@@ -54,8 +54,8 @@ const EdgeStatusColors = {
 const EdgeTypeColors = {
   default: '#94a3b8',
   data: '#0ea5e9',
-  control: '#8b5cf6',
-  conditional: '#d946ef',
+  control: '#3b82f6',
+  conditional: '#3b82f6',
   parallel: '#f59e0b'
 } as const;
 

@@ -18,8 +18,8 @@ export function StatsCards({ isLoading, stats, workflowStats }: StatsCardsProps)
           value: workflowStats.total.toString(),
           description: `${workflowStats.active} active now`,
           icon: WorkflowCircle01Icon,
-          color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-          border: "border-violet-200/50 dark:border-violet-500/20"
+          color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+          border: "border-blue-200/50 dark:border-blue-500/20"
         },
         {
           title: "Successful Runs",
@@ -60,11 +60,11 @@ export function StatsCards({ isLoading, stats, workflowStats }: StatsCardsProps)
             ))
             ) : (
             statsConfig.map((stat, index) => (
-                <Card key={index} className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 group shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border-b-4">
+                <Card key={index} className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl border-b-4">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-violet-300/50 font-black">{stat.title}</p>
+                                <p className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-blue-300/50 font-black">{stat.title}</p>
                                 <div className="flex items-baseline gap-2">
                                     <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{stat.value}</p>
                                 </div>

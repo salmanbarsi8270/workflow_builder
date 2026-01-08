@@ -80,9 +80,9 @@ const categoryColors: Record<string, { bg: string, text: string, border: string 
     border: 'border-green-200 dark:border-green-800'
   },
   'e-commerce': { 
-    bg: 'bg-violet-500/10 dark:bg-violet-500/20', 
-    text: 'text-violet-700 dark:text-violet-300',
-    border: 'border-violet-200 dark:border-violet-800'
+    bg: 'bg-blue-500/10 dark:bg-blue-500/20', 
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-800'
   },
   'ai': { 
     bg: 'bg-cyan-500/10 dark:bg-cyan-500/20', 
@@ -245,10 +245,10 @@ export default function Connections() {
   };
 
   return (
-    <div className="min-h-full bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+    <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
       
       {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       <div className="relative z-10 container mx-auto p-8 w-full space-y-8 flex flex-col h-full">
         {/* Header Section */}
@@ -260,20 +260,20 @@ export default function Connections() {
           <div className="space-y-1">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full" />
-                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-violet-500/10">
-                  <Globe className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10">
+                  <Globe className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div>
                 <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                   Connected Accounts
-                  <div className="px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-widest border border-violet-200 dark:border-violet-500/30">
+                  <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-500/30">
                     Secure
                   </div>
                 </h2>
-                <p className="text-slate-500 dark:text-violet-200/70 text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                <p className="text-slate-500 dark:text-blue-200/70 text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                   Manage your individual credentials and platform integrations
                 </p>
               </div>
@@ -282,10 +282,10 @@ export default function Connections() {
           
           <div className="flex flex-col sm:flex-row gap-3">
             <Button variant="outline" size="sm" onClick={fetchAccounts} disabled={isLoading} className="gap-2 h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300">
-              <RefreshCw className={`h-4 w-4 text-violet-600 dark:text-violet-400 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="font-semibold">Refresh</span>
             </Button>
-            <Button size="sm" onClick={() => navigate('/connectors')} className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02]">
+            <Button size="sm" onClick={() => navigate('/connectors')} className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]">
               <Plus className="h-4 w-4" />
               Add Connector
             </Button>
@@ -305,7 +305,7 @@ export default function Connections() {
                   placeholder="Search accounts, services, or IDs..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                  className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500"
                 />
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
               {searchQuery && (
@@ -318,7 +318,7 @@ export default function Connections() {
             <Select value={selectedService} onValueChange={setSelectedService}>
               <SelectTrigger className="h-11 w-full sm:w-52 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-violet-500" />
+                  <Filter className="h-4 w-4 text-blue-500" />
                   <SelectValue placeholder="Filter by service" />
                 </div>
               </SelectTrigger>
@@ -343,16 +343,16 @@ export default function Connections() {
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-500/20">
               <Shield className="h-3.5 w-3.5" />
               {accounts.length} Total Accounts
             </div>
 
             <div className="flex items-center border border-slate-200 dark:border-white/10 rounded-xl bg-white/50 dark:bg-slate-900/50 p-1 gap-1">
-              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'grid' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('grid')}>
+              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'grid' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('grid')}>
                 <LayoutGrid className="h-4.5 w-4.5" />
               </Button>
-              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'list' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('list')}>
+              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('list')}>
                 <List className="h-4.5 w-4.5" />
               </Button>
             </div>
@@ -382,13 +382,13 @@ export default function Connections() {
           ) : filteredAccounts.length === 0 ? (
             <motion.div key="empty" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center px-4">
               <div className="relative mb-8">
-                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full" />
+                <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
                 <div className="relative w-28 h-28 rounded-[2rem] bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 flex items-center justify-center shadow-2xl">
-                  <Shield className="h-14 w-14 text-violet-500/60" />
+                  <Shield className="h-14 w-14 text-blue-500/60" />
                 </div>
               </div>
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No connections found</h3>
-              <p className="text-slate-500 dark:text-violet-200/70 max-w-md mb-8 font-medium">
+              <p className="text-slate-500 dark:text-blue-200/70 max-w-md mb-8 font-medium">
                 {searchQuery ? "We couldn't find any accounts matching your search. Try broadening your criteria." : "Connect your first platform to unlock the full power of automated workflows."}
               </p>
               <div className="flex gap-4">
@@ -396,7 +396,7 @@ export default function Connections() {
                   <X className="h-4 w-4 mr-2" />
                   Clear Search
                 </Button>
-                <Button className="h-12 px-8 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all">
+                <Button className="h-12 px-8 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Explore Hub
                 </Button>
@@ -406,18 +406,18 @@ export default function Connections() {
             <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
               {paginatedAccounts.map((account) => (
                 <motion.div key={account.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                  <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none">
+                  <Card className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden">
                     <CardContent className="p-6 h-full flex flex-col">
                       <div className={`flex ${viewMode === 'list' ? 'items-center gap-6' : 'flex-col gap-5'} flex-1`}>
 
                         {/* Service Icon */}
                         <div className="relative shrink-0">
-                          <div className="absolute inset-0 bg-violet-500/10 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 bg-blue-500/10 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="h-16 w-16 rounded-2xl bg-white/80 dark:bg-white/10 border border-slate-100 dark:border-white/10 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
                             <img src={account.serviceIcon} alt={account.serviceName} className="w-9 h-9 object-contain" 
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=8b5cf6&color=fff`;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=3b82f6&color=fff`;
                               }}
                             />
                           </div>
@@ -432,7 +432,7 @@ export default function Connections() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2 overflow-hidden">
-                              <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{account.username}</h4>
+                              <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{account.username}</h4>
                             </div>
                             <Badge variant="outline" className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border-opacity-50 ${(categoryColors[account.category || 'default'] || categoryColors.default).bg} ${(categoryColors[account.category || 'default'] || categoryColors.default).text} ${(categoryColors[account.category || 'default'] || categoryColors.default).border}`}>
                               {account.serviceName}
@@ -441,7 +441,7 @@ export default function Connections() {
                           
                           <div className="space-y-2.5">
                             <div className="flex items-center max-w-[40%] gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-50/50 dark:bg-white/5 p-1.5 rounded-lg border border-slate-100/50 dark:border-white/5">
-                              <UserCircle className="h-4 w-4 text-violet-500/70" />
+                              <UserCircle className="h-4 w-4 text-blue-500/70" />
                               <span className="truncate">{account.externalId}</span>
                             </div>
                             
@@ -449,7 +449,7 @@ export default function Connections() {
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Connected</span>
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
-                                  <Calendar className="h-3 w-3 text-violet-500" />
+                                  <Calendar className="h-3 w-3 text-blue-500" />
                                   {new Date(account.connectedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </div>
                               </div>
@@ -470,7 +470,7 @@ export default function Connections() {
                             <div className="flex -space-x-1.5 overflow-hidden">
                               {account.permissions?.slice(0, 3).map((p, i) => (
                                 <div key={i} className="h-6 w-6 rounded-full bg-slate-100 dark:bg-white/10 border-2 border-white dark:border-slate-900 flex items-center justify-center" title={p}>
-                                  <div className="h-2 w-2 rounded-full bg-violet-500" />
+                                  <div className="h-2 w-2 rounded-full bg-blue-500" />
                                 </div>
                               ))}
                             </div>
@@ -501,7 +501,7 @@ export default function Connections() {
         {filteredAccounts.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 border-t border-slate-200 dark:border-white/10 shrink-0">
             <div className="flex items-center gap-6">
-              <p className="text-sm text-slate-500 dark:text-violet-200/70 font-medium">
+              <p className="text-sm text-slate-500 dark:text-blue-200/70 font-medium">
                 Showing <span className="font-bold text-slate-900 dark:text-white">{startIndex + 1}</span> to{" "}
                 <span className="font-bold text-slate-900 dark:text-white">
                   {Math.min(startIndex + itemsPerPage, filteredAccounts.length)}
@@ -526,23 +526,23 @@ export default function Connections() {
             
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
                   <ChevronFirst className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                <div className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 shadow-sm shadow-violet-500/5">
-                  <span className="text-xs font-bold text-violet-700 dark:text-violet-300 uppercase tracking-widest">Page</span>
-                  <span className="text-sm font-black text-violet-800 dark:text-violet-100">{currentPage}</span>
-                  <span className="text-xs font-bold text-violet-400 uppercase tracking-widest">/ {totalPages}</span>
+                <div className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm shadow-blue-500/5">
+                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest">Page</span>
+                  <span className="text-sm font-black text-blue-800 dark:text-blue-100">{currentPage}</span>
+                  <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">/ {totalPages}</span>
                 </div>
 
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
                   <ChevronLast className="h-4 w-4" />
                 </Button>
               </div>

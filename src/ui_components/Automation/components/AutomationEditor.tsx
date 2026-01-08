@@ -1157,12 +1157,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         }}>
                             <RefreshCcw className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50" onClick={handleRunClick}>
+                        <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-white/10 dark:hover:bg-white/5" onClick={handleRunClick}>
                             <HistoryIcon className="mr-2 h-4 w-4" /> Runs
                         </Button>
                         <Button
                             variant="default"
-                            className="bg-violet-600 hover:bg-violet-700 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                             onClick={() => {
                                 setTemplateName(automationName || "");
                                 setIsPublishDialogOpen(true);

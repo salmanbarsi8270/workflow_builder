@@ -13,7 +13,7 @@ export function HealthStats({ stats }: HealthStatsProps) {
     return (
         <Card className="col-span-4 lg:col-span-2 bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col">
             <CardHeader className="pb-4">
-                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-violet-300/50 font-black">System Health</CardTitle>
+                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-blue-300/50 font-black">System Health</CardTitle>
             </CardHeader>
             <CardContent className="space-y-8 flex-1">
                 <div className="space-y-4">
@@ -35,7 +35,7 @@ export function HealthStats({ stats }: HealthStatsProps) {
 
                 <div className="space-y-4">
                     <div className="flex items-center gap-4 group">
-                        <div className="h-12 w-12 rounded-2xl bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <div className="h-12 w-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                             <HugeiconsIcon icon={Database01Icon} className="h-6 w-6" />
                         </div>
                         <div>

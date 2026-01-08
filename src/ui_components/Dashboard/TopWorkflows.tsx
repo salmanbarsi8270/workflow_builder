@@ -13,14 +13,14 @@ export function TopWorkflows({ topWorkflows }: TopWorkflowsProps) {
     return (
         <Card className="col-span-4 lg:col-span-3 bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl">
             <CardHeader className="pb-4">
-                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-violet-300/50 font-black">Performance</CardTitle>
+                <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-blue-300/50 font-black">Performance</CardTitle>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Top Workflows</h3>
             </CardHeader>
             <CardContent className="space-y-3">
             {topWorkflows.map((w) => (
-                <div key={w.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5 transition-all duration-300 group">
+                <div key={w.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <div className="h-10 w-10 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                             <HugeiconsIcon icon={ZapIcon} className="h-5 w-5" />
                         </div>
                         <div>

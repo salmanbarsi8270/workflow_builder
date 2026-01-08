@@ -239,7 +239,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
                 : "border-muted-foreground/30 hover:border-primary/50"
             )}
           >
-            <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-medium group-hover:scale-105 transition-transform">
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium group-hover:scale-105 transition-transform">
               <PlusIcon className="h-5 w-5" />
               <span>{data.label as string || "Select Trigger"}</span>
             </div>

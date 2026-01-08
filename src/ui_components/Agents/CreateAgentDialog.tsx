@@ -221,11 +221,11 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-violet-600 to-indigo-600" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
                 <DialogHeader className="p-0 mb-4 shrink-0">
                     <DialogTitle className="text-xl flex items-center gap-2">
-                        <div className="p-2 bg-violet-100 dark:bg-violet-500/20 rounded-lg">
-                            <Bot className="h-5 w-5 text-violet-600 dark:text-violet-300" />
+                        <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                            <Bot className="h-5 w-5 text-blue-600 dark:text-blue-300" />
                         </div>
                         {initialAgent ? "Edit Agent" : "Create New Agent"}
                     </DialogTitle>
@@ -241,7 +241,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                             placeholder="e.g. Support Bot"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-violet-500 font-medium"
+                            className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-medium"
                         />
                     </div>
                     <div className="grid gap-2">
@@ -249,7 +249,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         <Textarea
                             id="instructions"
                             placeholder="You are a helpful assistant..."
-                            className="h-32 resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-violet-500 font-mono text-sm leading-relaxed"
+                            className="h-32 resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-mono text-sm leading-relaxed"
                             value={instructions}
                             onChange={(e) => setInstructions(e.target.value)}
                         />
@@ -262,14 +262,14 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                             placeholder="e.g. openai/gpt-4-turbo"
                             value={model}
                             onChange={(e) => setModel(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-violet-500 text-xs font-mono"
+                            className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 text-xs font-mono"
                         />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection (OpenRouter)</Label>
                         <Select value={selectedConnection} onValueChange={setSelectedConnection}>
-                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-violet-500">
+                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500">
                                 <SelectValue placeholder="Select Connection" />
                             </SelectTrigger>
                             <SelectContent>
@@ -279,7 +279,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     connections.map(conn => (
                                         <SelectItem key={conn.id} value={conn.id}>
                                             <div className="flex items-center gap-2 max-w-[180px]">
-                                                <Key className="h-3 w-3 text-violet-500" />
+                                                <Key className="h-3 w-3 text-blue-500" />
                                                 <span className="truncate">{conn.name}</span>
                                             </div>
                                         </SelectItem>
@@ -295,7 +295,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                             <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="justify-between w-full font-normal bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5">
                                     {selectedTools.length > 0 ? (
-                                        <div className="flex items-center gap-2 text-violet-600 dark:text-violet-300">
+                                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-300">
                                             <Terminal className="h-4 w-4" />
                                             <span className="font-semibold">{selectedTools.length} tools selected</span>
                                         </div>
@@ -334,7 +334,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                                                 <div className="flex items-center gap-2 flex-1">
                                                                     <div className={`
                                                                         w-4 h-4 rounded border flex items-center justify-center transition-colors
-                                                                        ${isSelected ? 'bg-violet-600 border-violet-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                                        ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
                                                                     `}>
                                                                         {isSelected && <X className="h-3 w-3 rotate-45" />}
                                                                     </div>
@@ -364,9 +364,9 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     const isMissing = actionRequiresConnection && !tool.connectionId;
 
                                     return (
-                                        <div key={tool.toolId} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-violet-200 dark:hover:border-violet-500/30 transition-all">
+                                        <div key={tool.toolId} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">
                                             <div className="flex items-center gap-2 text-sm">
-                                                <Badge variant="secondary" className="bg-violet-100/50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-500/20">
+                                                <Badge variant="secondary" className="bg-blue-100/50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20">
                                                     {app?.name}
                                                 </Badge>
                                                 <span className="font-medium text-slate-700 dark:text-slate-200">{action?.name}</span>
@@ -416,12 +416,12 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <div className="grid gap-2">
                         <Label className="text-slate-700 dark:text-white font-medium flex justify-between items-center">
                             <span>MCP Servers (External Tools)</span>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={addMcpTool}
-                                className="h-6 px-2 text-xs text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10"
-                            >
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={addMcpTool}
+                                    className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                                >
                                 <Plus className="h-3 w-3 mr-1" /> Add Server
                             </Button>
                         </Label>
@@ -495,7 +495,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                             <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="justify-between w-full font-normal bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5">
                                     {selectedSubAgents.length > 0 ? (
-                                        <div className="flex items-center gap-2 text-violet-600 dark:text-violet-300">
+                                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-300">
                                             <Bot className="h-4 w-4" />
                                             <span className="font-semibold">{selectedSubAgents.length} sub-agents selected</span>
                                         </div>
@@ -530,7 +530,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                                             <div className="flex items-center gap-2 flex-1">
                                                                 <div className={`
                                                                 w-4 h-4 rounded border flex items-center justify-center transition-colors
-                                                                ${isSelected ? 'bg-violet-600 border-violet-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                                ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
                                                             `}>
                                                                     {isSelected && <X className="h-3 w-3 rotate-45" />}
                                                                 </div>
@@ -553,9 +553,9 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     const agent = allAvailableAgents.find(a => a.id === agentId);
                                     if (!agent) return null;
                                     return (
-                                        <div key={agent.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-violet-200 dark:hover:border-violet-500/30 transition-all">
+                                        <div key={agent.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">
                                             <div className="flex items-center gap-2 text-sm">
-                                                <Badge variant="secondary" className="bg-violet-100/50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-500/20">
+                                                <Badge variant="secondary" className="bg-blue-100/50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20">
                                                     Agent
                                                 </Badge>
                                                 <span className="font-medium text-slate-700 dark:text-slate-200">{agent.name}</span>
@@ -583,7 +583,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <Button
                         onClick={handleSave}
                         disabled={isSubmitting || hasMissingRequiredConnections}
-                        className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg hover:shadow-violet-500/25 transition-all duration-300 rounded-lg px-6"
+                        className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 rounded-lg px-6"
                     >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {initialAgent ? "Save Changes" : "Create Agent"}

@@ -19,11 +19,11 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
-    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-xl hover:shadow-violet-500/5 transition-all duration-500 group rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
+    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500 group rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
       <CardContent className="p-4 lg:p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:gap-6">
           <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-violet-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className={`
               relative h-16 w-16 rounded-2xl flex items-center justify-center shadow-sm 
               group-hover:scale-110 group-hover:rotate-3 transition-all duration-500
@@ -35,7 +35,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
                 className="w-10 h-10 object-contain"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=8b5cf6&color=fff`;
+                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=3b82f6&color=fff`;
                 }}
               />
             </div>
@@ -48,7 +48,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
           
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2.5 mb-2">
-              <h3 className="font-black text-xl text-slate-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors uppercase tracking-tight">
+              <h3 className="font-black text-xl text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-tight">
                 {app.name}
               </h3>
               {app.featured && (
@@ -66,7 +66,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
             
             <div className="flex flex-wrap items-center gap-4 mb-3">
               {app.connected && app.accounts && (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-400">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
                   <UserCircle className="h-4 w-4" />
                   <span>{app.accounts.length} {app.accounts.length === 1 ? 'Account' : 'Accounts'}</span>
                 </div>
@@ -79,7 +79,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
               )}
             </div>
             
-            <p className="text-sm font-medium text-slate-500 dark:text-violet-200/70 line-clamp-1 italic">
+            <p className="text-sm font-medium text-slate-500 dark:text-blue-200/70 line-clamp-1 italic">
               {app.description}
             </p>
           </div>
@@ -93,8 +93,8 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
               className={`
                 flex-1 sm:flex-none min-w-[140px] h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden
                 ${app.connected 
-                  ? 'border-dashed border-violet-400 dark:border-violet-500/50 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-violet-600 dark:text-violet-400' 
-                  : 'bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/25'
+                  ? 'border-dashed border-blue-400 dark:border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                  : 'bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25'
                 }
               `}
             >
@@ -113,7 +113,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
                 asChild
               >
                 <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
-                  <UserCircle className="h-5 w-5 text-violet-500" />
+                  <UserCircle className="h-5 w-5 text-blue-500" />
                 </Link>
               </Button>
               
@@ -125,11 +125,11 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl border-slate-200 dark:border-white/10 shadow-xl p-1">
                   <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
-                    <Info className="h-4 w-4 mr-2 text-violet-500" />
+                    <Info className="h-4 w-4 mr-2 text-blue-500" />
                     View Details
                   </DropdownMenuItem>
                   <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
-                    <RefreshCw className="h-4 w-4 mr-2 text-violet-500" />
+                    <RefreshCw className="h-4 w-4 mr-2 text-blue-500" />
                     Sync Now
                   </DropdownMenuItem>
                 </DropdownMenuContent>

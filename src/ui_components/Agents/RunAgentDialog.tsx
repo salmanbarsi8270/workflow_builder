@@ -102,15 +102,15 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden p-0 gap-0">
-                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-violet-600 to-indigo-600" />
+                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
                 <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="flex items-center gap-3 text-xl">
-                        <div className="p-2 bg-violet-100 dark:bg-violet-500/20 rounded-lg">
-                            <Terminal className="h-5 w-5 text-violet-600 dark:text-violet-300" />
+                        <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                            <Terminal className="h-5 w-5 text-blue-600 dark:text-blue-300" />
                         </div>
                         <div className="flex flex-col">
                             <span>Run Agent Check</span>
-                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="text-violet-600 dark:text-violet-300 font-semibold">{agent?.name}</span></span>
+                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="text-blue-600 dark:text-blue-300 font-semibold">{agent?.name}</span></span>
                         </div>
                     </DialogTitle>
                 </DialogHeader>
@@ -123,7 +123,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                                 placeholder="Enter your prompt here..." 
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                className="resize-none h-24 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-violet-500 font-medium leading-relaxed"
+                                className="resize-none h-24 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-medium leading-relaxed"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
@@ -132,7 +132,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                                 }}
                             />
                             <Button 
-                                className="h-24 w-28 flex flex-col gap-2 bg-linear-to-b from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/20 active:scale-95 transition-all text-white border-none" 
+                                className="h-24 w-28 flex flex-col gap-2 bg-linear-to-b from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-white border-none" 
                                 onClick={handleRun} 
                                 disabled={isRunning || !input.trim()}
                             >
@@ -153,7 +153,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                             {isRunning ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 dark:text-slate-500">
                                     <div className="relative">
-                                        <div className="absolute inset-0 bg-violet-500 blur-xl opacity-20 animate-pulse" />
+                                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 animate-pulse" />
                                         <Bot className="h-8 w-8 relative z-10 animate-bounce" />
                                     </div>
                                     <span className="text-xs font-medium animate-pulse">Processing request...</span>

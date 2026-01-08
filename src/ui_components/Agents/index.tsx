@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
 import { getServices } from '../api/connectionlist';
-import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star } from "lucide-react";
+import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ import { RunAgentDialog } from './RunAgentDialog';
 import { AgentInfoSheet } from './AgentInfoSheet';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import { ChevronDown } from 'lucide-react';
+import { Skeleton } from '@/components/skeleton';
+import { Card } from '@/components/card';
 
 interface AgentTreeNodeProps {
   agent: Agent;
@@ -43,10 +45,10 @@ function AgentTreeNode({
         onClick={() => onCardClick(agent)}
       >
         <div className={cn(
-            "absolute -inset-0.5 bg-linear-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
+            "absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
         )} />
         
-        <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-violet-500/30 transition-all duration-300 h-full flex flex-col">
+        <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden">
           <div className="absolute top-4 right-4 flex items-center gap-2">
             {hasSubagents && (
               <button 
@@ -63,16 +65,15 @@ function AgentTreeNode({
           </div>
 
           <div className="relative mb-4 shrink-0">
-            <div className="relative bg-linear-to-br from-violet-600 to-indigo-600 p-3 rounded-xl w-fit shadow-lg shadow-violet-500/20">
+            <div className="relative bg-linear-to-br from-blue-600 to-indigo-600 p-3 rounded-xl w-fit shadow-lg shadow-blue-500/20">
               <Bot className="h-6 w-6 text-white" />
             </div>
           </div>
-
-          <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors duration-300 line-clamp-1">
+          <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
             {agent.name}
           </h3>
           <div className="flex items-center gap-2 mb-3">
-            <div className="px-2 py-1 bg-violet-100 dark:bg-violet-500/10 rounded-lg text-xs font-mono text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 truncate max-w-full">
+            <div className="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 rounded-lg text-xs font-mono text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 truncate max-w-full">
               {agent.model}
             </div>
             {agent.parent_agent && (
@@ -91,7 +92,7 @@ function AgentTreeNode({
               <span>{agent.tools?.length || 0} tools</span>
             </div>
             {hasSubagents && (
-              <div className="flex items-center gap-2 text-xs text-violet-500 font-bold">
+              <div className="flex items-center gap-2 text-xs text-blue-500 font-bold">
                 <Bot className="h-3 w-3" />
                 <span>{subagentsList.length} sub-agents</span>
               </div>
@@ -101,14 +102,14 @@ function AgentTreeNode({
           <div className="flex gap-2 relative z-20">
             <button 
               onClick={(e) => onRunClick(agent, e)}
-              className="flex-1 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02]"
+              className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
             >
               <Play className="h-4 w-4" />
               Run
             </button>
             <button 
               onClick={(e) => onEditClick(agent, e)}
-              className="bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg transition-all duration-300 hover:border-violet-500/30 text-slate-600 dark:text-white"
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg transition-all duration-300 hover:border-blue-500/30 text-slate-600 dark:text-white"
             >
               <Settings2 className="h-4 w-4" />
             </button>
@@ -276,10 +277,10 @@ console.log("agents", agents);
   const activeAgentsCount = agents.length; // Assuming all listed are "active" for now
 
   return (
-    <div className="min-h-full bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+    <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
 
       {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       <div className="relative z-10 container mx-auto p-8 w-full">
         {/* Header */}
@@ -287,41 +288,49 @@ console.log("agents", agents);
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="relative">
-                {/* Stabilized Glow */}
-                <div className="absolute inset-0 bg-linear-to-r from-violet-500 to-indigo-500 rounded-2xl blur-xl opacity-20" />
-                <div className="relative bg-linear-to-br from-violet-600 to-indigo-600 p-4 rounded-2xl shadow-xl">
+                <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20" />
+                <div className="relative bg-linear-to-br from-blue-600 to-indigo-600 p-4 rounded-2xl shadow-xl">
                   <Bot className="h-10 w-10 text-white" />
                 </div>
               </div>
               <div>
-                <h1 className="text-5xl font-black bg-linear-to-r from-slate-900 via-violet-800 to-indigo-800 dark:from-white dark:via-violet-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2">
+                <h1 className="text-5xl font-black bg-linear-to-r from-slate-900 via-blue-800 to-indigo-800 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2">
                   AI Agents
                 </h1>
-                <p className="text-lg text-slate-600 dark:text-violet-200/70 flex items-center gap-2">
+                <p className="text-lg text-slate-600 dark:text-blue-200/70 flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
                   Create, manage, and deploy autonomous agents
                 </p>
               </div>
             </div>
-            <button 
-                onClick={() => {
-                    setEditingAgent(null);
-                    setIsCreateModalOpen(true);
-                }}
-                className="group relative px-6 py-3 bg-linear-to-r from-violet-600 to-indigo-600 rounded-xl font-semibold shadow-lg hover:shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex items-center gap-2 text-white">
-                <Plus className="h-5 w-5" />
-                Create Agent
-              </div>
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={fetchAgents}
+                disabled={isLoading}
+                className="p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 group"
+              >
+                <RefreshCw className={cn("h-5 w-5 text-blue-600 dark:text-blue-400", isLoading && "animate-spin")} />
+              </button>
+              <button 
+                  onClick={() => {
+                      setEditingAgent(null);
+                      setIsCreateModalOpen(true);
+                  }}
+                  className="group relative px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center gap-2 text-white">
+                  <Plus className="h-5 w-5" />
+                  Create Agent
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* Stats Bar */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Active Agents', value: activeAgentsCount.toString(), icon: Zap, color: 'from-violet-500 to-indigo-500' },
+              { label: 'Active Agents', value: activeAgentsCount.toString(), icon: Zap, color: 'from-blue-500 to-indigo-500' },
               { label: 'Total Executions', value: '1,247', icon: Terminal, color: 'from-blue-500 to-cyan-500' },
               { label: 'Success Rate', value: '98.5%', icon: Star, color: 'from-emerald-500 to-teal-500' }
             ].map((stat, idx) => (
@@ -331,9 +340,9 @@ console.log("agents", agents);
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 <div className={`absolute inset-0 bg-linear-to-r ${stat.color} rounded-xl blur-lg opacity-0 group-hover:opacity-20 transition-opacity duration-300`} />
-                <div className="relative bg-white/50 dark:bg-white/5 backdrop-blur-sm border border-slate-200 dark:border-white/10 rounded-xl p-4 hover:border-violet-300 dark:hover:border-white/20 transition-all duration-300 shadow-sm dark:shadow-none">
+                <div className="relative bg-white/50 dark:bg-white/5 backdrop-blur-sm border border-slate-200 dark:border-white/10 rounded-xl p-4 hover:border-blue-300 dark:hover:border-white/20 transition-all duration-300 shadow-sm dark:shadow-none">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-500 dark:text-violet-200/70">{stat.label}</span>
+                    <span className="text-sm text-slate-500 dark:text-blue-200/70">{stat.label}</span>
                     <stat.icon className={`h-4 w-4 bg-linear-to-r ${stat.color} bg-clip-text text-transparent`} />
                   </div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
@@ -345,14 +354,52 @@ console.log("agents", agents);
 
         {/* Agents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isLoading && [1, 2, 3].map(i => (
-              <div key={i} className="h-[300px] bg-slate-200 dark:bg-white/5 rounded-2xl animate-pulse border border-slate-300 dark:border-white/10"></div>
+          {isLoading && [1, 2, 3, 4, 5, 6].map(i => (
+              <div className="group relative">
+                <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl 
+                  border border-slate-200 dark:border-white/10 rounded-2xl p-6 
+                  shadow-xl h-full flex flex-col justify-between min-h-[300px]">
+
+                  {/* Status dot */}
+                  <div className="absolute top-4 right-4">
+                    <Skeleton className="h-3 w-3 rounded-full bg-slate-200 dark:bg-white/10" />
+                  </div>
+
+                  {/* Icon */}
+                  <div className="mb-4">
+                    <Skeleton className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-white/10" />
+                  </div>
+
+                  {/* Title */}
+                  <Skeleton className="h-6 w-3/4 mb-2 bg-slate-200 dark:bg-white/10" />
+
+                  {/* Model tag */}
+                  <Skeleton className="h-5 w-24 rounded-lg mb-3 bg-slate-200 dark:bg-white/10" />
+
+                  {/* Description */}
+                  <Skeleton className="h-4 w-full mb-2 bg-slate-200 dark:bg-white/10" />
+                  <Skeleton className="h-4 w-5/6 mb-6 bg-slate-200 dark:bg-white/10" />
+
+                  {/* Footer */}
+                  <div className="flex justify-between items-center mt-auto mb-4">
+                    <Skeleton className="h-4 w-20 bg-slate-200 dark:bg-white/10" />
+                    <Skeleton className="h-4 w-24 bg-slate-200 dark:bg-white/10" />
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-2">
+                    <Skeleton className="h-10 flex-1 rounded-lg bg-slate-200 dark:bg-white/10" />
+                    <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
+                    <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
+                  </div>
+                </div>
+              </div>
           ))}
 
           {agents.length === 0 && !isLoading && (
             <div className="flex flex-col col-span-3 items-center justify-center h-[300px]">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white">No Agents Found</h1>
-              <p className="text-slate-500 dark:text-violet-200/70">Create an agent to get started</p>
+              <p className="text-slate-500 dark:text-blue-200/70">Create an agent to get started</p>
             </div>
           )}
 
@@ -377,10 +424,10 @@ console.log("agents", agents);
                 setIsCreateModalOpen(true);
             }}
           >
-            <div className="absolute -inset-0.5 bg-linear-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500" />
-            <div className="relative h-full bg-slate-50/50 dark:bg-linear-to-br dark:from-slate-900/50 dark:to-slate-800/50 backdrop-blur-xl border-2 border-dashed border-slate-300 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px] group-hover:border-violet-500/30 transition-all duration-300">
+            <div className="absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500" />
+            <div className="relative h-full bg-slate-50/50 dark:bg-linear-to-br dark:from-slate-900/50 dark:to-slate-800/50 backdrop-blur-xl border-2 border-dashed border-slate-300 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px] group-hover:border-blue-500/30 transition-all duration-300">
               <div className="relative mb-4">
-                <div className="relative bg-linear-to-br from-violet-600 to-indigo-600 p-4 rounded-full shadow-lg shadow-violet-500/20">
+                <div className="relative bg-linear-to-br from-blue-600 to-indigo-600 p-4 rounded-full shadow-lg shadow-blue-500/20">
                   <Plus className="h-8 w-8 text-white" />
                 </div>
               </div>

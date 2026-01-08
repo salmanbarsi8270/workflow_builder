@@ -191,12 +191,12 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   }
 
   return (
-    <div className="min-h-full bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+    <div className="h-screen overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
-      <div className="relative z-10 container mx-auto p-8 w-full space-y-8 flex flex-col h-full min-h-screen">
+      <div className="relative z-10 container mx-auto p-8 w-full flex flex-col h-full gap-8">
         {/* Header Section */}
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
@@ -206,20 +206,20 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           <div className="space-y-1">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full" />
-                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-violet-500/10">
-                  <Globe className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10">
+                  <Globe className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <div>
                 <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                   Integrations Marketplace
-                  <div className="px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-widest border border-violet-200 dark:border-violet-500/30">
+                  <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-500/30">
                     Discover
                   </div>
                 </h2>
-                <p className="text-slate-500 dark:text-violet-200/70 text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                <p className="text-slate-500 dark:text-blue-200/70 text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                   Connect and manage your favorite apps and services to power your workflows
                 </p>
               </div>
@@ -234,7 +234,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               disabled={isLoading}
               className="gap-2 h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300"
             >
-              <RefreshCw className={`h-4 w-4 text-violet-600 dark:text-violet-400 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="font-semibold">Refresh</span>
             </Button>
           </div>
@@ -245,7 +245,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           <StatsCard 
             title="Total Integrations" 
@@ -266,7 +266,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             value={apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0)} 
             icon={UserCircle}
             trend={15}
-            color="bg-violet-500/10 text-violet-600 dark:text-violet-400"
+            color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           />
           <StatsCard 
             title="Synced Today" 
@@ -282,14 +282,14 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           initial={{ y: 20, opacity: 0 }} 
           animate={{ y: 0, opacity: 1 }} 
           transition={{ delay: 0.1 }} 
-          className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm shrink-0"
+          className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between"
         >
           <div className="flex flex-wrap items-center gap-3">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
               <TabsList className="h-10 bg-slate-200/50 dark:bg-white/5 rounded-xl p-1 gap-1">
-                <TabsTrigger value="all" className="px-5 rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">All</TabsTrigger>
-                <TabsTrigger value="connected" className="px-5 rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Connected</TabsTrigger>
-                <TabsTrigger value="disconnected" className="px-5 rounded-lg data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Available</TabsTrigger>
+                <TabsTrigger value="all" className="px-5 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">All</TabsTrigger>
+                <TabsTrigger value="connected" className="px-5 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Connected</TabsTrigger>
+                <TabsTrigger value="disconnected" className="px-5 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Available</TabsTrigger>
               </TabsList>
             </Tabs>
             
@@ -299,7 +299,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                 placeholder="Search integrations..." 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 w-full lg:w-64 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                className="pl-10 h-10 w-full lg:w-64 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500"
               />
               {searchQuery && (
                 <Button 
@@ -344,7 +344,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
-                className={`h-8 w-8 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`}
+                className={`h-8 w-8 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'text-slate-500'}`}
                 onClick={() => setViewMode('grid')}
               >
                 <Grid className="h-4 w-4" />
@@ -352,7 +352,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
-                className={`h-8 w-8 rounded-lg transition-all ${viewMode === 'list' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`}
+                className={`h-8 w-8 rounded-lg transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-md' : 'text-slate-500'}`}
                 onClick={() => setViewMode('list')}
               >
                 <List className="h-4 w-4" />
@@ -374,21 +374,21 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         </motion.div>
 
         {/* Results Section */}
-        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none space-y-6">
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none space-y-6 pb-12">
           <div className="flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 {activeTab === 'connected' ? 'Connected Services' : 
                 activeTab === 'disconnected' ? 'Available Services' : 'All Services'}
               </h3>
-              <div className="px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-black border border-violet-200 dark:border-violet-500/20">
+              <div className="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-black border border-blue-200 dark:border-blue-500/20">
                 {filteredApps.length}
               </div>
             </div>
             
             {searchQuery && (
-              <div className="text-sm font-medium text-slate-500 dark:text-violet-200/70">
-                Search results for <span className="text-violet-600 dark:text-violet-400 font-bold italic">"{searchQuery}"</span>
+              <div className="text-sm font-medium text-slate-500 dark:text-blue-200/70">
+                Search results for <span className="text-blue-600 dark:text-blue-400 font-bold italic">"{searchQuery}"</span>
               </div>
             )}
           </div>
@@ -402,7 +402,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               transition={{ duration: 0.2 }}
             >
               {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
+                <div className="grid auto-rows-fr grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
                   {isLoading ? (
                     Array.from({ length: 9 }).map((_, i) => (
                       <Card key={i} className="overflow-hidden bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 p-6 space-y-4">
@@ -424,13 +424,13 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       className="col-span-full py-20 text-center px-4"
                     >
                       <div className="relative w-28 h-28 mx-auto mb-8">
-                        <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full" />
+                        <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
                         <div className="relative w-full h-full rounded-[2rem] bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 flex items-center justify-center shadow-2xl">
-                          <Search className="h-12 w-12 text-violet-500/60" />
+                          <Search className="h-12 w-12 text-blue-500/60" />
                         </div>
                       </div>
                       <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No integrations found</h3>
-                      <p className="max-w-md mx-auto text-slate-500 dark:text-violet-200/70 font-medium mb-8">
+                      <p className="max-w-md mx-auto text-slate-500 dark:text-blue-200/70 font-medium mb-8">
                         Try different keywords or clear your filters to see more results
                       </p>
                       <Button variant="outline" className="h-12 px-8 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 font-bold hover:bg-slate-50 transition-all font-bold" onClick={handleClearFilters}>
@@ -462,7 +462,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       </Card>
                     ))
                   ) : filteredApps.length === 0 ? (
-                    <div className="py-20 text-center text-slate-500 dark:text-violet-200/70 font-medium bg-white/40 dark:bg-white/5 rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
+                    <div className="py-20 text-center text-slate-500 dark:text-blue-200/70 font-medium bg-white/40 dark:bg-white/5 rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
                       No integrations found matching your criteria.
                     </div>
                   ) : (
