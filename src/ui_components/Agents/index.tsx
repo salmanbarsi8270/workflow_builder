@@ -12,7 +12,6 @@ import { AgentInfoSheet } from './AgentInfoSheet';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import { ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/skeleton';
-import { Card } from '@/components/card';
 
 interface AgentTreeNodeProps {
   agent: Agent;
@@ -355,7 +354,7 @@ console.log("agents", agents);
         {/* Agents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading && [1, 2, 3, 4, 5, 6].map(i => (
-              <div className="group relative">
+              <div key={i} className="group relative">
                 <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl 
                   border border-slate-200 dark:border-white/10 rounded-2xl p-6 
                   shadow-xl h-full flex flex-col justify-between min-h-[300px]">
