@@ -174,7 +174,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
   }, [templates, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col h-full bg-transparent text-slate-900 dark:text-white">
       {/* Header Section */}
       {!hideTitle && (
         <div className="px-8 pt-8 pb-4">
@@ -212,7 +212,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-8 pb-12">
+      <div className="flex-1 overflow-y-auto px-8 pb-12 pt-10">
         {isLoading ? (
           <div className={cn(viewMode === 'grid' ? "flex flex-wrap gap-4" : "flex flex-col gap-3")}>
             {[...Array(viewMode === 'grid' ? 8 : 10)].map((_, i) => (
@@ -250,88 +250,94 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
               ? "flex flex-wrap gap-4" 
               : "flex flex-col gap-3"
           )}>
-            {filteredTemplates.map((template) => (
+            {filteredTemplates.map((template, index) => (
               <motion.div
                 key={template.id}
                 layoutId={template.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
                 onClick={() => setSelectedTemplate(template)}
                 className={cn(
-                  "group relative flex flex-col justify-between p-6 bg-card border border-border/50 hover:border-border hover:bg-accent/40 rounded-xl cursor-pointer transition-all hover:shadow-xl overflow-hidden",
-                  viewMode === 'grid' ? "h-[200px] w-[500px]" : "w-full h-auto"
+                  "group relative cursor-pointer", // Wrapper for positioning
+                  viewMode === 'grid' ? "h-[220px] w-full md:w-[calc(50%-1rem)] xl:w-[calc(33.33%-1rem)]" : "w-full h-auto"
                 )}
               >
-                <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-base leading-snug group-hover:text-primary transition-colors line-clamp-1 text-foreground">
-                      {template.name}
-                    </h3>
-                    <p className={cn(
-                      "text-xs text-muted-foreground leading-relaxed",
-                      viewMode === 'grid' ? "line-clamp-2" : "line-clamp-1"
-                    )}>
-                      {template.description}
-                    </p>
-                  </div>
-                  {template.created_at && (
-                    <div className="inline-flex mt-1 items-center px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{moment(template.created_at).format("DD MMMM YYYY, hh:mm:ss A")}</span>
-                    </div>
-                  )}
-                </div>
+                 {/* Stabilized Hover Glow */}
+                <div className={cn(
+                    "absolute -inset-0.5 bg-linear-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
+                )} />
 
                 <div className={cn(
-                  "flex items-center justify-between pt-4 border-t border-border/50",
-                  viewMode === 'list' && "mt-4"
+                  "relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-violet-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden",
                 )}>
-                   <div className="flex -space-x-2">
-                      {template.apps?.map((app, i) => {
-                         const logo = getAppLogo(app);
-                         if (logo) {
-                           return (
+                  <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold mb-1 text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors duration-300 line-clamp-1">
+                        {template.name}
+                      </h3>
+                      <p className={cn(
+                        "text-sm text-slate-500 dark:text-slate-400 leading-relaxed",
+                        viewMode === 'grid' ? "line-clamp-2" : "line-clamp-1"
+                      )}>
+                        {template.description}
+                      </p>
+                    </div>
+                    {template.created_at && (
+                       <div className="inline-flex mt-1 items-center px-2 py-1 bg-violet-100 dark:bg-violet-500/10 rounded-lg text-xs font-mono text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 shrink-0">
+                         {moment(template.created_at).format("DD MMM YYYY")}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={cn(
+                    "flex items-center justify-between pt-4 mt-auto",
+                    viewMode === 'list' && "mt-0 pt-0" // Adjust for list view
+                  )}>
+                     <div className="flex -space-x-2">
+                        {template.apps?.map((app, i) => {
+                           const logo = getAppLogo(app);
+                           if (logo) {
+                             return (
+                               <div 
+                                 key={i} 
+                                 className="h-8 w-8 rounded-xl flex items-center justify-center border border-white dark:border-slate-800 bg-white dark:bg-slate-900 p-1.5 relative z-10 shadow-sm transition-transform hover:-translate-y-1 hover:z-20"
+                                 title={app}
+                               >
+                                 <img 
+                                     src={logo} 
+                                     alt={app} 
+                                     className={cn(
+                                         "h-full w-full object-contain",
+                                         ['wait', 'delay', 'utility'].some(k => app.toLowerCase().includes(k)) && "invert dark:invert-0"
+                                     )} 
+                                 />
+                               </div>
+                             );
+                           }
+                           
+                           const fallback = getFallbackIcon(app);
+                           return ( 
                              <div 
                                key={i} 
-                               className="h-7 w-7 rounded-md flex items-center justify-center border border-border bg-background p-1 relative z-10 shadow-sm transition-transform hover:-translate-y-0.5"
+                               className={cn(
+                                 "h-8 w-8 rounded-xl flex items-center justify-center border border-white dark:border-slate-800 relative z-10 shadow-sm transition-transform hover:-translate-y-1 hover:z-20", 
+                                 fallback.color
+                               )}
                                title={app}
                              >
-                               <img 
-                                   src={logo} 
-                                   alt={app} 
-                                   className={cn(
-                                       "h-full w-full object-contain",
-                                       ['wait', 'delay', 'utility'].some(k => app.toLowerCase().includes(k)) && "invert dark:invert-0"
-                                   )} 
-                               />
+                               <HugeiconsIcon icon={fallback.icon} className="h-4 w-4 text-white" />
                              </div>
                            );
-                         }
-                         
-                         const fallback = getFallbackIcon(app);
-                         return ( 
-                           <div 
-                             key={i} 
-                             className={cn(
-                               "h-7 w-7 rounded-md flex items-center justify-center border relative z-10 shadow-sm transition-transform hover:-translate-y-0.5", 
-                               fallback.color
-                             )}
-                             title={app}
-                           >
-                             <HugeiconsIcon icon={fallback.icon} className="h-3.5 w-3.5 text-white" />
-                           </div>
-                         );
-                      })}
-                   </div>
-                   <motion.div 
-                     initial={{ opacity: 0, x: -10 }}
-                     whileHover={{ opacity: 1, x: 0 }}
-                     className="h-8 w-8 bg-foreground rounded-lg flex items-center justify-center text-background shadow-lg"
-                   >
-                      <ArrowRight className="h-4 w-4" />
-                   </motion.div>
+                        })}
+                     </div>
+                     <motion.div 
+                       className="h-8 w-8 rounded-full bg-violet-100 dark:bg-white/10 flex items-center justify-center text-violet-600 dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
+                     >
+                        <ArrowRight className="h-4 w-4" />
+                     </motion.div>
+                  </div>
                 </div>
-
-                <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </motion.div>
             ))}
           </div>
@@ -375,7 +381,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
             <Button 
               onClick={handleInstantiate} 
               disabled={isInstantiating}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg hover:shadow-violet-500/25 transition-all duration-300"
             >
               {isInstantiating ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>

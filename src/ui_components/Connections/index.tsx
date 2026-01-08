@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface ConnectedAccount {
@@ -120,7 +121,7 @@ export default function Connections() {
   const [selectedService, setSelectedService] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Get unique services for filter
   const services = Array.from(new Set(accounts.map(acc => acc.serviceName)));
@@ -244,279 +245,311 @@ export default function Connections() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] animate-in fade-in duration-500">
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto pr-4 -mr-4 custom-scrollbar space-y-6">
-      {/* Header Section */}
-      <motion.div 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-      >
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10">
-              <Globe className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Connected Accounts
-              </h2>
-              <p className="text-muted-foreground text-sm flex items-center gap-2">
-                <Sparkles className="h-3 w-3" />
-                Manage all individual credentials used in your workflows
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" size="sm" onClick={fetchAccounts} disabled={isLoading} className="gap-2 h-10 px-4">
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button size="sm" onClick={() => navigate('/connectors')} className="gap-2 h-10 px-4 bg-linear-to-r from-primary to-primary/80">
-            <Plus className="h-4 w-4" />
-            Add Connector
-          </Button>
-        </div>
-      </motion.div>
+    <div className="min-h-full bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+      
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
-      {/* Controls Bar */}
-      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            <div className="relative flex-1 sm:flex-none sm:w-64">
-              <Input 
-                placeholder="Search accounts, services, or IDs..." 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-10 bg-background/50 backdrop-blur-sm"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-            {searchQuery && (
-              <Button variant="ghost"  size="icon"  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchQuery('')}>
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-          
-          <Select value={selectedService} onValueChange={setSelectedService}>
-            <SelectTrigger className="h-10 w-full sm:w-48">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by service" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Services</SelectItem>
-              {services.map(service => (
-                <SelectItem key={service} value={service}>{service}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortType)}>
-            <SelectTrigger className="h-10 w-full sm:w-40">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Date Added</SelectItem>
-              <SelectItem value="name">Account Name</SelectItem>
-              <SelectItem value="service">Service</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-medium">
-              <Shield className="h-3 w-3" />
-              {accounts.length} Total Accounts
-            </div>
-          </div>
-
-          <div className="flex items-center border rounded-lg bg-background/50 backdrop-blur-sm p-1 gap-1">
-            <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </motion.div>
-
-        <AnimatePresence mode="wait">
-        {isLoading ? (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
-            {[1, 2, 3, 4].map(i => (
-              <Card key={i} className="overflow-hidden border-border/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-14 w-14 rounded-2xl" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-4 w-64" />
-                    </div>
-                    <Skeleton className="h-9 w-9 rounded-lg" />
+      <div className="relative z-10 container mx-auto p-8 w-full space-y-8 flex flex-col h-full">
+        {/* Header Section */}
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full" />
+                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-violet-500/10">
+                  <Globe className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                  Connected Accounts
+                  <div className="px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-widest border border-violet-200 dark:border-violet-500/30">
+                    Secure
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </motion.div>
-        ) : filteredAccounts.length === 0 ? (
-          <motion.div key="empty" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center px-4">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-linear-to-r from-primary/20 to-primary/10 blur-2xl rounded-full" />
-              <div className="relative w-24 h-24 rounded-3xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center">
-                <Shield className="h-12 w-12 text-primary/60" />
+                </h2>
+                <p className="text-slate-500 dark:text-violet-200/70 text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                  Manage your individual credentials and platform integrations
+                </p>
               </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">No connections found</h3>
-            <p className="text-muted-foreground text-sm max-w-md mb-6">
-              {searchQuery ? "No accounts match your search criteria. Try adjusting your filters." : "Get started by connecting your first account to enable workflows and automations."}
-            </p>
-            <div className="flex gap-3">
-              <Button variant="outline" className="gap-2" onClick={() => setSearchQuery('')}>
-                <X className="h-4 w-4" />
-                Clear Filters
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button variant="outline" size="sm" onClick={fetchAccounts} disabled={isLoading} className="gap-2 h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300">
+              <RefreshCw className={`h-4 w-4 text-violet-600 dark:text-violet-400 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="font-semibold">Refresh</span>
+            </Button>
+            <Button size="sm" onClick={() => navigate('/connectors')} className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02]">
+              <Plus className="h-4 w-4" />
+              Add Connector
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Controls Bar */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }} 
+          animate={{ y: 0, opacity: 1 }} 
+          transition={{ delay: 0.1 }} 
+          className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm shrink-0"
+        >
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 sm:flex-none sm:w-80">
+                <Input 
+                  placeholder="Search accounts, services, or IDs..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
+              {searchQuery && (
+                <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-white/5" onClick={() => setSearchQuery('')}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger className="h-11 w-full sm:w-52 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-violet-500" />
+                  <SelectValue placeholder="Filter by service" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 dark:border-white/10">
+                <SelectItem value="all">All Services</SelectItem>
+                {services.map(service => (
+                  <SelectItem key={service} value={service}>{service}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortType)}>
+              <SelectTrigger className="h-11 w-full sm:w-44 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 dark:border-white/10">
+                <SelectItem value="date">Date Added</SelectItem>
+                <SelectItem value="name">Account Name</SelectItem>
+                <SelectItem value="service">Service</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-500/20">
+              <Shield className="h-3.5 w-3.5" />
+              {accounts.length} Total Accounts
+            </div>
+
+            <div className="flex items-center border border-slate-200 dark:border-white/10 rounded-xl bg-white/50 dark:bg-slate-900/50 p-1 gap-1">
+              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'grid' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('grid')}>
+                <LayoutGrid className="h-4.5 w-4.5" />
               </Button>
-              <Button className="gap-2 bg-linear-to-r from-primary to-primary/80">
-                <ExternalLink className="h-4 w-4" />
-                Browse Integrations
+              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className={`h-9 w-9 rounded-lg ${viewMode === 'list' ? 'bg-violet-600 text-white hover:bg-violet-500 shadow-md' : 'text-slate-500'}`} onClick={() => setViewMode('list')}>
+                <List className="h-4.5 w-4.5" />
               </Button>
             </div>
-          </motion.div>
-        ) : (
-          <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-3" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}>
-            {paginatedAccounts.map((account) => (
-              <motion.div key={account.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
-                <Card className="overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300 group h-full">
-                  <CardContent className="p-4 h-full">
-                    <div className={`flex ${viewMode === 'list' ? 'items-center gap-4' : 'flex-col gap-4'}`}>
+          </div>
+        </motion.div>
 
-                      {/* Service Icon */}
-                      {viewMode === 'list' && (<div className="relative shrink-0">
-                        <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <img src={account.serviceIcon} alt={account.serviceName} className="w-7 h-7 object-contain" 
-                          onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=6b7280&color=fff`;
-                            }}
-                          />
-                        </div>
-                      </div>)}
-
-                      {/* Account Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          {viewMode === 'grid' && (
-                            <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                              <img src={account.serviceIcon} alt={account.serviceName} className="w-7 h-7 object-contain" 
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=6b7280&color=fff`;
-                                  }}
-                              />
-                            </div>
-                          )}
-                          <h4 className="font-semibold text-base truncate">{account.username}</h4>
-                          <span className={`px-2 py-0.5 rounded-full border text-xs font-medium ${(categoryColors[account.category || 'default'] || categoryColors.default).bg} ${(categoryColors[account.category || 'default'] || categoryColors.default).text} ${(categoryColors[account.category || 'default'] || categoryColors.default).border}`}>
-                            {account.serviceName}
-                          </span>
-                        </div>
-                        
-                        <div className={`flex mt-4 flex-wrap ${viewMode === 'list' ? 'items-center gap-x-4' : 'flex-col items-start gap-y-2'} gap-y-1 text-sm text-muted-foreground`}>
-                          <div className='flex gap-x-4'>
-                            <div className="flex items-center gap-1.5">
-                              <UserCircle className="h-3.5 w-3.5" />
-                              <span className="truncate">{account.externalId}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>Connected {new Date(account.connectedAt).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Zap className="h-3.5 w-3.5" />
-                            <span>Last used {new Date(account.lastUsed || account.connectedAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none space-y-6">
+          <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <Card key={i} className="overflow-hidden bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-16 w-16 rounded-2xl bg-slate-200 dark:bg-white/10" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-6 w-40 bg-slate-200 dark:bg-white/10" />
+                        <Skeleton className="h-4 w-72 bg-slate-200 dark:bg-white/10" />
                       </div>
-
-                      {/* Actions */}
-                      <div className={`flex items-center ${viewMode === 'grid' ? 'mt-2 pt-4 border-t w-full justify-end' : ''}`}>
-
-                        <Button variant="ghost" className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 px-3" onClick={() => handleDelete(account.id, account.username)} disabled={deletingId === account.id}>
-                          {deletingId === account.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Trash2 className="h-4 w-4" />
-                              <span>Disconnect</span>
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <Skeleton className="h-10 w-24 rounded-xl bg-slate-200 dark:bg-white/10" />
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-        </AnimatePresence>
-      </div>
+              ))}
+            </motion.div>
+          ) : filteredAccounts.length === 0 ? (
+            <motion.div key="empty" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center px-4">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full" />
+                <div className="relative w-28 h-28 rounded-[2rem] bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 flex items-center justify-center shadow-2xl">
+                  <Shield className="h-14 w-14 text-violet-500/60" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No connections found</h3>
+              <p className="text-slate-500 dark:text-violet-200/70 max-w-md mb-8 font-medium">
+                {searchQuery ? "We couldn't find any accounts matching your search. Try broadening your criteria." : "Connect your first platform to unlock the full power of automated workflows."}
+              </p>
+              <div className="flex gap-4">
+                <Button variant="outline" className="h-12 px-6 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 font-semibold" onClick={() => setSearchQuery('')}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Search
+                </Button>
+                <Button className="h-12 px-8 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Explore Hub
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
+              {paginatedAccounts.map((account) => (
+                <motion.div key={account.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
+                  <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none">
+                    <CardContent className="p-6 h-full flex flex-col">
+                      <div className={`flex ${viewMode === 'list' ? 'items-center gap-6' : 'flex-col gap-5'} flex-1`}>
 
-      {/* Pagination Controls */}
-      {filteredAccounts.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t mt-auto bg-background/50 backdrop-blur-sm sticky bottom-0 z-20">
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
-              <span className="font-medium">
-                {Math.min(startIndex + itemsPerPage, filteredAccounts.length)}
-              </span>{" "}
-              of <span className="font-medium">{filteredAccounts.length}</span> connections
-            </p>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={(v) => {setItemsPerPage(parseInt(v));setCurrentPage(1);}}>
-                <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue placeholder={itemsPerPage.toString()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 20, 50].map(size => (
-                    <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                        {/* Service Icon */}
+                        <div className="relative shrink-0">
+                          <div className="absolute inset-0 bg-violet-500/10 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="h-16 w-16 rounded-2xl bg-white/80 dark:bg-white/10 border border-slate-100 dark:border-white/10 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                            <img src={account.serviceIcon} alt={account.serviceName} className="w-9 h-9 object-contain" 
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.serviceName)}&background=8b5cf6&color=fff`;
+                              }}
+                            />
+                          </div>
+                          {/* Status Dot */}
+                          <div className={`absolute -top-1 -right-1 h-4 w-4 rounded-full border-2 border-white dark:border-slate-900 shadow-sm ${
+                            account.status === 'active' ? 'bg-emerald-500' : 
+                            account.status === 'expired' ? 'bg-rose-500' : 'bg-amber-500'
+                          }`} />
+                        </div>
+
+                        {/* Account Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{account.username}</h4>
+                            </div>
+                            <Badge variant="outline" className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border-opacity-50 ${(categoryColors[account.category || 'default'] || categoryColors.default).bg} ${(categoryColors[account.category || 'default'] || categoryColors.default).text} ${(categoryColors[account.category || 'default'] || categoryColors.default).border}`}>
+                              {account.serviceName}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-2.5">
+                            <div className="flex items-center max-w-[40%] gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-50/50 dark:bg-white/5 p-1.5 rounded-lg border border-slate-100/50 dark:border-white/5">
+                              <UserCircle className="h-4 w-4 text-violet-500/70" />
+                              <span className="truncate">{account.externalId}</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 gap-3 pt-1">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Connected</span>
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                                  <Calendar className="h-3 w-3 text-violet-500" />
+                                  {new Date(account.connectedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Last Activity</span>
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                                  <Zap className="h-3 w-3 text-amber-500" />
+                                  {new Date(account.lastUsed || account.connectedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className={`flex items-center ${viewMode === 'grid' ? 'mt-6 pt-4 border-t border-slate-100 dark:border-white/10 w-full justify-between' : 'shrink-0'}`}>
+                          {viewMode === 'grid' && (
+                            <div className="flex -space-x-1.5 overflow-hidden">
+                              {account.permissions?.slice(0, 3).map((p, i) => (
+                                <div key={i} className="h-6 w-6 rounded-full bg-slate-100 dark:bg-white/10 border-2 border-white dark:border-slate-900 flex items-center justify-center" title={p}>
+                                  <div className="h-2 w-2 rounded-full bg-violet-500" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <Button variant="ghost" className="h-10 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl px-4 transition-all" onClick={() => handleDelete(account.id, account.username)} disabled={deletingId === account.id}>
+                            {deletingId === account.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
+                                <Trash2 className="h-4 w-4" />
+                                <span>Disconnect</span>
+                              </div>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+          </AnimatePresence>
+        </div>
+
+        {/* Pagination Footer */}
+        {filteredAccounts.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 border-t border-slate-200 dark:border-white/10 shrink-0">
+            <div className="flex items-center gap-6">
+              <p className="text-sm text-slate-500 dark:text-violet-200/70 font-medium">
+                Showing <span className="font-bold text-slate-900 dark:text-white">{startIndex + 1}</span> to{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {Math.min(startIndex + itemsPerPage, filteredAccounts.length)}
+                </span>{" "}
+                of <span className="font-bold text-slate-900 dark:text-white">{filteredAccounts.length}</span> connections
+              </p>
+              
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">Items per page</span>
+                <Select value={itemsPerPage.toString()} onValueChange={(v) => {setItemsPerPage(parseInt(v));setCurrentPage(1);}}>
+                  <SelectTrigger className="h-9 w-20 rounded-xl bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 font-bold">
+                    <SelectValue placeholder={itemsPerPage.toString()} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {[5, 10, 20, 50].map(size => (
+                      <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          
+            
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
                   <ChevronFirst className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                <div className="flex items-center gap-1 px-2">
-                  <span className="text-sm font-medium">Page {currentPage}</span>
-                  <span className="text-sm text-muted-foreground text-nowrap">of {totalPages}</span>
+                <div className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 shadow-sm shadow-violet-500/5">
+                  <span className="text-xs font-bold text-violet-700 dark:text-violet-300 uppercase tracking-widest">Page</span>
+                  <span className="text-sm font-black text-violet-800 dark:text-violet-100">{currentPage}</span>
+                  <span className="text-xs font-bold text-violet-400 uppercase tracking-widest">/ {totalPages}</span>
                 </div>
 
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
                   <ChevronLast className="h-4 w-4" />
                 </Button>
               </div>
             )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

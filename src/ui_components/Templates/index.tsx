@@ -2,7 +2,7 @@ import { TemplateGallery, type TemplateGalleryHandle } from '../Automation/compo
 import { useUser } from '@/context/UserContext';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Layout, RefreshCw } from 'lucide-react';
+import { Layout, RefreshCw, Sparkles } from 'lucide-react';
 import { useState, useRef } from 'react';
 
 export default function Templates() {
@@ -15,31 +15,37 @@ export default function Templates() {
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100vh-6rem)] p-2 overflow-hidden rounded-2xl border border-border shadow-2xl bg-background">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-xl bg-linear-to-br from-primary/20 to-primary/10">
-                            <Layout className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                              Templates
-                            </h1>
-                            <p className="text-muted-foreground">
-                              Manage your favorite templates here
-                            </p>
-                          </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[calc(100vh-6rem)] p-2 bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white relative overflow-hidden">
+            
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
+            
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-4 p-8 relative z-10">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        {/* Stabilized Glow */}
+                        <div className="absolute inset-0 bg-linear-to-r from-violet-500 to-indigo-500 rounded-2xl blur-xl opacity-20" />
+                        <div className="relative bg-linear-to-br from-violet-600 to-indigo-600 p-4 rounded-2xl shadow-xl">
+                            <Layout className="h-10 w-10 text-white" />
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="gap-2">
-                          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                          Refresh
-                        </Button>
-                      </div>
                     </div>
+                    <div>
+                        <h1 className="text-5xl font-black bg-linear-to-r from-slate-900 via-violet-800 to-indigo-800 dark:from-white dark:via-violet-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2">
+                            Templates
+                        </h1>
+                        <p className="text-lg text-slate-600 dark:text-violet-200/70 flex items-center gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            Manage your favorite templates here
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="gap-2">
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
+            </div>
             <TemplateGallery ref={galleryRef} userId={user?.id || ""} onLoadingChange={setIsLoading}/>
         </motion.div>
     );

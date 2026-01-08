@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, } from "@/components/ui/tooltip"
-import { PlusIcon, SearchIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, CheckCircle2, XCircle, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight,} from "lucide-react"
+import { PlusIcon, SearchIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, CheckCircle2, XCircle, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight, Plus, Search, X,} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -77,7 +77,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
 
-        <Card className="border-none shadow-lg">
+        <Card className="bg-linear-to-br from-slate-50 via-violet-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
           <CardHeader className="pb-3">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -116,22 +116,32 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <div className="relative">
-                  <Input
-                    placeholder="Search automations..."
-                    className="pl-9 w-full sm:w-[200px] lg:w-[250px] bg-background/50 backdrop-blur-sm"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                              <div className="relative flex-1 sm:flex-none sm:w-80">
+                                <Input 
+                                  placeholder="Search automations..." 
+                                  value={search} 
+                                  onChange={(e) => setSearch(e.target.value)}
+                                  className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-violet-500 focus:border-violet-500"
+                                />
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
+                              {search && (
+                                <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-white/5" onClick={() => setSearch('')}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            </div>
                 
                 <Button 
-                  className="bg-linear-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 shadow-lg shadow-violet-500/20 gap-2"
+                  className="group relative px-6 py-3 bg-linear-to-r from-violet-600 to-indigo-600 rounded-xl font-semibold shadow-lg hover:shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
                   onClick={onCreate}
                 >
-                  <PlusIcon className="h-4 w-4" />
-                  Create New
+                  <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="relative flex items-center gap-2 text-white">
+                    <Plus className="h-5 w-5" />
+                    Create New
+                  </div>
                 </Button>
               </div>
             </div>

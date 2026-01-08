@@ -13,13 +13,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/dropdown-menu'
 import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from '@/components/item'
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -39,9 +32,12 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Cable, Workflow, } from 'lucide-react'
+import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
+import { cn } from "@/lib/utils";
+
+import { motion } from 'framer-motion';
 
 export function SidebarIconExample() {
   const { theme, setTheme } = useTheme()
@@ -52,20 +48,19 @@ export function SidebarIconExample() {
     switch (pathname) {
       case "/":
         return "Dashboard";
-      case "/order":
-        return "Order";
       case "/connections":
         return "Connections";
+      case "/connectors":
       case "/integration":
-        return "Integration";
+        return "Integrations";
       case "/automation":
-        return "Automation";
+        return "Automation Editor";
       case "/templates":
-        return "Templates";
+        return "Template Gallery";
       case "/agents":
-        return "Agents"; // Added check for agents just in case
+        return "Agent Workspace";
       default:
-        return "Dashboard";
+        return "Workflow Builder";
     }
   };
 
@@ -75,141 +70,155 @@ export function SidebarIconExample() {
     {
       title: "Dashboard",
       url: "/",
-      icon: <LayoutDashboard size={20} strokeWidth={2} />,
+      icon: <LayoutDashboard size={20} />,
     },
     {
       title: "Connectors",
       url: "/connectors",
-      icon: <Cable size={20} strokeWidth={2} />,
+      icon: <Globe size={20} />,
     },
     {
       title: "Connections",
       url: "/connections",
-      icon: <LinkIcon size={20} strokeWidth={2} />,
+      icon: <LinkIcon size={20} />,
     },
     {
       title: "Templates",
       url: "/templates",
-      icon: <HugeiconsIcon icon={Layout01Icon} strokeWidth={2} />,
+      icon: <HugeiconsIcon icon={Layout01Icon} size={20} />,
     },
     {
-      title: "Agents",
+      title: "AI Agents",
       url: "/agents",
-      icon: <Bot size={20} strokeWidth={2} />,
+      icon: <Bot size={20} />,
     },
     {
-      title: "Automation",
+      title: "Automations",
       url: "/automation",
-      icon: <Workflow size={20} strokeWidth={2} />,
+      icon: <Workflow size={20} />,
     },
   ]
 
-
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader className='p-3 mt-2'>
-             <SidebarMenu>
+    <SidebarProvider className="h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <Sidebar collapsible="icon" className="border-r border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+        <SidebarHeader className='p-4 mt-2'>
+          <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
-                <Link to="/">
-                    <Avatar>
-                      <AvatarImage src="https://picsum.photos/seed/picsum/200" />
-                      <AvatarFallback className="rounded-lg">FTS</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">Workflow Builder</span>
-                      <span className="truncate text-xs">Automation</span>
+              <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
+                <Link to="/" className="flex items-center gap-3">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-xl group-hover:bg-violet-500/30 transition-all" />
+                      <div className="relative h-10 w-10 rounded-xl bg-linear-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20">
+                        <LayoutDashboard size={22} className="group-hover:scale-110 transition-transform" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <span className="truncate font-black text-slate-900 dark:text-white tracking-tighter text-base">WORKFLOW</span>
+                      <span className="truncate text-[10px] font-bold text-violet-500 uppercase tracking-widest">Faaz Tech</span>
                     </div>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="px-2">
           <SidebarGroup>
-            <SidebarGroupLabel>Menu</SidebarGroupLabel>
-            <SidebarContent>
-                <SidebarMenu>
-                {navItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                        asChild 
-                        tooltip={item.title} 
-                        isActive={item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)}
-                    >
-                        <Link to={item.url}>{item.icon}<span>{item.title}</span></Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
+            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">Main Menu</SidebarGroupLabel>
+            <SidebarMenu className="gap-1">
+                {navItems.map((item) => {
+                    const isActive = item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url);
+                    return (
+                        <SidebarMenuItem key={item.title}>
+                            <motion.div
+                                whileHover={{ x: 4 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <SidebarMenuButton 
+                                    asChild 
+                                    tooltip={item.title} 
+                                    isActive={isActive}
+                                    className={cn(
+                                        "h-11 rounded-xl transition-all duration-300 relative group",
+                                        isActive 
+                                            ? "bg-linear-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 border-none" 
+                                            : "text-slate-500 dark:text-slate-400 hover:bg-violet-500/10 hover:text-violet-600 dark:hover:text-violet-400"
+                                    )}
+                                >
+                                    <Link to={item.url} className="flex items-center gap-3 font-bold text-sm tracking-tight">
+                                        <div className={cn(
+                                            "transition-colors",
+                                            isActive ? "text-white" : "group-hover:text-violet-500"
+                                        )}>
+                                            {item.icon}
+                                        </div>
+                                        <span>{item.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </motion.div>
+                        </SidebarMenuItem>
+                    );
+                })}
             </SidebarMenu>
-            </SidebarContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter>
+        <SidebarFooter className="p-4 border-t border-slate-200 dark:border-white/5">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton
                     size="lg"
-                    className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                    className="rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all p-2 h-14"
                   >
-                    <Avatar>
-                      <AvatarImage
-                        src={user?.picture}
-                        alt={user?.name || 'User'}
-                      />
-                      <AvatarFallback className="rounded-lg">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">
+                    <div className="relative">
+                        <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm">
+                            <AvatarImage src={user?.picture} alt={user?.name || 'User'} />
+                            <AvatarFallback className="bg-violet-100 text-violet-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight ml-1">
+                      <span className="truncate font-black text-slate-900 dark:text-white tracking-tight">
                         {user?.name || 'User'}
                       </span>
-                      <span className="truncate text-xs">
-                        {user?.email || 'User@user.com'}
+                      <span className="truncate text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Pro Plan
                       </span>
                     </div>
-                    <HugeiconsIcon icon={UnfoldMoreIcon} strokeWidth={2} />
+                    <HugeiconsIcon icon={UnfoldMoreIcon} className="h-4 w-4 text-slate-400" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="w-56 rounded-2xl p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-2xl" side="right" align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>
-                      <Item size="xs">
-                        <ItemMedia>
-                          <Avatar>
-                            <AvatarImage
-                              src={user?.picture}
-                              alt={user?.name || 'User'}
-                            />
-                            <AvatarFallback className="rounded-lg">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
-                          </Avatar>
-                        </ItemMedia>
-                        <ItemContent>
-                          <ItemTitle>{user?.name || 'User'}</ItemTitle>
-                          <ItemDescription> {user?.email || 'User@user.com'}</ItemDescription>
-                        </ItemContent>
-                      </Item>
+                    <DropdownMenuLabel className="p-2">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src={user?.picture} />
+                                <AvatarFallback>{user?.name ? user.name[0] : 'U'}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-black tracking-tight">{user?.name}</span>
+                                <span className="text-[10px] text-slate-500 truncate max-w-[140px]">{user?.email}</span>
+                            </div>
+                        </div>
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem>Account</DropdownMenuItem>
-                    <DropdownMenuItem>Billing</DropdownMenuItem>
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
-                      <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+                  <DropdownMenuSeparator className="bg-slate-100 dark:bg-white/5" />
+                  <DropdownMenuGroup className="gap-1 flex flex-col">
+                    <DropdownMenuItem className="rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer">Account</DropdownMenuItem>
+                    <DropdownMenuItem className="rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer">Settings</DropdownMenuItem>
+                    <div className="flex items-center justify-between px-2 py-2 text-xs font-bold uppercase tracking-widest">
                         <span>Dark Mode</span>
                         <Switch
                           checked={theme === "dark"}
                           onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                          className="data-[state=checked]:bg-violet-600"
                         />
-                      </div>
+                    </div>
                   </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <Logout />
-                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-slate-100 dark:bg-white/5" />
+                  <Logout />
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
@@ -217,21 +226,31 @@ export function SidebarIconExample() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-10 bg-background flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <h1 className="text-lg font-semibold">{pageTitle}</h1>
+      <SidebarInset className="overflow-hidden flex flex-col h-full bg-transparent">
+        <header className="flex h-16 shrink-0 items-center justify-between px-8 border-b border-slate-200 dark:border-white/5 bg-white/30 dark:bg-slate-950/30 backdrop-blur-md transition-all z-20">
+          <div className="flex items-center gap-4">
+            <SidebarTrigger className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500" />
+            <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/10" />
+            <h1 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">{pageTitle}</h1>
           </div>
-          <div className="w-full flex flex-row justify-end mr-10">
-            <button onClick={() =>{
-                theme === "dark" ? setTheme("light") : setTheme("dark")
-            }}>
-                {theme === "dark" ? <Sun className='text-yellow-500' /> : <Moon className='text-black' />}
+          <div className="flex items-center gap-4">
+            <button 
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="h-10 w-10 rounded-xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 transition-all shadow-sm"
+            >
+                {theme === "dark" ? <Sun className='h-4 w-4 text-yellow-500' /> : <Moon className='h-4 w-4 text-slate-900' />}
             </button>
+            <div className="h-10 w-10 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 p-[1px] shadow-lg shadow-violet-500/20 active:scale-95 transition-all">
+                <div className="h-full w-full rounded-[11px] bg-slate-50 dark:bg-slate-950 flex items-center justify-center overflow-hidden">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user?.picture} />
+                        <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+                    </Avatar>
+                </div>
+            </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="flex flex-1 flex-col overflow-y-auto relative z-10">
             <Outlet />
         </div>
       </SidebarInset>

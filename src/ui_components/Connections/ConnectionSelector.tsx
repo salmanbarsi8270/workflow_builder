@@ -28,6 +28,7 @@ interface ConnectionSelectorProps {
     value: string;
     onChange: (value: string) => void;
     disabled?: boolean;
+    hasError?: boolean;
 }
 
 const SERVICE_MAP: Record<string, string> = {
@@ -39,7 +40,7 @@ const SERVICE_MAP: Record<string, string> = {
     'github': 'github'
 };
 
-export default function ConnectionSelector({ appName, value, onChange, disabled }: ConnectionSelectorProps) {
+export default function ConnectionSelector({ appName, value, onChange, disabled, hasError }: ConnectionSelectorProps) {
     const { user } = useUser();
     const [connections, setConnections] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);

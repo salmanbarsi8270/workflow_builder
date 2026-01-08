@@ -19,104 +19,122 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
-    <Card className="group hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 border-border/50 hover:border-primary/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
-          <div className={`
-            p-3 rounded-xl ${colors.bg}
-            ${app.connected ? 'ring-2 ring-primary/20' : ''}
-          `}>
-            <img 
-              src={app.icon} 
-              alt={app.name} 
-              className="w-8 h-8 object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=6b7280&color=fff`;
-              }}
-            />
+    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-violet-500/50 hover:shadow-xl hover:shadow-violet-500/5 transition-all duration-500 group rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
+      <CardContent className="p-4 lg:p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:gap-6">
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 bg-violet-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className={`
+              relative h-16 w-16 rounded-2xl flex items-center justify-center shadow-sm 
+              group-hover:scale-110 group-hover:rotate-3 transition-all duration-500
+              bg-white/80 dark:bg-white/10 border border-slate-100 dark:border-white/10
+            `}>
+              <img 
+                src={app.icon} 
+                alt={app.name} 
+                className="w-10 h-10 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=8b5cf6&color=fff`;
+                }}
+              />
+            </div>
+            {app.connected && (
+              <div className="absolute -top-1 -right-1">
+                <StatusIndicator status={app.connectionStatus} />
+              </div>
+            )}
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-semibold text-lg truncate">{app.name}</h3>
+            <div className="flex flex-wrap items-center gap-2.5 mb-2">
+              <h3 className="font-black text-xl text-slate-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors uppercase tracking-tight">
+                {app.name}
+              </h3>
               {app.featured && (
-                <Star className="h-3 w-3 text-amber-500 fill-current" />
+                <div className="bg-amber-100 dark:bg-amber-500/10 p-1 rounded-lg">
+                  <Star className="h-4 w-4 text-amber-500 fill-current" />
+                </div>
               )}
-              {app.connected && (
-                <StatusIndicator status={app.connectionStatus} size="md" />
-              )}
-            </div>
-            
-            <div className="flex items-center gap-3 mb-2">
               <Badge 
                 variant="outline" 
-                className={`${colors.bg} ${colors.text} ${colors.border} border font-medium capitalize`}
+                className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-lg border-opacity-50 ${colors.bg} ${colors.text} ${colors.border}`}
               >
                 {app.category}
               </Badge>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 mb-3">
               {app.connected && app.accounts && (
-                <Badge variant="secondary">
-                  {app.accounts.length} account{app.accounts.length !== 1 ? 's' : ''}
-                </Badge>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-400">
+                  <UserCircle className="h-4 w-4" />
+                  <span>{app.accounts.length} {app.accounts.length === 1 ? 'Account' : 'Accounts'}</span>
+                </div>
               )}
               {app.popularity && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Zap className="h-3 w-3" />
-                  <span>{app.popularity}% popular</span>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500">
+                  <Zap className="h-3.5 w-3.5 fill-current" />
+                  <span>{app.popularity}% POULAR</span>
                 </div>
               )}
             </div>
             
-            <p className="text-sm text-muted-foreground line-clamp-1">
+            <p className="text-sm font-medium text-slate-500 dark:text-violet-200/70 line-clamp-1 italic">
               {app.description}
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
             <Button 
               variant={app.connected ? "outline" : "default"}
-              size="sm"
+              size="lg"
               onClick={() => onConnect(app)}
               disabled={connectingApp === app.id}
-              className="min-w-[120px]"
+              className={`
+                flex-1 sm:flex-none min-w-[140px] h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden
+                ${app.connected 
+                  ? 'border-dashed border-violet-400 dark:border-violet-500/50 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 text-violet-600 dark:text-violet-400' 
+                  : 'bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/25'
+                }
+              `}
             >
               {connectingApp === app.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : app.connected ? (
-                "Add Account"
               ) : (
-                "Connect"
+                app.connected ? "Add Account" : "Connect Now"
               )}
             </Button>
             
-            <Button 
-              variant="ghost" 
-              size="icon"
-              asChild
-            >
-              <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
-                <UserCircle className="h-4 w-4" />
-              </Link>
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Info className="h-4 w-4 mr-2" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Sync Now
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-11 w-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 shadow-sm"
+                asChild
+              >
+                <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
+                  <UserCircle className="h-5 w-5 text-violet-500" />
+                </Link>
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 shadow-sm">
+                    <MoreVertical className="h-5 w-5 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl border-slate-200 dark:border-white/10 shadow-xl p-1">
+                  <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
+                    <Info className="h-4 w-4 mr-2 text-violet-500" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
+                    <RefreshCw className="h-4 w-4 mr-2 text-violet-500" />
+                    Sync Now
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </CardContent>
