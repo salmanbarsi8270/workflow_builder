@@ -9,7 +9,6 @@ import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, S
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
 
 export interface AutomationItem {
   id: string;
