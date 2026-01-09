@@ -419,12 +419,12 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <div className="grid gap-2">
                         <Label className="text-slate-700 dark:text-white font-medium flex justify-between items-center">
                             <span>MCP Servers (External Tools)</span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={addMcpTool}
-                                    className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                                >
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={addMcpTool}
+                                className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                            >
                                 <Plus className="h-3 w-3 mr-1" /> Add Server
                             </Button>
                         </Label>
@@ -586,10 +586,10 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <Button
                         onClick={handleSave}
                         disabled={
-                            isSubmitting || 
-                            !name.trim() || 
-                            !instructions.trim() || 
-                            !model.trim() || 
+                            isSubmitting ||
+                            !name.trim() ||
+                            !instructions.trim() ||
+                            !model.trim() ||
                             !selectedConnection ||
                             hasMissingRequiredConnections
                         }

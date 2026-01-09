@@ -16,15 +16,17 @@ export interface Agent {
   connectionId?: string;
   connection_id?: string;
   parent_agent?: string | null;
-  tools?: { 
-      name: string; 
-      piece?: string; 
-      action?: string; 
-      mcpConfig?: MCPConfig; 
-      connectionId?: string 
+  tools?: {
+    name: string;
+    piece?: string;
+    action?: string;
+    mcpConfig?: MCPConfig;
+    connectionId?: string
   }[];
   sub_agents?: Agent[];
   subagents?: Agent[];
+  rag_config?: { enabled: boolean };
+  safety_config?: { instructions: string };
 }
 
 export interface ConnectionOption {
