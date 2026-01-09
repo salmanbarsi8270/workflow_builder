@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type ActionParameter, APP_DEFINITIONS } from "@/ui_components/Automation/metadata"
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
-import { type Node } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
 import { API_URL } from "@/ui_components/api/apiurl";
@@ -132,7 +132,7 @@ const DynamicSelect = ({
     allParams: any,
     service: string,
     nodes: Node[],
-    edges?: any[],
+    edges?: Edge[],
     nodeId?: string
 }) => {
     const [options, setOptions] = useState<{ label: string, value: any }[]>([]);
@@ -223,7 +223,7 @@ const DynamicSelect = ({
                                 </Label>
                                 <VariablePicker
                                     nodes={nodes}
-                                    edges={edges}
+                                    edges={edges || []}
                                     onSelect={handleVariableSelect}
                                     currentNodeId={nodeId}
                                 />
@@ -445,7 +445,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 allParams={params}
                                 service={service}
                                 nodes={nodes}
-                                edges={edges}
+                                edges={edges as Edge[]}
                                 nodeId={nodeId}
                             />
                         )}
