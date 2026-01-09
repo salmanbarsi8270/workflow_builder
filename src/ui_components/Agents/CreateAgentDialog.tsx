@@ -41,25 +41,8 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
 
     // Flattened agents list for easier lookup and selection
     const allAvailableAgents = useMemo(() => {
-        const flat: Agent[] = [];
-        const seen = new Set<string>();
-
-        const traverse = (list: Agent[]) => {
-            if (!list || !Array.isArray(list)) return;
-            list.forEach(agent => {
-                if (!seen.has(agent.id)) {
-                    flat.push(agent);
-                    seen.add(agent.id);
-                }
-                const sub = agent.sub_agents || agent.subagents;
-                if (sub && Array.isArray(sub)) {
-                    traverse(sub);
-                }
-            });
-        };
-
-        traverse(availableAgents);
-        return flat;
+        // Keep agents in tree format for recursive rendering
+        return availableAgents;
     }, [availableAgents]);
 
     useEffect(() => {
@@ -514,35 +497,51 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     <CommandList className="max-h-[300px]">
                                         <CommandEmpty>No agents found.</CommandEmpty>
                                         <CommandGroup heading="Available Agents">
-                                            {allAvailableAgents
-                                                .filter(a => a.id !== initialAgent?.id) // Prevent self-selection
-                                                .map(agent => {
-                                                    const isSelected = selectedSubAgents.includes(agent.id);
-                                                    return (
-                                                        <CommandItem
-                                                            key={agent.id}
-                                                            value={agent.name}
-                                                            onSelect={() => {
-                                                                if (isSelected) {
-                                                                    setSelectedSubAgents(selectedSubAgents.filter(id => id !== agent.id));
-                                                                } else {
-                                                                    setSelectedSubAgents([...selectedSubAgents, agent.id]);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="flex items-center gap-2 flex-1">
-                                                                <div className={`
-                                                                w-4 h-4 rounded border flex items-center justify-center transition-colors
-                                                                ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
-                                                            `}>
-                                                                    {isSelected && <X className="h-3 w-3 rotate-45" />}
-                                                                </div>
-                                                                <span>{agent.name}</span>
-                                                                <span className="ml-auto text-xs text-muted-foreground">{agent.model}</span>
+                                            {(() => {
+                                                const renderAgentOptions = (list: Agent[], level = 0) => {
+                                                    if (!list || !Array.isArray(list)) return null;
+                                                    return list.map(agent => {
+                                                        if (agent.id === initialAgent?.id) return null; // Prevent self-selection
+                                                        const isSelected = selectedSubAgents.includes(agent.id);
+                                                        const subagentsList = agent.sub_agents || agent.subagents || [];
+                                                        
+                                                        return (
+                                                            <div key={agent.id}>
+                                                                <CommandItem
+                                                                    value={agent.name}
+                                                                    onSelect={() => {
+                                                                        if (isSelected) {
+                                                                            setSelectedSubAgents(selectedSubAgents.filter(id => id !== agent.id));
+                                                                        } else {
+                                                                            setSelectedSubAgents([...selectedSubAgents, agent.id]);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                        {level > 0 && (
+                                                                            <div className="flex items-center">
+                                                                                {[...Array(level)].map((_, i) => (
+                                                                                    <div key={i} className="w-4 h-px bg-muted-foreground/30 mr-1" />
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className={`
+                                                                            w-4 h-4 rounded border flex items-center justify-center transition-colors
+                                                                            ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                                        `}>
+                                                                            {isSelected && <X className="h-3 w-3 rotate-45" />}
+                                                                        </div>
+                                                                        <span className={level > 0 ? "text-slate-500" : "font-medium"}>{agent.name}</span>
+                                                                        <span className="ml-auto text-xs text-muted-foreground">{agent.model}</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                                {subagentsList.length > 0 && renderAgentOptions(subagentsList, level + 1)}
                                                             </div>
-                                                        </CommandItem>
-                                                    );
-                                                })}
+                                                        );
+                                                    });
+                                                };
+                                                return renderAgentOptions(allAvailableAgents);
+                                            })()}
                                         </CommandGroup>
                                     </CommandList>
                                 </Command>
@@ -553,7 +552,19 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         {selectedSubAgents.length > 0 && (
                             <div className="flex flex-col gap-2 mt-2 max-h-[150px] overflow-y-auto">
                                 {selectedSubAgents.map(agentId => {
-                                    const agent = allAvailableAgents.find(a => a.id === agentId);
+                                    // Search in tree recursively
+                                    const findInTree = (list: Agent[]): Agent | undefined => {
+                                        for (const a of list) {
+                                            if (a.id === agentId) return a;
+                                            const sub = a.sub_agents || a.subagents;
+                                            if (sub) {
+                                                const found = findInTree(sub);
+                                                if (found) return found;
+                                            }
+                                        }
+                                        return undefined;
+                                    };
+                                    const agent = findInTree(allAvailableAgents);
                                     if (!agent) return null;
                                     return (
                                         <div key={agent.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">

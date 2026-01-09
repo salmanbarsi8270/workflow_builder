@@ -130,10 +130,7 @@ export function SidebarIconExample() {
                     const isActive = item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url);
                     return (
                         <SidebarMenuItem key={item.title}>
-                            <motion.div
-                                whileHover={{ x: 4 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
+                            <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
                                 <SidebarMenuButton 
                                     asChild 
                                     tooltip={item.title} 
@@ -227,7 +224,7 @@ export function SidebarIconExample() {
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="overflow-hidden flex flex-col h-full bg-transparent">
-        <header className="flex h-16 shrink-0 items-center justify-between px-8 border-b border-slate-200 dark:border-white/5 bg-white/30 dark:bg-slate-950/30 backdrop-blur-md transition-all z-20">
+        <header className="flex h-16 shrink-0 items-center justify-between px-8 border-b bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-all z-20">
           <div className="flex items-center gap-4">
             <SidebarTrigger className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500" />
             <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/10" />

@@ -62,7 +62,7 @@ export default function RunHistoryViewer({ run, initialNodes, initialEdges, onCl
 
             // 2. Fallback for triggers/actions if not keyed by UUID
             if (!stepData) {
-                const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
+                const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger', 'form', 'runAgent'];
                 const foundKey = triggerKeys.find(k => runMap[k]);
                 if (foundKey && ((node.type === 'trigger') || (node.data.actionId === foundKey) || node.id === '1')) {
                     stepData = runMap[foundKey];

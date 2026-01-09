@@ -11,7 +11,7 @@ import { logic } from './apps/logic';
 import { delay } from './apps/delay';
 import { schedule } from './apps/schedule';
 import { http } from './apps/http';
-import { openrouter } from './apps/openrouter';
+import { agent } from './apps/agent';
 import type { AppDefinition } from './types';
 
 export * from './types';
@@ -31,7 +31,8 @@ export const APP_DEFINITIONS: AppDefinition[] = [
   word,
 
   http,
-  openrouter
+  agent
 ];
+
 
 export const getAppDefinition = (id: string) => APP_DEFINITIONS.find(app => app.id === id);

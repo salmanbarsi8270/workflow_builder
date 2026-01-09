@@ -6,7 +6,7 @@ export const openrouter: AppDefinition = {
   name: 'AI',
   description: 'AI, Agents, and Tools work together to understand inputs, make decisions, and take actions automatically.They power intelligent workflows by combining reasoning, planning, and real-world execution.',
   icon: Sparkles,
-  category: 'agent',
+  category: 'app',
   actions: [
     {
       id: 'chat',
@@ -43,17 +43,16 @@ export const openrouter: AppDefinition = {
       ]
     },
     {
-        id: 'run_agent',
-        name: 'Run Agent',
-        description: 'Execute a pre-configured AI Agent.',
-        type: 'action',
-        parameters: [
-            { name: 'agentId', type: 'agent', label: 'Select Agent', required: true },
-            { name: 'input', type: 'string', label: 'User Input', required: true, description: 'The prompt for the agent.' }
-        ],
-        outputSchema: [
-            { name: 'response', type: 'string', description: 'The agent response.' }
-        ]
+      id: 'listModels',
+      name: 'List Models',
+      description: 'Fetch available models from OpenRouter.',
+      type: 'action',
+      parameters: [
+        { name: 'connection', type: 'connection', label: 'OpenRouter Connection', required: true }
+      ],
+      outputSchema: [
+        { name: 'models', type: 'array', description: 'List of model objects.' }
+      ]
     }
   ]
 };

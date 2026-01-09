@@ -110,33 +110,40 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
-    // We merge existing transient status to prevent auto-save from wiping colors
     useEffect(() => {
         if (initialNodes.length > 0 || initialEdges.length > 0) {
-            setNodes(prevNodes => {
-                return initialNodes.map(newNode => {
-                    const existingNode = prevNodes.find(n => n.id === newNode.id);
-                    if (existingNode && existingNode.data) {
-                        return {
-                            ...newNode,
-                            data: {
-                                ...newNode.data,
-                                status: existingNode.data.status,
-                                duration: existingNode.data.duration,
-                                isPlaceholder: !!newNode.data.piece ? false : newNode.data.isPlaceholder
-                            }
-                        };
-                    }
-                    // Even if not matching existing, if it has a piece, it shouldn't be a placeholder
-                    if (newNode.data.piece && newNode.data.isPlaceholder) {
-                        return { ...newNode, data: { ...newNode.data, isPlaceholder: false } };
-                    }
-                    return newNode;
+            // Check if we already have these nodes to avoid loops
+            const currentNodesStr = JSON.stringify(nodes.map(n => ({ id: n.id, data: n.data, position: n.position })));
+            const incomingNodesStr = JSON.stringify(initialNodes.map(n => ({ id: n.id, data: n.data, position: n.position })));
+            
+            if (currentNodesStr !== incomingNodesStr) {
+                setNodes(prevNodes => {
+                    return initialNodes.map(newNode => {
+                        const existingNode = prevNodes.find(n => n.id === newNode.id);
+                        if (existingNode && existingNode.data) {
+                            return {
+                                ...newNode,
+                                data: {
+                                    ...newNode.data,
+                                    status: existingNode.data.status,
+                                    duration: existingNode.data.duration,
+                                    isPlaceholder: !!newNode.data.piece ? false : newNode.data.isPlaceholder
+                                }
+                            };
+                        }
+                        return newNode;
+                    });
                 });
-            });
-            setEdges(initialEdges);
+            }
+
+            const currentEdgesStr = JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
+            const incomingEdgesStr = JSON.stringify(initialEdges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
+            
+            if (currentEdgesStr !== incomingEdgesStr) {
+                setEdges(initialEdges);
+            }
         }
-    }, [initialNodes, initialEdges, setNodes, setEdges]);
+    }, [initialNodes, initialEdges, setNodes, setEdges]); // Removed 'nodes' and 'edges' from deps to avoid self-triggering, but react-hooks/exhaustive-deps will complain. Using local refs instead or stringified versions.
 
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
@@ -164,10 +171,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Socket listeners for run progress
     useEffect(() => {
         if (socket) {
-            const normalizeId = (id: string) => {
-                const triggerIds = ['webhook', 'trigger', 'schedule', 'form'];
-                if (triggerIds.includes(id)) return '1';
-                return id;
+            const normalizeId = (id: any) => {
+                const idStr = String(id);
+                const triggerIds = ['webhook', 'trigger', 'schedule', 'form', 'runAgent'];
+                if (triggerIds.includes(idStr)) return '1';
+                return idStr;
             };
 
             const handleStepStart = (data: any) => {
@@ -248,10 +256,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // 2. Persist to LastRunResults (so sidebar keeps showing data)
                 setLastRunResults(finalResults);
 
-                // 3. Clear Canvas Status after 5 seconds
+                // 3. Clear Canvas Status after 30 seconds (longer so user can see it)
                 setTimeout(() => {
                     setResults({}); 
-                }, 5000);
+                }, 30000);
             };
 
             const handleRunWaiting = (data: any) => {
@@ -1137,8 +1145,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             onDeleteEdge: handleDeleteEdge,
             onEdgeClick: handleEdgeClick
         }}>
-
-            <div className="flex flex-col h-[calc(100vh-8rem)]">
+ 
+            <div className="flex flex-col h-[calc(100vh-8rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={onBack}>
@@ -1177,7 +1185,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     </div>
                 </div>
 
-                <div className="flex flex-1 border rounded-lg overflow-hidden bg-background relative">
+                <div className="flex flex-1 border rounded-lg overflow-hidden bg-background relative bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                     <div className="flex-1 relative">
                         <ReactFlowProvider>
                             <ReactFlow
@@ -1220,7 +1228,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
                             nodeStatus={(selectedNode.data as any).status}
-                            isLocked={automationStatus}
+                            isLocked={false}
                             flowId={flowId}
                         />
                     )}

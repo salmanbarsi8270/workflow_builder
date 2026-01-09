@@ -402,7 +402,7 @@ console.log("agents", agents);
             </div>
           )}
 
-          {!isLoading && agents.map((agent, idx) => (
+          {!isLoading && agents.filter(a => !a.parent_agent).map((agent, idx) => (
             <AgentTreeNode 
               key={agent.id} 
               agent={agent} 

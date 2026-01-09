@@ -122,9 +122,17 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
     // Derived results for rendering
     const displayResults = useMemo(() => {
+        // If there's an active live run, always prefer showing it
+        if (hasActiveRun) return results;
+
         if (view === 'detail' && selectedRun) {
             const mapped: Record<string, StepResult> = {};
-            const runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
+            let runRes;
+            try {
+                runRes = typeof selectedRun.result === 'string' ? JSON.parse(selectedRun.result) : selectedRun.result;
+            } catch (e) {
+                runRes = {};
+            }
 
             nodes.forEach(node => {
                 // Try specific lookup
@@ -132,9 +140,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
                 // Trigger fallback
                 if (!stepData && runRes) {
-                    const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger'];
+                    const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger', 'form', 'runAgent'];
                     const foundKey = triggerKeys.find(k => runRes[k]);
-                    // Check if this node is the trigger?
                     if (foundKey && (node.type === 'trigger' || (node.data.actionId === foundKey) || node.id === '1')) {
                         stepData = runRes[foundKey];
                     }
@@ -144,7 +151,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                     mapped[node.id] = {
                         nodeId: node.id,
                         status: stepData.status || 'success',
-                        output: stepData.data || stepData.output || stepData, // Handles varied backend formats
+                        output: stepData.data || stepData.output || stepData,
                         duration: stepData.duration || 0
                     };
                 } else {
@@ -159,7 +166,23 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
             return mapped;
         }
         return results;
-    }, [view, selectedRun, results, nodes]);
+    }, [view, selectedRun, results, nodes, hasActiveRun]);
+
+    // Auto-switch to live view when a run starts
+    useEffect(() => {
+        if (hasActiveRun && view !== 'live') {
+            setView('live');
+        }
+    }, [hasActiveRun, view]);
+
+    // Auto-refresh history when a run completes
+    const prevActive = useRef(false);
+    useEffect(() => {
+        if (!hasActiveRun && prevActive.current) {
+            fetchHistory();
+        }
+        prevActive.current = hasActiveRun;
+    }, [hasActiveRun, flowId]);
 
     // Socket listeners for run progress - REMOVED redundant internal state management
     // results are now passed as props from AutomationEditor.tsx

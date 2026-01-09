@@ -12,7 +12,7 @@ import { API_URL } from "@/ui_components/api/apiurl";
 import axios from "axios";
 
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil, List } from "lucide-react";
 import { Button } from "@/components/button"
 
 // Robust String Array Input
@@ -118,7 +118,10 @@ const DynamicSelect = ({
     userId,
     connectionId,
     allParams,
-    service
+    service,
+    nodes,
+    edges,
+    nodeId
 }: {
     param: ActionParameter,
     value: any,
@@ -127,11 +130,15 @@ const DynamicSelect = ({
     userId: string,
     connectionId: string,
     allParams: any,
-    service: string
+    service: string,
+    nodes: Node[],
+    edges?: any[],
+    nodeId?: string
 }) => {
     const [options, setOptions] = useState<{ label: string, value: any }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isManual, setIsManual] = useState(false);
 
     const dynamicOptions = param.dynamicOptions!;
 
@@ -139,66 +146,131 @@ const DynamicSelect = ({
     const dependencies = dynamicOptions.dependsOn || [];
     const missingDependencies = dependencies.some(dep => !allParams[dep]);
 
-    useEffect(() => {
-        if (!userId || !connectionId || missingDependencies) {
-            setOptions([]);
-            return;
-        }
+    // Create a stable key for dependencies
+    const depsKey = JSON.stringify(dependencies.map(dep => allParams[dep]));
 
+    useEffect(() => {
         const fetchOptions = async () => {
+            if (!userId || !service || !dynamicOptions.action || !connectionId || missingDependencies) {
+                setOptions([]);
+                return;
+            }
             setLoading(true);
             setError(null);
             try {
-                const res = await axios.post(`${API_URL}/api/pieces/options`, {
-                    userId,
-                    service,
-                    action: dynamicOptions.action,
-                    params: {
-                        authId: connectionId,
-                        ...allParams
-                    }
-                });
-
-                if (res.data.success) {
-                    setOptions(res.data.options);
+                let res;
+                if (dependencies.length > 0) {
+                    const context: Record<string, any> = {};
+                    dependencies.forEach(dep => {
+                        context[dep] = allParams[dep];
+                    });
+                    
+                    res = await axios.post(`${API_URL}/api/v1/pieces/options/${dynamicOptions.action}`, {
+                        userId,
+                        service,
+                        connectionId,
+                        context
+                    });
                 } else {
-                    setError(res.data.error || "Failed to load options");
+                    res = await axios.get(`${API_URL}/api/v1/pieces/options/${dynamicOptions.action}`, {
+                        params: { userId, service, connectionId }
+                    });
+                }
+
+                if (res.data && res.data.success && Array.isArray(res.data.options)) {
+                    setOptions(res.data.options);
+                    // If current value is not in options and not empty, default to manual
+                    const val = String(value);
+                    if (val && !res.data.options.find((opt: any) => String(opt.value) === val)) {
+                        setIsManual(true);
+                    }
+                } else if (Array.isArray(res.data)) {
+                    setOptions(res.data);
+                    const val = String(value);
+                    if (val && !res.data.find((opt: any) => String(opt.value) === val)) {
+                        setIsManual(true);
+                    }
+                } else {
+                    setError(res.data?.error || "Failed to load options");
                 }
             } catch (err: any) {
-                setError(err.message || "Failed to load options");
+                setError(err.response?.data?.error || err.message || "Failed to load options");
             } finally {
                 setLoading(false);
             }
         };
 
         fetchOptions();
-    }, [userId, connectionId, service, dynamicOptions.action, ...dependencies.map(dep => allParams[dep])]);
+    }, [userId, connectionId, service, dynamicOptions.action, depsKey, missingDependencies]);
+
+    const handleVariableSelect = (v: string) => {
+        const currentValue = value || '';
+        onChange(currentValue + v);
+    };
 
     if (!connectionId) return <div className="text-[10px] text-muted-foreground italic p-2 border rounded-md bg-muted/20">Please select a connection first</div>;
     if (missingDependencies) return <div className="text-[10px] text-muted-foreground italic p-2 border rounded-md bg-muted/20">Please select {dependencies.join(' and ')} first</div>;
 
     return (
-        <Select
-            value={value || ''}
-            onValueChange={onChange}
-            disabled={disabled || loading}
-            required
-        >
-            <SelectTrigger className={error ? "border-red-500" : ""}>
-                <SelectValue placeholder={loading ? "Loading..." : (param.description || `Select ${param.label}`)} />
-            </SelectTrigger>
-            <SelectContent>
-                {options.length === 0 && !loading && (
-                    <div className="p-2 text-center text-xs text-muted-foreground">No options found</div>
-                )}
-                {options.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-            {error && <p className="text-[10px] text-red-500 mt-1">{error}</p>}
-        </Select>
+        <div className="flex flex-col gap-1.5 w-full">
+            <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    {isManual ? (
+                        <div className="flex flex-col gap-2">
+                             <div className="flex items-center justify-between">
+                                <Label className="text-[10px] font-medium uppercase text-muted-foreground/50">
+                                    Manual ID
+                                </Label>
+                                <VariablePicker
+                                    nodes={nodes}
+                                    edges={edges}
+                                    onSelect={handleVariableSelect}
+                                    currentNodeId={nodeId}
+                                />
+                            </div>
+                            <Input
+                                value={value || ''}
+                                onChange={(e) => onChange(e.target.value)}
+                                disabled={disabled}
+                                placeholder={`Enter ${param.label} ID manually...`}
+                                className="bg-background"
+                            />
+                        </div>
+                    ) : (
+                        <Select
+                            value={value || ''}
+                            onValueChange={onChange}
+                            disabled={disabled || loading}
+                            required
+                        >
+                            <SelectTrigger className={error ? "border-red-500" : ""}>
+                                <SelectValue placeholder={loading ? "Loading..." : (param.description || `Select ${param.label}`)} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {options.length === 0 && !loading && (
+                                    <div className="p-2 text-center text-xs text-muted-foreground">No options found</div>
+                                )}
+                                {options.map(opt => (
+                                    <SelectItem key={opt.value} value={String(opt.value)}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => setIsManual(!isManual)}
+                    title={isManual ? "Switch to Selection" : "Enter ID Manually"}
+                >
+                    {isManual ? <List className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                </Button>
+            </div>
+            {error && !isManual && <p className="text-[10px] text-red-500">{error}</p>}
+        </div>
     );
 };
 
@@ -213,12 +285,14 @@ const AgentSelector = ({
 }) => {
     const [agents, setAgents] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(false);
+    const { user } = useUser();
 
     useEffect(() => {
         const fetchAgents = async () => {
+            if (!user?.id) return;
             setLoading(true);
             try {
-                const res = await axios.get(`${API_URL}/api/v1/agents`);
+                const res = await axios.get(`${API_URL}/api/v1/agents?userId=${user?.id}&tree=true`);
                 if (Array.isArray(res.data)) {
                     setAgents(res.data);
                 }
@@ -229,26 +303,46 @@ const AgentSelector = ({
             }
         };
         fetchAgents();
-    }, []);
+    }, [user?.id]);
+
+    const renderAgentItems = (list: any[], level = 0) => {
+        if (!list || !Array.isArray(list)) return null;
+        return list.map(agent => (
+            <div key={agent.id}>
+                <SelectItem value={String(agent.id)}>
+                    <div className="flex items-center gap-2">
+                        {level > 0 && (
+                            <div className="flex items-center">
+                                {[...Array(level)].map((_, i) => (
+                                    <div key={i} className="w-4 h-px bg-muted-foreground/30 mr-1" />
+                                ))}
+                            </div>
+                        )}
+                        <span className={level > 0 ? "text-muted-foreground" : "font-medium"}>
+                            {agent.name}
+                        </span>
+                    </div>
+                </SelectItem>
+            </div>
+        ));
+    };
 
     return (
         <Select
-            value={value || ''}
-            onValueChange={onChange}
+            value={value || ""}
+            onValueChange={(val) => onChange(val)}
             disabled={disabled || loading}
         >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
                 <SelectValue placeholder={loading ? "Loading agents..." : "Select an Agent"} />
             </SelectTrigger>
             <SelectContent>
                 {agents.length === 0 && !loading && (
-                    <div className="p-2 text-center text-xs text-muted-foreground">No agents found</div>
+                    <div className="p-2 text-center text-xs text-muted-foreground italic">
+                        No agents found. Create one in AI Agents tab first.
+                    </div>
                 )}
-                {agents.map(agent => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                        {agent.name}
-                    </SelectItem>
-                ))}
+                {renderAgentItems(agents)}
             </SelectContent>
         </Select>
     );
@@ -317,10 +411,14 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
 
                         {param.type === 'connection' && (
                             <ConnectionSelector
-                                appName={param.label?.includes('Gmail') ? 'Gmail' :
-                                    param.label?.includes('Drive') ? 'Google Drive' :
-                                        param.label?.includes('Docs') ? 'Google Docs' :
-                                            param.label?.includes('Sheets') ? 'Google Sheets' :
+                                appName={param.label?.toLowerCase().includes('gmail') ? 'Gmail' :
+                                    param.label?.toLowerCase().includes('drive') ? 'Google Drive' :
+                                        param.label?.toLowerCase().includes('docs') ? 'Google Docs' :
+                                            param.label?.toLowerCase().includes('sheets') ? 'Google Sheets' :
+                                                ['googledocs', 'docs'].includes(appName.toLowerCase()) ? 'Google Docs' :
+                                                ['googlesheets', 'sheets'].includes(appName.toLowerCase()) ? 'Google Sheets' :
+                                                ['googledrive', 'drive'].includes(appName.toLowerCase()) ? 'Google Drive' :
+                                                appName === 'Agent' ? 'OpenRouter' : 
                                                 appName}
                                 value={params[param.name] || ''}
                                 onChange={(val) => handleChange(param.name, val)}
@@ -346,6 +444,9 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 connectionId={params['connection'] || params['authId'] || ''}
                                 allParams={params}
                                 service={service}
+                                nodes={nodes}
+                                edges={edges}
+                                nodeId={nodeId}
                             />
                         )}
 
@@ -370,7 +471,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                         )}
 
                         {param.type === 'string' && (
-                            param.name === 'body' || param.name === 'description' || param.name === 'text' ? (
+                            ['body', 'description', 'text', 'input', 'prompt', 'messages'].includes(param.name) ? (
                                 <Textarea
                                     value={params[param.name] || param.default || ''}
                                     onChange={(e) => handleChange(param.name, e.target.value)}

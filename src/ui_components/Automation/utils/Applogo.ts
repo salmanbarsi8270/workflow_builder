@@ -13,6 +13,8 @@ import logic from '@/assets/app-logos/logic.png';
 import condition from '@/assets/app-logos/condition.png';
 import utility from '@/assets/app-logos/utility.png';
 import wait from '@/assets/app-logos/wait.png';
+import agent from '@/assets/app-logos/agent.png';
+
 
 export const AppLogoMap: Record<string, string> = {
   'gmail': gmail,
@@ -30,4 +32,6 @@ export const AppLogoMap: Record<string, string> = {
   'condition': condition,
   'delay': utility,
   'wait': wait,
+  'agent': agent,
 };
+

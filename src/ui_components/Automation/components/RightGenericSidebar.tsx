@@ -180,6 +180,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
         }
     };
     const [isDirty, setIsDirty] = useState(false);
+    const prevNodeId = useRef<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const { pieces, loading: metadataLoading } = usePiecesMetadata();
     const { user } = useUser();
@@ -230,15 +231,23 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
             const currentLabel = selectedNode.data.label as string || '';
             const migrated = getInitialParams(selectedNode);
 
-            // Check if data has changed
-            const paramsChanged = JSON.stringify(migrated) !== JSON.stringify(localParams);
-            const labelChanged = currentLabel !== localLabel;
+            // Only sync if the node ID changed OR if we are NOT dirty
+            // This prevents the server sync from wiping the user's current edits
+            const idChanged = selectedNode.id !== prevNodeId.current;
+            
+            if (idChanged || !isDirty) {
+                const paramsChanged = JSON.stringify(migrated) !== JSON.stringify(localParams);
+                const labelChanged = currentLabel !== localLabel;
 
-            if (paramsChanged) setLocalParams(migrated);
-            if (labelChanged) setLocalLabel(currentLabel);
-
-            setIsDirty(false);
-            setValidationErrors({});
+                if (paramsChanged) setLocalParams(migrated);
+                if (labelChanged) setLocalLabel(currentLabel);
+                
+                if (idChanged) {
+                    setIsDirty(false);
+                    setValidationErrors({});
+                }
+            }
+            prevNodeId.current = selectedNode.id;
         }
     }, [selectedNode?.id, JSON.stringify(selectedNode?.data)]); // Sync whenever ID or data content changes
 
