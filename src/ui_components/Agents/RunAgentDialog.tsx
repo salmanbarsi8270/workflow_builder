@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Terminal, Loader2, Play, Bot } from "lucide-react";
@@ -113,6 +113,9 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                              <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="text-blue-600 dark:text-blue-300 font-semibold">{agent?.name}</span></span>
                         </div>
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Interact with your agent and see its live responses here.
+                    </DialogDescription>
                 </DialogHeader>
                 
                 <div className="p-6 grid gap-6 h-[500px] grid-rows-[auto_1fr]">
@@ -150,7 +153,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                             )}
                         </Label>
                         <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 font-mono text-sm h-full overflow-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                            {isRunning ? (
+                            {isRunning && !response ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 dark:text-slate-500">
                                     <div className="relative">
                                         <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 animate-pulse" />
@@ -159,8 +162,14 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                                     <span className="text-xs font-medium animate-pulse">Processing request...</span>
                                 </div>
                             ) : response ? (
-                                <div className="animate-in fade-in duration-500">
-                                    {response}
+                                <div className="animate-in fade-in duration-500 flex flex-col gap-4">
+                                    <div>{response}</div>
+                                    {isRunning && (
+                                        <div className="flex items-center gap-2 text-blue-500 animate-pulse mt-2">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Agent is typing...</span>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400/60 dark:text-slate-600">

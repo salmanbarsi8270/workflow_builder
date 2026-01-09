@@ -18,10 +18,12 @@ export interface Agent {
   parent_agent?: string | null;
   tools?: { 
       name: string; 
+      type?: 'piece' | 'mcp' | 'workflow';
       piece?: string; 
       action?: string; 
       mcpConfig?: MCPConfig; 
-      connectionId?: string 
+      connectionId?: string;
+      workflowId?: string;
   }[];
   sub_agents?: Agent[];
   subagents?: Agent[];

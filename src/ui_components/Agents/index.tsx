@@ -3,7 +3,7 @@ import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
 import { getServices } from '../api/connectionlist';
 import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Toaster, toast } from 'sonner';
 import { cn } from "@/lib/utils";
 
 import type { Agent, ConnectionOption } from './types';
@@ -12,6 +12,8 @@ import { AgentInfoSheet } from './AgentInfoSheet';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import { ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/skeleton';
+import { type AutomationItem } from '@/ui_components/Automation/components/AutomationList';
+
 
 interface AgentTreeNodeProps {
   agent: Agent;
@@ -21,10 +23,11 @@ interface AgentTreeNodeProps {
   onEditClick: (agent: Agent, e: React.MouseEvent) => void;
   onDeleteClick: (agentId: string, e: React.MouseEvent) => void;
   isDeleting?: boolean;
+  isOpeningRun?: boolean;
   level?: number;
 }
 
-function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDeleteClick, isDeleting, level = 0 }: AgentTreeNodeProps) {
+function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDeleteClick, isDeleting, isOpeningRun, level = 0 }: AgentTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubagents = (agent.subagents && agent.subagents.length > 0) || (agent.sub_agents && agent.sub_agents.length > 0);
   const subagentsList = agent.subagents || agent.sub_agents || [];
@@ -94,10 +97,11 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
           <div className="flex gap-2 relative z-20">
             <button 
               onClick={(e) => onRunClick(agent, e)}
-              className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
+              disabled={isOpeningRun}
+              className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <Play className="h-4 w-4" />
-              Run
+              {isOpeningRun ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              {isOpeningRun ? "Opening..." : "Run"}
             </button>
             <button 
               onClick={(e) => onEditClick(agent, e)}
@@ -144,6 +148,7 @@ export default function Agents() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [aiConnections, setAiConnections] = useState<ConnectionOption[]>([]);
   const [allConnections, setAllConnections] = useState<ConnectionOption[]>([]);
+  const [workflows, setWorkflows] = useState<AutomationItem[]>([]);
   
   // Dialog States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -154,13 +159,15 @@ export default function Agents() {
   const [selectedRunAgent, setSelectedRunAgent] = useState<Agent | null>(null);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
+  const [isOpeningRun, setIsOpeningRun] = useState<string | null>(null);
 
 
-console.log("agents", agents);
+// console.log("agents", agents);
   useEffect(() => {
     fetchAgents();
     if (user?.id) {
       loadConnections();
+      fetchWorkflows();
     }
   }, [user?.id]);
 
@@ -180,6 +187,25 @@ console.log("agents", agents);
       toast.error("Failed to load agents");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchWorkflows = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/workflows/tools?userId=${user?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("raw workflows data", data);
+        const fetchedWorkflows = Array.isArray(data) ? data : data.workflows || [];
+        // Normalize status field if it's coming as is_active from backend
+        const normalized = fetchedWorkflows.map((wf: any) => ({
+          ...wf,
+          status: wf.status !== undefined ? wf.status : (wf.is_active !== undefined ? wf.is_active : true)
+        }));
+        setWorkflows(normalized);
+      }
+    } catch (error) {
+      console.error("Error fetching workflows:", error);
     }
   };
 
@@ -255,9 +281,44 @@ console.log("agents", agents);
   };
 
   const handleRunClick = (agent: Agent, e: React.MouseEvent) => {
-      e.stopPropagation();
+    e.stopPropagation();
+    setIsOpeningRun(agent.id);
+
+    try {
+      // 1. Filter workflow tools
+      const workflowTools = (agent.tools || []).filter(
+        (tool: any) => tool.type === "workflow"
+      );
+
+      // 2. Validate each workflow
+      for (const tool of workflowTools) {
+        const workflowId = tool.workflowId || (tool as any).workflow_id;
+
+        const workflow = workflows.find(
+          (w) => String(w.id) === String(workflowId)
+        );
+
+        // We normalized status in fetchWorkflows, so it's our source of truth
+        const isActive = workflow?.status;
+
+        // ❌ Workflow missing or inactive
+        if (!workflow || isActive === false) {
+          toast.error("This agent uses an inactive workflow. Please activate it first.");
+          return;
+        }
+      }
+
+      // ✅ All workflows are active
       setSelectedRunAgent(agent);
       setIsRunModalOpen(true);
+
+    } catch (error: any) {
+      console.error("Agent run blocked:", error);
+      toast.error(error.message || "Unable to run agent");
+
+    } finally {
+      setIsOpeningRun(null);
+    }
   };
 
   const handleEditClick = (agent: Agent, e: React.MouseEvent) => {
@@ -279,7 +340,7 @@ console.log("agents", agents);
     <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
 
       {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       <div className="relative z-10 container mx-auto p-8 w-full">
         {/* Header */}
@@ -412,6 +473,7 @@ console.log("agents", agents);
               onEditClick={handleEditClick}
               onDeleteClick={handleDeleteAgent}
               isDeleting={deletingId === agent.id}
+              isOpeningRun={isOpeningRun === agent.id}
             />
           ))}
 
@@ -458,6 +520,7 @@ console.log("agents", agents);
           connections={aiConnections}
           onSuccess={handleCreateSuccess}
           availableAgents={agents}
+          availableWorkflows={workflows}
       />
 
       <RunAgentDialog 
@@ -477,6 +540,7 @@ console.log("agents", agents);
             setIsRunModalOpen(true);
         }}
       />
+      <Toaster />
     </div>
   );
 }

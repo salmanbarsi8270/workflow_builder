@@ -9,12 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { APP_DEFINITIONS } from '../Automation/metadata';
 import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
+import type { AutomationItem } from '../Automation/components/AutomationList';
+import { Workflow as WorkflowIcon } from 'lucide-react';
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -24,9 +27,10 @@ interface CreateAgentDialogProps {
     connections: ConnectionOption[];
     onSuccess: (agent: Agent, isEdit: boolean) => void;
     availableAgents: Agent[];
+    availableWorkflows?: AutomationItem[];
 }
 
-export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, connections, onSuccess, availableAgents }: CreateAgentDialogProps) {
+export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, connections, onSuccess, availableAgents, availableWorkflows }: CreateAgentDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form State
@@ -53,12 +57,19 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                 setInstructions(initialAgent.instructions);
                 setModel(initialAgent.model);
                 const standardTools = initialAgent.tools
-                    ?.filter(t => !t.mcpConfig && t.piece && t.piece !== 'undefined')
+                    ?.filter(t => !t.mcpConfig && t.type !== 'workflow' && t.piece && t.piece !== 'undefined')
                     .map(t => ({
                         toolId: `${t.piece}:${t.action}`,
                         connectionId: t.connectionId
                     })) || [];
-                setSelectedTools(standardTools);
+                
+                const workflowTools = initialAgent.tools
+                    ?.filter(t => t.type === 'workflow')
+                    .map(t => ({
+                        toolId: `workflow:${t.workflowId || (t as any).workflow_id}`,
+                    })) || [];
+
+                setSelectedTools([...standardTools, ...workflowTools]);
                 const subAgents = initialAgent.sub_agents || initialAgent.subagents || [];
                 setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
@@ -128,16 +139,26 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
         setIsSubmitting(true);
         try {
             // Merge standard tools and MCP tools
-            const standardTools = selectedTools.map(t => {
-                const [piece, actionId] = t.toolId.split(':');
-                const app = APP_DEFINITIONS.find(a => a.id === piece);
-                const action = app?.actions.find(a => a.id === actionId);
-                return {
-                    name: action?.name || actionId,
-                    piece: piece,
-                    action: actionId,
-                    connectionId: t.connectionId
-                };
+            const formattedTools = selectedTools.map(t => {
+                if (t.toolId.startsWith('workflow:')) {
+                    const workflowId = t.toolId.replace('workflow:', '');
+                    const wf = availableWorkflows.find(w => w.id === workflowId);
+                    return {
+                        type: 'workflow' as const,
+                        workflowId: workflowId
+                    };
+                } else {
+                    const [piece, actionId] = t.toolId.split(':');
+                    const app = APP_DEFINITIONS.find(a => a.id === piece);
+                    const action = app?.actions.find(a => a.id === actionId);
+                    return {
+                        name: action?.name || actionId,
+                        type: 'piece' as const,
+                        piece: piece,
+                        action: actionId,
+                        connectionId: t.connectionId
+                    };
+                }
             });
 
             const formattedMcpTools = mcpTools.map(config => ({
@@ -152,7 +173,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                 connectionId: selectedConnection,
                 userId: userId,
                 sub_agents: selectedSubAgents,
-                tools: [...standardTools, ...formattedMcpTools]
+                tools: [...formattedTools, ...formattedMcpTools]
             };
 
             let response;
@@ -292,47 +313,111 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[450px] p-0" align="start">
-                                <Command className="border rounded-lg shadow-xl">
-                                    <CommandInput placeholder="Search available tools..." />
-                                    <CommandList className="max-h-[300px]">
-                                        <CommandEmpty>No tools found.</CommandEmpty>
-                                        {APP_DEFINITIONS.filter(app => app.category === 'app').map(app => {
-                                            const actions = app.actions.filter(action => action.type === 'action' && action.id !== 'run_agent');
-                                            if (actions.length === 0) return null;
+                                <Command className="border rounded-lg shadow-xl overflow-hidden bg-white dark:bg-slate-950">
+                                    <CommandInput placeholder="Search available tools..." className="border-none focus:ring-0" />
+                                    <Tabs defaultValue="tools" className="w-full">
+                                        <div className="px-4 pt-2 pb-1 border-b dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
+                                            <TabsList className="grid w-full grid-cols-2 h-9 bg-slate-200/50 dark:bg-slate-800/50 p-1">
+                                                <TabsTrigger 
+                                                    value="tools" 
+                                                    className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:shadow-sm transition-all"
+                                                >
+                                                    <Terminal className="h-3.5 w-3.5 mr-2" />
+                                                    Tools
+                                                </TabsTrigger>
+                                                <TabsTrigger 
+                                                    value="workflows"
+                                                    className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:shadow-sm transition-all"
+                                                >
+                                                    <WorkflowIcon className="h-3.5 w-3.5 mr-2" />
+                                                    Workflows
+                                                </TabsTrigger>
+                                            </TabsList>
+                                        </div>
+                                        
+                                        <CommandList className="max-h-[350px] overflow-y-auto">
+                                            <CommandEmpty className="py-6 text-center text-sm text-slate-500">No tools found.</CommandEmpty>
+                                            
+                                            <TabsContent value="tools" className="mt-0">
+                                                {APP_DEFINITIONS.filter(app => app.category === 'app').map(app => {
+                                                    const actions = app.actions.filter(action => action.type === 'action' && action.id !== 'run_agent');
+                                                    if (actions.length === 0) return null;
 
-                                            return (
-                                                <CommandGroup key={app.id} heading={app.name}>
-                                                    {actions.map(action => {
-                                                        const toolId = `${app.id}:${action.id}`;
-                                                        const isSelected = selectedTools.some(t => t.toolId === toolId);
-                                                        return (
-                                                            <CommandItem
-                                                                key={toolId}
-                                                                value={`${app.name} ${action.name}`}
-                                                                onSelect={() => {
-                                                                    if (isSelected) {
-                                                                        setSelectedTools(selectedTools.filter(t => t.toolId !== toolId));
-                                                                    } else {
-                                                                        setSelectedTools([...selectedTools, { toolId }]);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <div className="flex items-center gap-2 flex-1">
+                                                    return (
+                                                        <CommandGroup key={app.id} heading={app.name} className="px-2">
+                                                            {actions.map(action => {
+                                                                const toolId = `${app.id}:${action.id}`;
+                                                                const isSelected = selectedTools.some(t => t.toolId === toolId);
+                                                                return (
+                                                                    <CommandItem
+                                                                        key={toolId}
+                                                                        value={`${app.name} ${action.name}`}
+                                                                        className="flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                                        onSelect={() => {
+                                                                            if (isSelected) {
+                                                                                setSelectedTools(selectedTools.filter(t => t.toolId !== toolId));
+                                                                            } else {
+                                                                                setSelectedTools([...selectedTools, { toolId }]);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div className={`
+                                                                            w-4 h-4 rounded border flex items-center justify-center transition-all
+                                                                            ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'}
+                                                                        `}>
+                                                                            {isSelected && <X className="h-3 w-3 rotate-45" />}
+                                                                        </div>
+                                                                        <span className="text-sm font-medium">{action.name}</span>
+                                                                    </CommandItem>
+                                                                );
+                                                            })}
+                                                        </CommandGroup>
+                                                    );
+                                                })}
+                                            </TabsContent>
+
+                                            <TabsContent value="workflows" className="mt-0">
+                                                {availableWorkflows && availableWorkflows.length > 0 ? (
+                                                    <CommandGroup heading="Available Workflows" className="px-2">
+                                                        {availableWorkflows.map(wf => {
+                                                            const toolId = `workflow:${wf.id}`;
+                                                            const isSelected = selectedTools.some(t => t.toolId === toolId);
+                                                            return (
+                                                                <CommandItem
+                                                                    key={toolId}
+                                                                    value={`workflow ${wf.name}`}
+                                                                    className="flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                                    onSelect={() => {
+                                                                        if (isSelected) {
+                                                                            setSelectedTools(selectedTools.filter(t => t.toolId !== toolId));
+                                                                        } else {
+                                                                            setSelectedTools([...selectedTools, { toolId }]);
+                                                                        }
+                                                                    }}
+                                                                >
                                                                     <div className={`
-                                                                        w-4 h-4 rounded border flex items-center justify-center transition-colors
-                                                                        ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                                        w-4 h-4 rounded border flex items-center justify-center transition-all
+                                                                        ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'}
                                                                     `}>
                                                                         {isSelected && <X className="h-3 w-3 rotate-45" />}
                                                                     </div>
-                                                                    <span>{action.name}</span>
-                                                                </div>
-                                                            </CommandItem>
-                                                        );
-                                                    })}
-                                                </CommandGroup>
-                                            );
-                                        })}
-                                    </CommandList>
+                                                                    <WorkflowIcon className="h-3.5 w-3.5 text-blue-500" />
+                                                                    <span className="text-sm font-medium">{wf.name}</span>
+                                                                </CommandItem>
+                                                            );
+                                                        })}
+                                                    </CommandGroup>
+                                                ) : (
+                                                    <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3">
+                                                        <div className="p-3 bg-slate-100 dark:bg-slate-900 rounded-full">
+                                                            <WorkflowIcon className="h-6 w-6 opacity-40" />
+                                                        </div>
+                                                        <div className="text-xs font-medium italic">No HTTP-triggered workflows found or Workflows is Not active if not active first activate workflows then try again</div>
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+                                        </CommandList>
+                                    </Tabs>
                                 </Command>
                             </PopoverContent>
                         </Popover>
@@ -341,6 +426,29 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         {selectedTools.length > 0 && (
                             <div className="flex flex-col gap-2 mt-2 max-h-[200px] overflow-y-auto">
                                 {selectedTools.map((tool, idx) => {
+                                    if (tool.toolId.startsWith('workflow:')) {
+                                        const workflowId = tool.toolId.replace('workflow:', '');
+                                        const wf = availableWorkflows?.find(w => String(w.id) === String(workflowId));
+                                        return (
+                                            <div key={tool.toolId} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Badge variant="secondary" className="bg-purple-100/50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/20">
+                                                        Workflow
+                                                    </Badge>
+                                                    <span className="font-medium text-slate-700 dark:text-slate-200">{wf?.name || 'Unknown Workflow'}</span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full shrink-0"
+                                                    onClick={() => setSelectedTools(selectedTools.filter(t => t.toolId !== tool.toolId))}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        );
+                                    }
+
                                     const [appId, actionId] = tool.toolId.split(':');
                                     const app = APP_DEFINITIONS.find(a => a.id === appId);
                                     const action = app?.actions.find(a => a.id === actionId);
