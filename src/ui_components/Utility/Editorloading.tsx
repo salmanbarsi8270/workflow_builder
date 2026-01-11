@@ -1,6 +1,6 @@
 function Editorloading() {
   return (
-    <div className="relative h-[calc(100vh-140px)] w-full overflow-hidden bg-background border rounded-2xl m-4 mx-auto max-w-[calc(100%-32px)]">
+    <div className="relative h-[calc(100vh-140px)] w-full overflow-hidden bg-background border rounded-2xl m-4 mx-auto max-w-[calc(100%-32px)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
               {/* Grid background (React Flow feel) */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,theme(colors.muted)_1px,transparent_0)] bg-size-[32px_32px] opacity-40" />
 
@@ -9,7 +9,7 @@ function Editorloading() {
                   <div className="relative w-full h-full max-w-4xl max-h-[600px]">
                       
                       {/* Node 1 - Trigger */}
-                      <div className="absolute top-[10%] left-[10%] w-60 h-32 bg-linear-to-br from-muted/50 to-muted/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/5 animate-float" style={{ animationDelay: '0s' }}>
+                      <div className="absolute top-[10%] left-[10%] w-60 h-32 bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 animate-float" style={{ animationDelay: '0s' }}>
                           <div className="p-4 space-y-3">
                               <div className="h-4 w-24 bg-primary/20 rounded-full animate-pulse" />
                               <div className="space-y-2">
@@ -20,7 +20,7 @@ function Editorloading() {
                       </div>
                       
                       {/* Node 2 - Middle Action */}
-                      <div className="absolute top-[40%] right-[15%] w-64 h-36 bg-linear-to-br from-muted/50 to-muted/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/5 animate-float" style={{ animationDelay: '1.5s' }}>
+                      <div className="absolute top-[40%] right-[15%] w-64 h-36 bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 animate-float" style={{ animationDelay: '1.5s' }}>
                           <div className="p-4 space-y-4">
                               <div className="h-5 w-5 bg-primary/30 rounded-lg animate-pulse" />
                               <div className="space-y-2">
@@ -32,7 +32,7 @@ function Editorloading() {
                       </div>
                       
                       {/* Node 3 - Final Action */}
-                      <div className="absolute bottom-[10%] left-[40%] -translate-x-1/2 w-72 h-32 bg-linear-to-br from-muted/50 to-muted/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/5 animate-float" style={{ animationDelay: '0.7s' }}>
+                      <div className="absolute bottom-[10%] left-[40%] -translate-x-1/2 w-72 h-32 bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 animate-float" style={{ animationDelay: '0.7s' }}>
                           <div className="p-4 flex items-center gap-4 h-full">
                               <div className="h-12 w-12 bg-muted/80 rounded-xl" />
                               <div className="flex-1 space-y-2">
@@ -52,7 +52,7 @@ function Editorloading() {
 
               {/* Center text with premium look */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-background/80 backdrop-blur-xl px-8 py-4 rounded-2xl border shadow-2xl flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-500">
+                  <div className="bg-white/60 dark:bg-black/60 backdrop-blur-2xl px-10 py-6 rounded-[2rem] border border-white/30 dark:border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-700">
                       <div className="flex gap-1.5">
                           <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0s' }} />
                           <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }} />

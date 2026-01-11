@@ -6,28 +6,9 @@ import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Upload } from "lucide-react"
-import {
-    ReactFlow,
-    Controls,
-    MiniMap,
-    Background,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    type Connection,
-    type Node as Node,
-    type Edge as Edge,
-    ReactFlowProvider
-} from '@xyflow/react';
+import { ReactFlow, Controls, MiniMap, Background, useNodesState, useEdgesState, addEdge, type Connection, type Node as Node, type Edge as Edge, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import RightGenericSidebar from './RightGenericSidebar';
@@ -1147,7 +1128,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }}>
  
             <div className="flex flex-col h-[calc(100vh-8rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-                <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center justify-between mb-4 px-1 mt-4">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={onBack}>
                             <ArrowLeftIcon className="h-5 w-5" />

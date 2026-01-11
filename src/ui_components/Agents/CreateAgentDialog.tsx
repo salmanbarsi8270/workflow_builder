@@ -142,7 +142,6 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
             const formattedTools = selectedTools.map(t => {
                 if (t.toolId.startsWith('workflow:')) {
                     const workflowId = t.toolId.replace('workflow:', '');
-                    const wf = availableWorkflows.find(w => w.id === workflowId);
                     return {
                         type: 'workflow' as const,
                         workflowId: workflowId

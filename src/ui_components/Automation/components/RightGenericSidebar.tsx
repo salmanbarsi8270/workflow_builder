@@ -257,7 +257,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const actionId = selectedNode.data.actionId as string;
     const actionName = selectedNode.data.actionName as string;
     const actionIcon = selectedNode.data.icon as string;
-    const isWhiteIcon = ['wait', 'delay', 'utility'].includes(actionIcon || '');
+    const isWhiteIcon = ['wait', 'delay', 'utility', 'agent'].includes(actionIcon || '');
 
     const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === selectedNode.data.icon);
     const actionDef: any = appDef?.actions.find(a => a.id === actionId);

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
 import { getServices } from '../api/connectionlist';
-import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2 } from "lucide-react";
+import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2, } from "lucide-react";
+import { CustomPagination } from "../Shared/CustomPagination"
 import { Toaster, toast } from 'sonner';
 import { cn } from "@/lib/utils";
 
@@ -160,6 +161,13 @@ export default function Agents() {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
   const [isOpeningRun, setIsOpeningRun] = useState<string | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const topLevelAgents = agents.filter(a => !a.parent_agent);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedAgents = topLevelAgents.slice(startIndex, startIndex + itemsPerPage);
 
 
 // console.log("agents", agents);
@@ -342,7 +350,7 @@ export default function Agents() {
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
-      <div className="relative z-10 container mx-auto p-8 w-full">
+      <div className="relative z-10 container mx-auto p-8 w-full flex flex-col min-h-full">
         {/* Header */}
         <div className="mb-12 animate-in fade-in slide-in-from-top duration-700">
           <div className="flex items-center justify-between mb-6">
@@ -463,7 +471,7 @@ export default function Agents() {
             </div>
           )}
 
-          {!isLoading && agents.filter(a => !a.parent_agent).map((agent, idx) => (
+          {!isLoading && paginatedAgents.map((agent, idx) => (
             <AgentTreeNode 
               key={agent.id} 
               agent={agent} 
@@ -540,6 +548,16 @@ export default function Agents() {
             setIsRunModalOpen(true);
         }}
       />
+
+      {/* Pagination Footer */}
+        <CustomPagination 
+          currentPage={currentPage}
+          totalItems={topLevelAgents.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
+
       <Toaster />
     </div>
   );

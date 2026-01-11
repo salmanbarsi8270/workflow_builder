@@ -278,10 +278,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                         {/* Main Step Card */}
                         <div
                             className={cn(
-                                "flex items-center justify-between p-3 rounded-lg border bg-card transition-all cursor-pointer",
-                                isExpanded && "ring-1 ring-primary border-primary bg-accent/5",
-                                status === 'skipped' && "opacity-60 bg-muted/20 hover:border-border cursor-default",
-                                status === 'running' && "border-blue-200 shadow-sm"
+                                "flex items-center justify-between p-3 rounded-xl border bg-white/40 dark:bg-white/5 backdrop-blur-md transition-all cursor-pointer border-white/20 dark:border-white/10 shadow-sm hover:shadow-md",
+                                isExpanded && "ring-2 ring-primary/20 border-primary/50 bg-white/60 dark:bg-white/10",
+                                status === 'skipped' && "opacity-60 grayscale cursor-default",
+                                status === 'running' && "border-blue-400/50 shadow-blue-500/10"
                             )}
                             onClick={() => status !== 'skipped' && toggleStep(node.id)}
                         >
@@ -302,9 +302,9 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
                         {/* Expanded Content (Output) */}
                         {isExpanded && (
-                            <div className="animate-in slide-in-from-top-1 fade-in duration-200">
+                            <div className="animate-in slide-in-from-top-2 fade-in duration-300 mt-2">
                                 {(result?.output || status === 'running' || status === 'pending') && (
-                                    <div className="rounded-lg bg-muted/50 p-3 text-xs font-mono overflow-auto w-full max-h-[300px]">
+                                    <div className="rounded-xl bg-white/30 dark:bg-black/30 backdrop-blur-md p-4 text-xs font-mono overflow-auto w-full max-h-[400px] border border-white/20 dark:border-white/10 shadow-inner">
                                         <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Output Payload</div>
                                         {status === 'running' ? (
                                             <div className="flex items-center gap-2 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" /> Executing...</div>
@@ -348,8 +348,8 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <ResizableSheetContent side="left" storageKey="run-sidebar-width" defaultWidth={450} className="w-full sm:max-w-none flex flex-col gap-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <SheetHeader className="p-6 border-b shrink-0">
+            <ResizableSheetContent side="left" storageKey="run-sidebar-width" defaultWidth={450} className="w-full sm:max-w-none flex flex-col gap-0 bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
+                <SheetHeader className="p-6 border-b border-sidebar-border/50 shrink-0 bg-white/20 dark:bg-black/10 backdrop-blur-md">
                     <SheetTitle className="text-xl flex items-center gap-2">
                         {view === 'detail' && (
                             <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8 mr-1" onClick={() => handleViewChange('history')}>
@@ -381,7 +381,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                             {isLoadingHistory && <div className="text-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />Loading...</div>}
                             {!isLoadingHistory && runHistory.length === 0 && <div className="text-center py-8 text-muted-foreground">No run history found.</div>}
                             {runHistory.map((run, i) => (
-                                <div key={run.id} onClick={() => handleRunClick(run)} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors group">
+                                <div key={run.id} onClick={() => handleRunClick(run)} className="flex items-center justify-between p-4 rounded-xl border border-white/20 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md hover:bg-white/60 dark:hover:bg-white/10 cursor-pointer transition-all group hover:shadow-lg hover:-translate-y-0.5">
                                     <div className="flex items-center gap-3">
                                         <div className={cn("h-2 w-2 rounded-full", run.status === 'success' ? 'bg-green-500' : 'bg-red-500')} />
                                         <div className="grid gap-0.5">

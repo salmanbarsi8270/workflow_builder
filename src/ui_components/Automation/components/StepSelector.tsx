@@ -70,8 +70,8 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     };
 
     return (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-popover border shadow-2xl rounded-xl z-50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b flex items-center gap-3">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 border border-white/20 dark:border-white/10 shadow-3xl rounded-2xl z-50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
+            <div className="p-4 border-b border-white/20 dark:border-white/10 flex items-center gap-3 bg-white/20 dark:bg-black/10 backdrop-blur-md">
                 {selectedApp && (
                     <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8 -ml-2">
                         <ArrowLeft className="h-4 w-4" />
@@ -82,7 +82,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder={selectedApp ? `Search ${selectedApp.name} actions...` : "Search apps..."}
-                        className="pl-9 bg-muted/50 border-none focus-visible:ring-1"
+                        className="pl-9 bg-white/40 dark:bg-white/5 border-white/20 dark:border-white/10 focus-visible:ring-1 backdrop-blur-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         autoFocus
@@ -135,16 +135,16 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                             <div
                                 key={app.id}
                                 onClick={() => handleAppClick(app)}
-                                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer group transition-colors"
+                                className="flex items-center gap-4 p-3 rounded-xl border border-white/10 dark:border-white/5 bg-white/40 dark:bg-white/5 backdrop-blur-md cursor-pointer group transition-all hover:bg-white/60 dark:hover:bg-white/10 hover:shadow-lg hover:-translate-y-0.5"
                             >
-                                <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center shrink-0 overflow-hidden">
+                                <div className="h-10 w-10 rounded-xl bg-white/50 dark:bg-white/10 border border-white/20 dark:border-white/10 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
                                     {AppLogoMap[app.id] ? (
                                         <img 
                                             src={AppLogoMap[app.id]} 
                                             alt={app.name} 
                                             className={cn(
                                                 "h-7 w-7 object-contain",
-                                                ['wait', 'delay', 'utility'].includes(app.id) && "invert dark:invert-0"
+                                                ['wait', 'delay', 'utility', 'agent'].includes(app.id) && "invert dark:invert-0"
                                             )} 
                                         />
                                     ) : (
@@ -173,7 +173,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                             <div
                                 key={action.id}
                                 onClick={() => handleActionClick(action)}
-                                className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer group transition-colors"
+                                className="flex items-center gap-4 p-4 rounded-xl border border-white/10 dark:border-white/5 bg-white/40 dark:bg-white/5 backdrop-blur-md cursor-pointer group transition-all hover:bg-white/60 dark:hover:bg-white/10 hover:shadow-lg hover:-translate-y-0.5"
                             >
                                 <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                                     {/* Small icon for action type? */}
@@ -194,8 +194,8 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                 )}
             </div>
 
-            <div className="p-2 border-t bg-muted/20 text-xs text-center text-muted-foreground">
-                Press <kbd className="px-1 py-0.5 rounded bg-background border font-mono">Esc</kbd> to close
+            <div className="p-3 border-t border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 text-xs text-center text-muted-foreground backdrop-blur-md">
+                Press <kbd className="px-1.5 py-0.5 rounded-md bg-white/50 dark:bg-white/10 border border-white/20 dark:border-white/10 font-mono shadow-sm">Esc</kbd> to close
             </div>
         </div>
     );

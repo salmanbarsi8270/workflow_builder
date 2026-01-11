@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -67,6 +67,9 @@ export function OpenRouterModel({open, onOpenChange, onSuccess}: AddAIProviderDi
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add AI Provider</DialogTitle>
+          <DialogDescription className="sr-only">
+            Add your OpenRouter API key to connect your AI provider.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Info box */}

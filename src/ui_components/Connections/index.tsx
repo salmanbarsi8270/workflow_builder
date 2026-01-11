@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, ChevronRight, ChevronLeft, Filter, Sparkles, Zap, ChevronLast, ChevronFirst, Globe, Plus, LayoutGrid, List } from "lucide-react"
+import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, Filter, Sparkles, Zap, Globe, Plus, LayoutGrid, List } from "lucide-react"
 import { getServices, deleteConnection } from "../api/connectionlist"
+import { CustomPagination } from "../Shared/CustomPagination"
 import { useUser } from '@/context/UserContext';
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
@@ -144,7 +145,6 @@ export default function Connections() {
     setCurrentPage(1); // Reset to first page on filter change
   }, [accounts, searchQuery, sortBy, selectedService]);
 
-  const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedAccounts = filteredAccounts.slice(startIndex, startIndex + itemsPerPage);
 
@@ -360,7 +360,7 @@ export default function Connections() {
         </motion.div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none space-y-6">
+        <div className="flex-1 pr-2 -mr-2 scrollbar-none space-y-6">
           <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
@@ -498,57 +498,13 @@ export default function Connections() {
         </div>
 
         {/* Pagination Footer */}
-        {filteredAccounts.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 border-t border-slate-200 dark:border-white/10 shrink-0">
-            <div className="flex items-center gap-6">
-              <p className="text-sm text-slate-500 dark:text-blue-200/70 font-medium">
-                Showing <span className="font-bold text-slate-900 dark:text-white">{startIndex + 1}</span> to{" "}
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {Math.min(startIndex + itemsPerPage, filteredAccounts.length)}
-                </span>{" "}
-                of <span className="font-bold text-slate-900 dark:text-white">{filteredAccounts.length}</span> connections
-              </p>
-              
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">Items per page</span>
-                <Select value={itemsPerPage.toString()} onValueChange={(v) => {setItemsPerPage(parseInt(v));setCurrentPage(1);}}>
-                  <SelectTrigger className="h-9 w-20 rounded-xl bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 font-bold">
-                    <SelectValue placeholder={itemsPerPage.toString()} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {[5, 10, 20, 50].map(size => (
-                      <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
-                  <ChevronFirst className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                
-                <div className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 shadow-sm shadow-blue-500/5">
-                  <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest">Page</span>
-                  <span className="text-sm font-black text-blue-800 dark:text-blue-100">{currentPage}</span>
-                  <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">/ {totalPages}</span>
-                </div>
-
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-600 dark:text-slate-300 transition-all" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>
-                  <ChevronLast className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+        <CustomPagination 
+          currentPage={currentPage}
+          totalItems={filteredAccounts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       </div>
     </div>
   );

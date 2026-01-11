@@ -112,7 +112,7 @@ const WaitNode = ({ data, selected }: NodeProps) => {
     const logoUrl = AppLogoMap[iconKey];
     
     // Fix for white icons being invisible in light mode
-    const isWhiteIcon = ['wait', 'delay', 'utility'].includes(iconKey);
+    const isWhiteIcon = ['wait', 'delay', 'utility', 'agent'].includes(iconKey);
 
     return (
         <div className="relative group">

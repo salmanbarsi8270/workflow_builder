@@ -471,7 +471,7 @@ export default function AutomationIndex() {
                         side="right" 
                         storageKey="create-automation-width" 
                         defaultWidth={480} 
-                        className="sm:max-w-none border-l-0 shadow-2xl p-0"
+                        className="sm:max-w-none border-l-0 shadow-2xl p-0 bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
                     >
                         <div className="h-full flex flex-col">
                             <div className="p-6 pb-4 border-b bg-linear-to-b from-primary/5 to-transparent">
@@ -525,9 +525,9 @@ export default function AutomationIndex() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <Tabs defaultValue="blank" className="w-full h-full flex flex-col">
+                                    <Tabs defaultValue="blank" className="w-full h-full flex flex-col ">
                                         <TabsList className="grid w-full grid-cols-2 p-1.5 h-14 bg-muted/40 rounded-2xl mb-6">
-                                            <TabsTrigger value="blank" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm font-bold">
+                                            <TabsTrigger value="blank" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm font-bold ">
                                                 <FilePlus className="h-4 w-4" /> Blank Flow
                                             </TabsTrigger>
                                             <TabsTrigger value="templates" className="rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm font-bold">

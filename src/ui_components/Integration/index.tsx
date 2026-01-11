@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles } from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, } from "lucide-react"
+import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
@@ -35,6 +36,11 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'popular' | 'name' | 'recent'>('popular');
   const [openroutermodel, setOpenroutermodel] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
 
   useEffect(() => {
     fetchConnections();
@@ -143,7 +149,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
       }
     });
 
+
+
     setFilteredApps(filtered);
+    setCurrentPage(1); // Reset page on filter/sort change
   };
 
   const handleConnect = (app: IntegrationApp) => {
@@ -191,7 +200,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen overflow-y-auto bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
@@ -374,7 +383,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         </motion.div>
 
         {/* Results Section */}
-        <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none space-y-6 pb-12">
+        <div className="flex-1 pr-2 -mr-2 scrollbar-none space-y-6 pb-12">
           <div className="flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -438,7 +447,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       </Button>
                     </motion.div>
                   ) : (
-                    filteredApps.map((app) => (
+                    paginatedApps.map((app) => (
                       <IntegrationGridCard 
                         key={app.id} 
                         app={app} 
@@ -466,7 +475,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       No integrations found matching your criteria.
                     </div>
                   ) : (
-                    filteredApps.map((app) => (
+                    paginatedApps.map((app) => (
                       <IntegrationListItem
                         key={app.id} 
                         app={app} 
@@ -480,6 +489,15 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Pagination Footer */}
+        <CustomPagination 
+          currentPage={currentPage}
+          totalItems={filteredApps.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
 
         <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
       </div>

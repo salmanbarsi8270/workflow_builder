@@ -353,6 +353,7 @@ const CustomNode = ({ id, data, selected }: NodeProps) => {
                 alt={iconKey}
                 className={cn(
                   "h-6 w-6 object-contain transition-all duration-300",
+                  ['wait', 'delay', 'utility', 'agent'].includes(iconKey) && "invert dark:invert-0",
                   status === 'running' ? "animate-pulse" : ""
                 )}
               />

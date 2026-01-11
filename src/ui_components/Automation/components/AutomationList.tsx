@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, ChevronLeft, ChevronRight, Plus, Search, X, RefreshCw,} from "lucide-react"
+import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, Plus, Search, X, RefreshCw,} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { CustomPagination } from "../../Shared/CustomPagination"
 
 export interface AutomationItem {
   id: string;
@@ -68,7 +69,6 @@ export default function AutomationList({ automations, search, setSearch, onToggl
 
         });
 
-    const totalPages = Math.ceil(filteredAutomations.length / itemsPerPage);
     const paginatedAutomations = filteredAutomations.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
@@ -369,71 +369,13 @@ export default function AutomationList({ automations, search, setSearch, onToggl
           </CardContent>
 
           {/* Footer */}
-          {filteredAutomations.length > 0 && (
-  <div className="sticky bottom-0 z-20 border-t border-slate-100 dark:border-white/5 
-                  bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md">
-    <div className="flex items-center justify-between p-6">
-      
-      {/* Left */}
-      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <span className="font-medium whitespace-nowrap">View count:</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-[72px] rounded-lg">
-                {itemsPerPage}
-                <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {[5, 10, 15, 20].map(size => (
-                <DropdownMenuItem
-                  key={size}
-                  onClick={() => {
-                    setItemsPerPage(size)
-                    setCurrentPage(1)
-                  }}
-                >
-                  {size}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="font-medium">
-          Showing {((currentPage - 1) * itemsPerPage) + 1}–
-          {Math.min(currentPage * itemsPerPage, filteredAutomations.length)} of{" "}
-          {filteredAutomations.length}
-        </div>
-      </div>
-
-      {/* Right */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Prev
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-        >
-          Next
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
-      </div>
-
-    </div>
-  </div>
-)}
+          <CustomPagination 
+            currentPage={currentPage}
+            totalItems={filteredAutomations.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
 
         </Card>
       </div>
