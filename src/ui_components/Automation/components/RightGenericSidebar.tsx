@@ -2,17 +2,17 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { type Node } from '@xyflow/react';
+import { type Node, type Edge } from '@xyflow/react';
 import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
-import { APP_DEFINITIONS } from "../metadata";
+import { type AppDefinition, type ActionDefinition, type ActionParameter } from "../metadata";
 import ScheduleForm from "../../Utility/ScheduleForm";
 import HTTPForm from "../../Utility/HTTPForm";
 import GitHubForm from "../../Connections/GitHubForm";
 import { Save, Trash2, X, Settings, Info, HelpCircle, ExternalLink, Copy, RefreshCw, ChevronLeft, ChevronRight, Sparkles, Shield, Zap, AlertCircle, RotateCcw, GripVertical } from "lucide-react";
 import { AppLogoMap } from "../utils/Applogo";
 import { cn } from "@/lib/utils";
-import { usePiecesMetadata } from "../hooks/usePiecesMetadata";
+import { usePieces } from "@/context/PieceContext";
 import { getServices } from "../../api/connectionlist";
 import { useUser } from "@/context/UserContext";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ const getStatusColor = (status?: string) => {
     }
 };
 
-const getInitialParams = (node: Node) => {
+const getInitialParams = (node: Node, pieces: AppDefinition[]) => {
     const nodeData = node.data as any;
     const migratedParams = { ...(nodeData.params || {}) } as any;
 
@@ -69,8 +69,8 @@ const getInitialParams = (node: Node) => {
     // Ensure defaults are populated from Action Definitions
     const appName = nodeData.appName as string;
     const actionId = nodeData.actionId as string;
-    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === nodeData.icon);
-    const actionDef = appDef?.actions.find(a => a.id === actionId);
+    const appDef = pieces.find(a => a.id === nodeData.piece || a.name === appName || a.id === nodeData.icon);
+    const actionDef = appDef?.actions.find((a: ActionDefinition) => a.id === actionId);
 
     // Special Case: Google Sheets sheetName -> range migration
     if ((nodeData.sheetName || nodeData.sheet_name) && (migratedParams.range === undefined || migratedParams.range === '')) {
@@ -88,7 +88,7 @@ const getInitialParams = (node: Node) => {
     }
 
     if (actionDef?.parameters) {
-        actionDef.parameters.forEach(p => {
+        actionDef.parameters.forEach((p: ActionParameter) => {
             if (p.default !== undefined && (migratedParams[p.name] === undefined || migratedParams[p.name] === '')) {
                 migratedParams[p.name] = p.default;
             }
@@ -98,9 +98,11 @@ const getInitialParams = (node: Node) => {
     return migratedParams;
 };
 
+
 export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false, flowId }: RightGenericSidebarProps) {
+    const { pieces, piecesMap, isLoading: metadataLoading } = usePieces();
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
-    const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode) : {});
+    const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode, pieces) : {});
     const [activeTab, setActiveTab] = useState("configuration");
     const tabsListRef = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState({ left: false, right: false });
@@ -182,7 +184,6 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const [isDirty, setIsDirty] = useState(false);
     const prevNodeId = useRef<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-    const { pieces, loading: metadataLoading } = usePiecesMetadata();
     const { user } = useUser();
     const [allConnections, setAllConnections] = useState<any[]>([]);
 
@@ -229,19 +230,19 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     useEffect(() => {
         if (selectedNode) {
             const currentLabel = selectedNode.data.label as string || '';
-            const migrated = getInitialParams(selectedNode);
+            const migrated = getInitialParams(selectedNode, pieces);
 
             // Only sync if the node ID changed OR if we are NOT dirty
             // This prevents the server sync from wiping the user's current edits
             const idChanged = selectedNode.id !== prevNodeId.current;
-            
+
             if (idChanged || !isDirty) {
                 const paramsChanged = JSON.stringify(migrated) !== JSON.stringify(localParams);
                 const labelChanged = currentLabel !== localLabel;
 
                 if (paramsChanged) setLocalParams(migrated);
                 if (labelChanged) setLocalLabel(currentLabel);
-                
+
                 if (idChanged) {
                     setIsDirty(false);
                     setValidationErrors({});
@@ -249,7 +250,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
             }
             prevNodeId.current = selectedNode.id;
         }
-    }, [selectedNode?.id, JSON.stringify(selectedNode?.data)]); // Sync whenever ID or data content changes
+    }, [selectedNode?.id, JSON.stringify(selectedNode?.data), pieces]); // Sync whenever ID or data content changes
 
     if (!selectedNode) return null;
 
@@ -259,7 +260,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const actionIcon = selectedNode.data.icon as string;
     const isWhiteIcon = ['wait', 'delay', 'utility'].includes(actionIcon || '');
 
-    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === selectedNode.data.icon);
+    const appDef = pieces.find(a => a.id === selectedNode.data.piece || a.name === appName || a.id === selectedNode.data.icon);
     const actionDef: any = appDef?.actions.find(a => a.id === actionId);
 
     const FormComponent = useMemo(() => {
@@ -365,7 +366,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
 
     return (
         <TooltipProvider>
-            <div 
+            <div
                 className={cn(
                     "border-l bg-linear-to-b from-background to-background/95 backdrop-blur-sm flex flex-col h-full overflow-hidden relative group/sidebar shadow-xl",
                     isDragging && "transition-none select-none"
@@ -386,7 +387,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                     {/* Active Line Indicator */}
                     <div className={cn(
                         "absolute left-1.5 top-0 bottom-0 w-px bg-primary/0 transition-colors",
-                         (isDragging) && "bg-primary/20"
+                        (isDragging) && "bg-primary/20"
                     )} />
                 </div>
                 {/* Header */}
@@ -395,10 +396,10 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                         <div className="flex items-center gap-3">
                             <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center relative", getStatusColor(nodeStatus).split(' ')[1])}>
                                 {AppLogoMap[actionIcon] ? (
-                                    <img 
-                                        src={AppLogoMap[actionIcon]} 
-                                        className={cn("w-6 h-6", isWhiteIcon && "invert dark:invert-0")} 
-                                        alt={appName} 
+                                    <img
+                                        src={AppLogoMap[actionIcon]}
+                                        className={cn("w-6 h-6", isWhiteIcon && "invert dark:invert-0")}
+                                        alt={appName}
                                     />
                                 ) : (
                                     <Zap className="h-5 w-5" />
@@ -415,14 +416,14 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                     {actionDef?.type || 'action'}
                                 </p>
                             </div>
-                            </div>
+                        </div>
 
                         <div className="flex items-center gap-1">
-                             {width !== DEFAULT_WIDTH && (
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 text-muted-foreground/50 hover:text-foreground" 
+                            {width !== DEFAULT_WIDTH && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground/50 hover:text-foreground"
                                     onClick={handleResetWidth}
                                     title="Reset Width"
                                 >
@@ -623,10 +624,10 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                     </div>
 
                                     {(() => {
-                                        const service = selectedNode.data.icon as string;
-                                        const piece = pieces[service];
-                                        const actionType = actionDef?.type === 'trigger' ? 'triggers' : 'actions';
-                                        const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema;
+                                        const service = (selectedNode.data.piece || selectedNode.data.icon || '') as string;
+                                        const appDefFound = piecesMap[service];
+                                        const actionDefFound = appDefFound?.actions.find(a => a.id === actionId);
+                                        const schema = actionDefFound?.outputSchema;
 
                                         if (metadataLoading) {
                                             return <div className="p-4 text-center text-sm text-muted-foreground animate-pulse">Loading schema...</div>;

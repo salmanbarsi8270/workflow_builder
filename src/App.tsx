@@ -34,27 +34,31 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     return children;
 }
 
+import { PieceProvider } from './context/PieceContext';
+
 export function App() {
     return (
         <UserProvider>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    
-                    {/* Protected Routes with Sidebar Layout */}
-                    <Route element={<RequireAuth><SidebarIconExample /></RequireAuth>}>
-                        <Route path="/" element={<WorkflowDashboard />} />
-                        <Route path="/connectors" element={<Connectors />} />
-                        <Route path="/connections" element={<Connections />} />
-                        <Route path="/templates" element={<Templates />} />
-                        <Route path="/automation" element={<Automation />} />
-                        <Route path="/automation/:id" element={<Automation />} />
-                        <Route path="/agents" element={<Agents />} />
-                    </Route>
-                    
-                    <Route path="*" element={<ErrorPage />} />
-                </Routes>
-            </BrowserRouter>
+            <PieceProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/login" element={<LoginPage />} />
+
+                        {/* Protected Routes with Sidebar Layout */}
+                        <Route element={<RequireAuth><SidebarIconExample /></RequireAuth>}>
+                            <Route path="/" element={<WorkflowDashboard />} />
+                            <Route path="/connectors" element={<Connectors />} />
+                            <Route path="/connections" element={<Connections />} />
+                            <Route path="/templates" element={<Templates />} />
+                            <Route path="/automation" element={<Automation />} />
+                            <Route path="/automation/:id" element={<Automation />} />
+                            <Route path="/agents" element={<Agents />} />
+                        </Route>
+
+                        <Route path="*" element={<ErrorPage />} />
+                    </Routes>
+                </BrowserRouter>
+            </PieceProvider>
         </UserProvider>
     );
 }

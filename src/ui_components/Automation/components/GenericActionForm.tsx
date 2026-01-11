@@ -2,7 +2,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { type ActionParameter, APP_DEFINITIONS } from "@/ui_components/Automation/metadata"
+import { type ActionParameter } from "@/ui_components/Automation/metadata"
+import { usePieces } from "@/context/PieceContext";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
 import { type Node, type Edge } from "@xyflow/react";
@@ -14,6 +15,7 @@ import axios from "axios";
 
 import { Plus, Trash2, Pencil, List } from "lucide-react";
 import { Button } from "@/components/button"
+import { Switch } from "@/components/ui/switch"
 
 // Robust String Array Input
 const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
@@ -164,7 +166,7 @@ const DynamicSelect = ({
                     dependencies.forEach(dep => {
                         context[dep] = allParams[dep];
                     });
-                    
+
                     res = await axios.post(`${API_URL}/api/v1/pieces/options/${dynamicOptions.action}`, {
                         userId,
                         service,
@@ -217,7 +219,7 @@ const DynamicSelect = ({
                 <div className="flex-1">
                     {isManual ? (
                         <div className="flex flex-col gap-2">
-                             <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                                 <Label className="text-[10px] font-medium uppercase text-muted-foreground/50">
                                     Manual ID
                                 </Label>
@@ -370,12 +372,13 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
         handleChange(field, currentValue + variable);
     };
 
+    const { piecesMap } = usePieces();
     const appName = data.appName || 'App';
     const service = data.icon || data.appName?.toLowerCase().replace(/\s+/g, '') || '';
 
     const checkIsTrigger = () => {
         const actionId = data.actionId;
-        const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === data.icon);
+        const appDef = piecesMap[data.piece] || piecesMap[data.icon] || piecesMap[appName];
         const actionDef = appDef?.actions.find(a => a.id === actionId);
         return actionDef?.type === 'trigger';
     };
@@ -416,10 +419,10 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                         param.label?.toLowerCase().includes('docs') ? 'Google Docs' :
                                             param.label?.toLowerCase().includes('sheets') ? 'Google Sheets' :
                                                 ['googledocs', 'docs'].includes(appName.toLowerCase()) ? 'Google Docs' :
-                                                ['googlesheets', 'sheets'].includes(appName.toLowerCase()) ? 'Google Sheets' :
-                                                ['googledrive', 'drive'].includes(appName.toLowerCase()) ? 'Google Drive' :
-                                                appName === 'Agent' ? 'OpenRouter' : 
-                                                appName}
+                                                    ['googlesheets', 'sheets'].includes(appName.toLowerCase()) ? 'Google Sheets' :
+                                                        ['googledrive', 'drive'].includes(appName.toLowerCase()) ? 'Google Drive' :
+                                                            appName === 'Agent' ? 'OpenRouter' :
+                                                                appName}
                                 value={params[param.name] || ''}
                                 onChange={(val) => handleChange(param.name, val)}
                                 disabled={disabled}
@@ -443,7 +446,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 userId={userId}
                                 connectionId={params['connection'] || params['authId'] || ''}
                                 allParams={params}
-                                service={service}
+                                service={data.piece || data.icon || (data.appName ? data.appName.toLowerCase().replace(/\s+/g, '') : '')}
                                 nodes={nodes}
                                 edges={edges as Edge[]}
                                 nodeId={nodeId}
@@ -500,6 +503,35 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 disabled={disabled}
                                 required
                             />
+                        )}
+
+                        {param.type === 'boolean' && (
+                            <div className="flex items-center space-x-2 h-10">
+                                <Switch
+                                    checked={!!(params[param.name] || param.default)}
+                                    onCheckedChange={(checked) => handleChange(param.name, checked)}
+                                    disabled={disabled}
+                                    id={`switch-${param.name}`}
+                                />
+                                <Label htmlFor={`switch-${param.name}`} className="font-normal text-muted-foreground cursor-pointer">
+                                    {param.description || (params[param.name] ? 'True' : 'False')}
+                                </Label>
+                            </div>
+                        )}
+
+                        {(param.type === 'object' || param.type === 'json') && (
+                            <div className="flex flex-col gap-1">
+                                <Textarea
+                                    value={typeof params[param.name] === 'object' ? JSON.stringify(params[param.name], null, 2) : (params[param.name] || param.default || '')}
+                                    onChange={(e) => handleChange(param.name, e.target.value)}
+                                    placeholder={param.description || "{ \"key\": \"value\" }"}
+                                    className="font-mono text-xs min-h-[100px]"
+                                    disabled={disabled}
+                                />
+                                <p className="text-[10px] text-muted-foreground italic">
+                                    Enter JSON object or key-value pairs.
+                                </p>
+                            </div>
                         )}
 
                         {param.type === 'array' && (
