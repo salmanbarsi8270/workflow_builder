@@ -2,18 +2,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { type ActionParameter } from "@/ui_components/Automation/metadata"
 import { usePieces } from "@/context/PieceContext";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
 import { useState, useEffect } from "react";
 import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
+import { getPieceOptions } from "@/ui_components/api/pieces";
 import { API_URL } from "@/ui_components/api/apiurl";
-import axios from "axios";
 
 
-import { Plus, Trash2, Pencil, List } from "lucide-react";
+import { Plus, Trash2, Pencil, List, Loader2 } from "lucide-react";
 import { Button } from "@/components/button"
 import { Switch } from "@/components/ui/switch"
 
@@ -103,7 +102,7 @@ interface GenericActionFormProps {
     data: any;
     params: any;
     onChange: (params: any) => void;
-    parameters: ActionParameter[];
+    parameters: any[];
     disabled?: boolean;
     nodes: Node[];
     edges?: any[]; // added edges
@@ -125,7 +124,7 @@ const DynamicSelect = ({
     edges,
     nodeId
 }: {
-    param: ActionParameter,
+    param: any,
     value: any,
     onChange: (val: any) => void,
     disabled?: boolean,
@@ -146,10 +145,10 @@ const DynamicSelect = ({
 
     // Determine if we have all required dependencies
     const dependencies = dynamicOptions.dependsOn || [];
-    const missingDependencies = dependencies.some(dep => !allParams[dep]);
+    const missingDependencies = dependencies.some((dep: string) => !allParams[dep]);
 
     // Create a stable key for dependencies
-    const depsKey = JSON.stringify(dependencies.map(dep => allParams[dep]));
+    const depsKey = JSON.stringify(dependencies.map((dep: string) => allParams[dep]));
 
     useEffect(() => {
         const fetchOptions = async () => {
@@ -160,43 +159,33 @@ const DynamicSelect = ({
             setLoading(true);
             setError(null);
             try {
-                let res;
-                if (dependencies.length > 0) {
-                    const context: Record<string, any> = {};
-                    dependencies.forEach(dep => {
-                        context[dep] = allParams[dep];
-                    });
+                const context: Record<string, any> = {};
+                dependencies.forEach((dep: string) => {
+                    context[dep] = allParams[dep];
+                });
 
-                    res = await axios.post(`${API_URL}/api/v1/pieces/options/${dynamicOptions.action}`, {
-                        userId,
-                        service,
-                        connectionId,
-                        context
-                    });
-                } else {
-                    res = await axios.get(`${API_URL}/api/v1/pieces/options/${dynamicOptions.action}`, {
-                        params: { userId, service, connectionId }
-                    });
-                }
+                const res = await getPieceOptions({
+                    userId,
+                    service,
+                    actionName: dynamicOptions.action,
+                    connectionId,
+                    context
+                });
 
-                if (res.data && res.data.success && Array.isArray(res.data.options)) {
-                    setOptions(res.data.options);
+                if (res.success && Array.isArray(res.options)) {
+                    setOptions(res.options);
                     // If current value is not in options and not empty, default to manual
                     const val = String(value);
-                    if (val && !res.data.options.find((opt: any) => String(opt.value) === val)) {
-                        setIsManual(true);
-                    }
-                } else if (Array.isArray(res.data)) {
-                    setOptions(res.data);
-                    const val = String(value);
-                    if (val && !res.data.find((opt: any) => String(opt.value) === val)) {
+                    if (val && !res.options.find((opt: any) => String(opt.value) === val)) {
                         setIsManual(true);
                     }
                 } else {
-                    setError(res.data?.error || "Failed to load options");
+                    setError(res.error || "Failed to load options");
+                    setOptions([]);
                 }
             } catch (err: any) {
-                setError(err.response?.data?.error || err.message || "Failed to load options");
+                console.error(err);
+                setError(err.message || "Failed to load options");
             } finally {
                 setLoading(false);
             }
@@ -246,7 +235,16 @@ const DynamicSelect = ({
                             required
                         >
                             <SelectTrigger className={error ? "border-red-500" : ""}>
-                                <SelectValue placeholder={loading ? "Loading..." : (param.description || `Select ${param.label}`)} />
+                                <SelectValue placeholder={param.description || `Select ${param.label}`}>
+                                    {loading ? (
+                                        <div className="flex items-center gap-2 text-muted-foreground/70 italic">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            <span>Loading options...</span>
+                                        </div>
+                                    ) : (
+                                        value ? options.find(o => String(o.value) === String(value))?.label || value : (param.description || `Select ${param.label}`)
+                                    )}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {options.length === 0 && !loading && (
@@ -276,6 +274,7 @@ const DynamicSelect = ({
     );
 };
 
+
 const AgentSelector = ({
     value,
     onChange,
@@ -294,9 +293,10 @@ const AgentSelector = ({
             if (!user?.id) return;
             setLoading(true);
             try {
-                const res = await axios.get(`${API_URL}/api/v1/agents?userId=${user?.id}&tree=true`);
-                if (Array.isArray(res.data)) {
-                    setAgents(res.data);
+                const response = await fetch(`${API_URL}/api/v1/agents?userId=${user?.id}&tree=true`);
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    setAgents(data);
                 }
             } catch (error) {
                 console.error("Failed to fetch agents", error);
@@ -336,7 +336,16 @@ const AgentSelector = ({
             disabled={disabled || loading}
         >
             <SelectTrigger className="w-full">
-                <SelectValue placeholder={loading ? "Loading agents..." : "Select an Agent"} />
+                <SelectValue placeholder="Select an Agent">
+                    {loading ? (
+                        <div className="flex items-center gap-2 text-muted-foreground/70 italic">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Loading agents...</span>
+                        </div>
+                    ) : (
+                        agents.find(a => String(a.id) === String(value))?.name || "Select an Agent"
+                    )}
+                </SelectValue>
             </SelectTrigger>
             <SelectContent>
                 {agents.length === 0 && !loading && (
@@ -421,7 +430,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                                 ['googledocs', 'docs'].includes(appName.toLowerCase()) ? 'Google Docs' :
                                                     ['googlesheets', 'sheets'].includes(appName.toLowerCase()) ? 'Google Sheets' :
                                                         ['googledrive', 'drive'].includes(appName.toLowerCase()) ? 'Google Drive' :
-                                                            appName === 'Agent' ? 'OpenRouter' :
+                                                            appName.toLowerCase() === 'agent' ? 'OpenRouter' :
                                                                 appName}
                                 value={params[param.name] || ''}
                                 onChange={(val) => handleChange(param.name, val)}

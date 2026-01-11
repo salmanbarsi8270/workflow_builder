@@ -34,4 +34,9 @@ export interface AppDefinition {
   icon: any;
   category: 'app' | 'utility' | 'agent';
   actions: ActionDefinition[];
+  metadata?: {
+    triggers?: Record<string, ActionDefinition>;
+    actions?: Record<string, ActionDefinition>;
+  };
+  triggers?: string[];
 }

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, ArrowLeft, X, Box } from "lucide-react";
-import { type AppDefinition, type ActionDefinition } from '../metadata';
 import { cn } from "@/lib/utils";
 import { usePieces } from '@/context/PieceContext';
 import { AppLogoMap } from '../utils/Applogo';
@@ -17,7 +16,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     const { pieces } = usePieces();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility' | 'agent'>('app');
-    const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
+    const [selectedApp, setSelectedApp] = useState<any | null>(null);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -28,19 +27,18 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     }, [onClose]);
 
     // Filter apps that have at least one action matching the mode
-    const filteredApps = pieces.filter((app: AppDefinition) => {
-        const hasMatchingAction = app.actions.some((action: ActionDefinition) => action.type === mode);
-        const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            app.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredApps = pieces.filter((app: any) => {
+        const actions = app.actions || [];
+        const hasMatchingAction = actions.some((action: any) => action.type === mode);
+        const matchesSearch = (app.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (app.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
         // Normalize categories for tabs
         const category = app.category || 'app';
         let matchesTab = false;
 
         if (activeTab === 'app') {
-            // "Apps" tab includes: app, general, business, etc. (everything not strict utility/agent)
             matchesTab = !['utility', 'agent', 'core'].includes(category);
-            // Also explicitly include 'app' and 'general'
             if (category === 'app') matchesTab = true;
         } else if (activeTab === 'utility') {
             matchesTab = ['utility', 'core', 'logic', 'helper'].includes(category);
@@ -48,23 +46,25 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
             matchesTab = category === 'agent';
         }
 
-        return matchesTab && hasMatchingAction && matchesSearch;
+        const isNotOpenRouter = app.id !== 'openrouter' && (app.name || '').toLowerCase() !== 'openrouter';
+        return matchesTab && hasMatchingAction && matchesSearch && isNotOpenRouter;
     });
 
     // Actions Filter: If App Selected
-    const filteredActions = selectedApp?.actions.filter(action =>
+    const actions = selectedApp?.actions || [];
+    const filteredActions = actions.filter((action: any) =>
         action.type === mode &&
         ((action.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (action.description || '').toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
 
-    const handleAppClick = (app: AppDefinition) => {
+    const handleAppClick = (app: any) => {
         setSelectedApp(app);
         setSearchTerm(""); // Reset search for actions
     };
 
-    const handleActionClick = (action: ActionDefinition) => {
+    const handleActionClick = (action: any) => {
         if (!selectedApp) return;
 
         // Construct the node data
@@ -200,7 +200,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                         <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                             Actions / Triggers
                         </div>
-                        {filteredActions?.map(action => (
+                        {filteredActions?.map((action: any) => (
                             <div
                                 key={action.id}
                                 onClick={() => handleActionClick(action)}

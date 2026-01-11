@@ -1,4 +1,3 @@
-import gmail from '@/assets/app-logos/gmail.png';
 import sheets from '@/assets/app-logos/sheets.png';
 import docs from '@/assets/app-logos/docs.png';
 import drive from '@/assets/app-logos/drive.png';
@@ -14,10 +13,11 @@ import condition from '@/assets/app-logos/condition.png';
 import utility from '@/assets/app-logos/utility.png';
 import wait from '@/assets/app-logos/wait.png';
 import agent from '@/assets/app-logos/agent.png';
+import form from '@/assets/app-logos/form.png';
 
 
 export const AppLogoMap: Record<string, string> = {
-  'gmail': gmail,
+  'gmail': '/gmail.png',
   'sheets': sheets,
   'docs': docs,
   'drive': drive,
@@ -33,5 +33,10 @@ export const AppLogoMap: Record<string, string> = {
   'delay': utility,
   'wait': wait,
   'agent': agent,
+  'form': form,
+  'forms': form,
+  'google_calendar': '/google_calendar.png',
+  'google-calendar': '/google_calendar.png',
+  'calendar': '/google_calendar.png',
 };
 

@@ -9,7 +9,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { APP_DEFINITIONS } from "../metadata";
 import { useMemo, useState } from "react";
 
 interface VariablePickerProps {
@@ -39,10 +38,19 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
   const checkIsTrigger = (node: Node) => {
     const appName = node.data?.appName;
-    const actionId = node.data?.actionId;
-    const appDef = APP_DEFINITIONS.find(a => a.name === appName || a.id === node.data?.icon);
-    const actionDef = appDef?.actions.find(a => a.id === actionId);
-    return actionDef?.type === 'trigger';
+    const actionId = node.data?.actionId as string;
+    const icon = node.data?.icon as string;
+
+    // Use dynamic pieces metadata
+    const piece = pieces[icon] || Object.values(pieces).find(p => p.name === appName);
+    
+    if (!piece || !actionId) return false;
+
+    // Check if it is listed in triggers
+    if (piece.triggers?.includes(actionId)) return true;
+    if (piece.metadata?.triggers?.[actionId]) return true;
+
+    return false;
   };
 
   // Graph Traversal for Scoping

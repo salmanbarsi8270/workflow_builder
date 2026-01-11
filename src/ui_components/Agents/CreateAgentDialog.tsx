@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
-import { APP_DEFINITIONS } from '../Automation/metadata';
+import { usePieces } from "@/context/PieceContext";
 import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
@@ -31,6 +31,7 @@ interface CreateAgentDialogProps {
 }
 
 export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, connections, onSuccess, availableAgents, availableWorkflows }: CreateAgentDialogProps) {
+    const { pieces } = usePieces();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form State
@@ -117,7 +118,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
 
     const hasMissingRequiredConnections = selectedTools.some(tool => {
         const [appId, actionId] = tool.toolId.split(':');
-        const app = APP_DEFINITIONS.find(a => a.id === appId);
+        const app = pieces.find(a => a.id === appId);
         const action = app?.actions.find(a => a.id === actionId);
 
         const requiresConnection = action?.parameters?.some(p => p.type === 'connection');
@@ -148,7 +149,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     };
                 } else {
                     const [piece, actionId] = t.toolId.split(':');
-                    const app = APP_DEFINITIONS.find(a => a.id === piece);
+                    const app = pieces.find(a => a.id === piece);
                     const action = app?.actions.find(a => a.id === actionId);
                     return {
                         name: action?.name || actionId,
@@ -338,13 +339,13 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                             <CommandEmpty className="py-6 text-center text-sm text-slate-500">No tools found.</CommandEmpty>
                                             
                                             <TabsContent value="tools" className="mt-0">
-                                                {APP_DEFINITIONS.filter(app => app.category === 'app').map(app => {
-                                                    const actions = app.actions.filter(action => action.type === 'action' && action.id !== 'run_agent');
+                                                {pieces.filter((app: any) => app.category === 'app').map((app: any) => {
+                                                    const actions = app.actions.filter((action: any) => action.type === 'action' && action.id !== 'run_agent');
                                                     if (actions.length === 0) return null;
 
                                                     return (
                                                         <CommandGroup key={app.id} heading={app.name} className="px-2">
-                                                            {actions.map(action => {
+                                                            {actions.map((action: any) => {
                                                                 const toolId = `${app.id}:${action.id}`;
                                                                 const isSelected = selectedTools.some(t => t.toolId === toolId);
                                                                 return (
@@ -378,7 +379,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                             <TabsContent value="workflows" className="mt-0">
                                                 {availableWorkflows && availableWorkflows.length > 0 ? (
                                                     <CommandGroup heading="Available Workflows" className="px-2">
-                                                        {availableWorkflows.map(wf => {
+                                                        {availableWorkflows.map((wf: any) => {
                                                             const toolId = `workflow:${wf.id}`;
                                                             const isSelected = selectedTools.some(t => t.toolId === toolId);
                                                             return (
@@ -449,7 +450,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                     }
 
                                     const [appId, actionId] = tool.toolId.split(':');
-                                    const app = APP_DEFINITIONS.find(a => a.id === appId);
+                                    const app = pieces.find(a => a.id === appId);
                                     const action = app?.actions.find(a => a.id === actionId);
 
                                     // Check if the action requires a connection
@@ -607,7 +608,7 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                             {(() => {
                                                 const renderAgentOptions = (list: Agent[], level = 0) => {
                                                     if (!list || !Array.isArray(list)) return null;
-                                                    return list.map(agent => {
+                                                    return list.map((agent: any) => {
                                                         if (agent.id === initialAgent?.id) return null; // Prevent self-selection
                                                         const isSelected = selectedSubAgents.includes(agent.id);
                                                         const subagentsList = agent.sub_agents || agent.subagents || [];

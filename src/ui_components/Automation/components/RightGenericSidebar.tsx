@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label"
 import { type Node } from '@xyflow/react';
 import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
-import { type AppDefinition, type ActionDefinition, type ActionParameter } from "../metadata";
 import ScheduleForm from "../../Utility/ScheduleForm";
 import HTTPForm from "../../Utility/HTTPForm";
 import GitHubForm from "../../Connections/GitHubForm";
@@ -47,7 +46,7 @@ const getStatusColor = (status?: string) => {
     }
 };
 
-const getInitialParams = (node: Node, pieces: AppDefinition[]) => {
+const getInitialParams = (node: Node, pieces: any[]) => {
     const nodeData = node.data as any;
     const migratedParams = { ...(nodeData.params || {}) } as any;
 
@@ -70,7 +69,7 @@ const getInitialParams = (node: Node, pieces: AppDefinition[]) => {
     const appName = nodeData.appName as string;
     const actionId = nodeData.actionId as string;
     const appDef = pieces.find(a => a.id === nodeData.piece || a.name === appName || a.id === nodeData.icon);
-    const actionDef = appDef?.actions.find((a: ActionDefinition) => a.id === actionId);
+    const actionDef = appDef?.actions.find((a: any) => a.id === actionId);
 
     // Special Case: Google Sheets sheetName -> range migration
     if ((nodeData.sheetName || nodeData.sheet_name) && (migratedParams.range === undefined || migratedParams.range === '')) {
@@ -88,7 +87,7 @@ const getInitialParams = (node: Node, pieces: AppDefinition[]) => {
     }
 
     if (actionDef?.parameters) {
-        actionDef.parameters.forEach((p: ActionParameter) => {
+        actionDef.parameters.forEach((p: any) => {
             if (p.default !== undefined && (migratedParams[p.name] === undefined || migratedParams[p.name] === '')) {
                 migratedParams[p.name] = p.default;
             }
@@ -264,8 +263,10 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
     const actionDef: any = appDef?.actions.find(a => a.id === actionId);
 
     const FormComponent = useMemo(() => {
-        if (SpecificForms[appName]) {
-            return SpecificForms[appName];
+        // Find component case-insensitively
+        const formKey = Object.keys(SpecificForms).find(k => k.toLowerCase() === appName?.toLowerCase());
+        if (formKey) {
+            return SpecificForms[formKey];
         }
 
         switch (selectedNode.data.icon) {

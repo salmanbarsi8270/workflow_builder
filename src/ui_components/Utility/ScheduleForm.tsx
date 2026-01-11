@@ -26,11 +26,11 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
 
     return (
         <div className="flex flex-col gap-4">
-             {triggerType === 'schedule' && (
+             {(triggerType === 'schedule' || triggerType === 'trigger') && (
                  <>
                  <div className="grid gap-2">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                        Interval Type <span className="text-red-500">*</span>
+                        INTERVAL TYPE <span className="text-red-500">*</span>
                     </Label>
                     <Select 
                         value={params.intervalType || 'minutes'} 
@@ -56,7 +56,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                                Execution Date <span className="text-red-500">*</span>
+                                EXECUTION DATE <span className="text-red-500">*</span>
                             </Label>
                             <Input 
                                 type="date" 
@@ -68,7 +68,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                         </div>
                         <div className="grid gap-2">
                             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                                Execution Time <span className="text-red-500">*</span>
+                                EXECUTION TIME <span className="text-red-500">*</span>
                             </Label>
                             <Input 
                                 type="time" 
@@ -86,7 +86,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
              {(params.intervalType === 'daily' || params.intervalType === 'weekly') && (
                  <div className="grid gap-2">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                        Execution Time <span className="text-red-500">*</span>
+                        EXECUTION TIME <span className="text-red-500">*</span>
                     </Label>
                     <Input 
                         type="time" 
@@ -101,7 +101,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
              {params.intervalType === 'weekly' && (
                  <div className="grid gap-2">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                        Day of Week <span className="text-red-500">*</span>
+                        DAY OF WEEK <span className="text-red-500">*</span>
                     </Label>
                     <Select 
                         value={params.dayOfWeek || 'monday'} 
@@ -129,7 +129,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                            Interval (Minutes) <span className="text-red-500">*</span>
+                            INTERVAL (MINUTES) <span className="text-red-500">*</span>
                         </Label>
                     </div>
                     <Input 
@@ -148,7 +148,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                            Interval (Hours) <span className="text-red-500">*</span>
+                            INTERVAL (HOURS) <span className="text-red-500">*</span>
                         </Label>
                         <VariablePicker
                             nodes={nodes}
@@ -172,7 +172,7 @@ export default function ScheduleForm({ data, params, onChange, disabled, nodes, 
                  <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1">
-                            Interval (Days) <span className="text-red-500">*</span>
+                            INTERVAL (DAYS) <span className="text-red-500">*</span>
                         </Label>
                         <VariablePicker
                             nodes={nodes}

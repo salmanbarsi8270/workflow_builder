@@ -1,103 +1,125 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { APP_DEFINITIONS as STATIC_DEFS, type AppDefinition } from '../ui_components/Automation/metadata';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { getPieces } from '../ui_components/api/pieces';
+import type { AppDefinition } from '../ui_components/Automation/metadata/types';
 
 interface PieceContextType {
     pieces: AppDefinition[];
     piecesMap: Record<string, AppDefinition>;
     isLoading: boolean;
+    error: string | null;
     refreshPieces: () => Promise<void>;
 }
 
 const PieceContext = createContext<PieceContextType | undefined>(undefined);
 
-export const PieceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [pieces, setPieces] = useState<AppDefinition[]>(STATIC_DEFS);
-    const [piecesMap, setPiecesMap] = useState<Record<string, AppDefinition>>(() => {
-        const map: Record<string, AppDefinition> = {};
-        STATIC_DEFS.forEach(p => {
-            map[p.id] = p;
-            if (p.name) map[p.name] = p;
-        });
-        return map;
-    });
+export function PieceProvider({ children }: { children: ReactNode }) {
+    const [pieces, setPieces] = useState<AppDefinition[]>([]); 
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const fetchPieces = async () => {
+    const refreshPieces = async () => {
         try {
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-            const response = await axios.get(`${backendUrl}/api/v1/pieces`);
+            setIsLoading(true);
+            const response = await getPieces();
+            if (response && response.success && response.pieces) {
+                // Convert the object map { [key]: definition } to array [definition, ...]
+                const rawPieces = response.pieces;
+                const piecesArray = Object.entries(rawPieces).map(([id, piece]: [string, any]) => {
+                    const actions: any[] = [];
+                    
+                    // Helper to add an action or trigger
+                    const addDef = (actionId: string, def: any, type: 'action' | 'trigger') => {
+                        let parameters = Array.isArray(def.parameters) ? def.parameters : [];
 
-            if (response.data?.success) {
-                const backendPieces = response.data.pieces;
+                        // Special case: Provide custom type and labels for Agent selection
+                        if (id === 'agent' && actionId === 'runAgent') {
+                            const order = ['connection', 'agentId', 'input'];
+                            const mapped: any[] = [];
+                            
+                            order.forEach(name => {
+                                const p = parameters.find((param: any) => param.name === name);
+                                if (p) {
+                                    if (name === 'connection') mapped.push({ ...p, type: 'connection', label: 'AI SERVICE CONNECTION' });
+                                    else if (name === 'agentId') mapped.push({ ...p, type: 'agent', label: 'SELECT AGENT' });
+                                    else if (name === 'input') mapped.push({ ...p, label: 'USER INPUT' });
+                                }
+                            });
+                            
+                            parameters = mapped;
+                        }
 
-                // Transform backend pieces to AppDefinition format
-                const dynamicApps: AppDefinition[] = Object.entries(backendPieces).map(([id, p]: [string, any]) => {
-                    // Merge actions and triggers into a single array for the UI
-                    const actions = [
-                        ...Object.entries(p.metadata?.actions || {}).map(([aId, a]: [string, any]) => ({
-                            id: aId,
-                            name: a.label,
-                            description: a.description || '',
-                            type: 'action' as const,
-                            parameters: a.parameters || [],
-                            outputSchema: a.outputSchema || []
-                        })),
-                        ...Object.entries(p.metadata?.triggers || {}).map(([tId, t]: [string, any]) => ({
-                            id: tId,
-                            name: t.label,
-                            description: t.description || '',
-                            type: 'trigger' as const,
-                            parameters: t.parameters || [],
-                            outputSchema: t.outputSchema || []
-                        }))
-                    ];
+                        actions.push({
+                            id: actionId,
+                            name: def.label || def.name || actionId,
+                            description: def.description || '',
+                            type: type,
+                            parameters: parameters,
+                            outputSchema: def.outputSchema || []
+                        });
+                    };
+
+                    // 1. Try to map from metadata (nested)
+                    if (piece.metadata?.actions) {
+                        Object.entries(piece.metadata.actions).forEach(([aid, val]) => addDef(aid, val, 'action'));
+                    }
+                    if (piece.metadata?.triggers) {
+                        Object.entries(piece.metadata.triggers).forEach(([tid, val]) => addDef(tid, val, 'trigger'));
+                    }
+
+                    // 2. Fallback: If metadata is missing but actions/triggers exist as objects directly
+                    if (actions.length === 0) {
+                         if (piece.actions && typeof piece.actions === 'object' && !Array.isArray(piece.actions)) {
+                             Object.entries(piece.actions).forEach(([aid, val]) => addDef(aid, val, 'action'));
+                         }
+                         if (piece.triggers && typeof piece.triggers === 'object' && !Array.isArray(piece.triggers)) {
+                             Object.entries(piece.triggers).forEach(([tid, val]) => addDef(tid, val, 'trigger'));
+                         }
+                    }
 
                     return {
-                        id,
-                        name: p.name,
-                        description: p.description || '',
-                        icon: p.icon,
-                        color: p.color,
-                        category: p.category || 'app',
-                        actions
+                        id: id,
+                        name: piece.name || piece.label || id,
+                        description: piece.description || `Integrations and actions for ${piece.name || id}`,
+                        icon: piece.icon || piece.logo || id,
+                        category: piece.category || (['utility', 'logic', 'delay', 'schedule', 'http'].includes(id) ? 'utility' : (id === 'agent' ? 'agent' : 'app')),
+                        actions: actions
                     } as AppDefinition;
                 });
 
-                // Merge with static
-                const combined = [...STATIC_DEFS.filter(s => !dynamicApps.find(d => d.id === s.id)), ...dynamicApps];
-                setPieces(combined);
-
-                // Create map
-                const map: Record<string, AppDefinition> = {};
-                combined.forEach(p => {
-                    map[p.id] = p;
-                    if (p.name) map[p.name] = p;
-                });
-                setPiecesMap(map);
+                console.log(`Loaded ${piecesArray.length} dynamic pieces from backend`);
+                setPieces(piecesArray);
+                setError(null);
+            } else {
+                console.warn('Invalid pieces response format', response);
             }
-        } catch (error) {
-            console.error('Error fetching dynamic pieces:', error);
+        } catch (err: any) {
+            console.error('Failed to fetch pieces:', err);
+            setError(err.message || 'Failed to load pieces');
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchPieces();
+        refreshPieces();
     }, []);
 
+    const piecesMap = pieces.reduce((acc, piece) => {
+        acc[piece.id] = piece;
+        return acc;
+    }, {} as Record<string, AppDefinition>);
+
     return (
-        <PieceContext.Provider value={{ pieces, piecesMap, isLoading, refreshPieces: fetchPieces }}>
+        <PieceContext.Provider value={{ pieces, piecesMap, isLoading, error, refreshPieces }}>
             {children}
         </PieceContext.Provider>
     );
-};
+}
 
-export const usePieces = () => {
+export function usePieces() {
     const context = useContext(PieceContext);
     if (context === undefined) {
         throw new Error('usePieces must be used within a PieceProvider');
     }
     return context;
-};
+}

@@ -98,8 +98,8 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl">
-                      <p className="text-xs font-bold">{account.username}</p>
+                    <TooltipContent className="rounded-xl border-slate-200 dark:border-white/10 dark:bg-slate-900 shadow-xl">
+                      <p className="text-xs font-bold dark:text-white">{account.username}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
