@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, ArrowLeft, X } from "lucide-react";
-import { APP_DEFINITIONS, type AppDefinition, type ActionDefinition } from '../metadata';
+import { Search, ChevronRight, ArrowLeft, X, Box } from "lucide-react";
+import { type AppDefinition, type ActionDefinition } from '../metadata';
 import { cn } from "@/lib/utils";
+import { usePieces } from '@/context/PieceContext';
 import { AppLogoMap } from '../utils/Applogo';
 
 interface StepSelectorProps {
@@ -13,6 +14,7 @@ interface StepSelectorProps {
 }
 
 export default function StepSelector({ onSelect, onClose, mode = 'action' }: StepSelectorProps) {
+    const { pieces } = usePieces();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility' | 'agent'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
@@ -26,18 +28,34 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     }, [onClose]);
 
     // Filter apps that have at least one action matching the mode
-    const filteredApps = APP_DEFINITIONS.filter(app => {
-        const hasMatchingAction = app.actions.some(action => action.type === mode);
+    const filteredApps = pieces.filter((app: AppDefinition) => {
+        const hasMatchingAction = app.actions.some((action: ActionDefinition) => action.type === mode);
         const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             app.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-        return app.category === activeTab && hasMatchingAction && matchesSearch;
+        // Normalize categories for tabs
+        const category = app.category || 'app';
+        let matchesTab = false;
+
+        if (activeTab === 'app') {
+            // "Apps" tab includes: app, general, business, etc. (everything not strict utility/agent)
+            matchesTab = !['utility', 'agent', 'core'].includes(category);
+            // Also explicitly include 'app' and 'general'
+            if (category === 'app') matchesTab = true;
+        } else if (activeTab === 'utility') {
+            matchesTab = ['utility', 'core', 'logic', 'helper'].includes(category);
+        } else if (activeTab === 'agent') {
+            matchesTab = category === 'agent';
+        }
+
+        return matchesTab && hasMatchingAction && matchesSearch;
     });
 
     // Actions Filter: If App Selected
     const filteredActions = selectedApp?.actions.filter(action =>
         action.type === mode &&
-        action.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ((action.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (action.description || '').toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
 
@@ -97,7 +115,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
             {/* Tabs (Only if no app selected) */}
             {!selectedApp && (
                 <div className="flex border-b">
-                     <button
+                    <button
                         onClick={() => setActiveTab('app')}
                         className={cn(
                             "flex-1 py-3 text-sm font-medium transition-colors border-b-2",
@@ -139,17 +157,30 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                             >
                                 <div className="h-10 w-10 rounded-xl bg-white/50 dark:bg-white/10 border border-white/20 dark:border-white/10 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
                                     {AppLogoMap[app.id] ? (
-                                        <img 
-                                            src={AppLogoMap[app.id]} 
-                                            alt={app.name} 
+                                        <img
+                                            src={AppLogoMap[app.id]}
+                                            alt={app.name}
                                             className={cn(
                                                 "h-7 w-7 object-contain",
                                                 ['wait', 'delay', 'utility', 'agent'].includes(app.id) && "invert dark:invert-0"
-                                            )} 
+                                            )}
                                         />
-                                    ) : (
+                                    ) : (typeof app.icon === 'string') ? (
+                                        <img
+                                            src={app.icon}
+                                            alt={app.name}
+                                            className="h-7 w-7 object-contain"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                        />
+                                    ) : (app.icon) ? (
                                         <app.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    ) : (
+                                        <Box className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                                     )}
+                                    {/* Fallback for failed image load if needed, though simpler to just show Box if logic allows */}
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="font-medium leading-none mb-1">{app.name}</h4>
