@@ -54,8 +54,8 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     // Actions Filter: If App Selected
     const filteredActions = selectedApp?.actions.filter(action =>
         action.type === mode &&
-        (action.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            action.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+        ((action.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (action.description || '').toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
 
