@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { type Node, type Edge } from '@xyflow/react';
+import { type Node } from '@xyflow/react';
 import { toast as sonner } from "sonner";
 import GenericActionForm from "./GenericActionForm";
 import { type AppDefinition, type ActionDefinition, type ActionParameter } from "../metadata";

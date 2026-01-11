@@ -14,7 +14,7 @@ interface StepSelectorProps {
 }
 
 export default function StepSelector({ onSelect, onClose, mode = 'action' }: StepSelectorProps) {
-    const { pieces, isLoading } = usePieces();
+    const { pieces } = usePieces();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'app' | 'utility' | 'agent'>('app');
     const [selectedApp, setSelectedApp] = useState<AppDefinition | null>(null);
@@ -41,7 +41,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
             // "Apps" tab includes: app, general, business, etc. (everything not strict utility/agent)
             matchesTab = !['utility', 'agent', 'core'].includes(category);
             // Also explicitly include 'app' and 'general'
-            if (category === 'app' || category === 'general') matchesTab = true;
+            if (category === 'app') matchesTab = true;
         } else if (activeTab === 'utility') {
             matchesTab = ['utility', 'core', 'logic', 'helper'].includes(category);
         } else if (activeTab === 'agent') {

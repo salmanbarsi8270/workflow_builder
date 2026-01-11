@@ -374,7 +374,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
 
     const { piecesMap } = usePieces();
     const appName = data.appName || 'App';
-    const service = data.icon || data.appName?.toLowerCase().replace(/\s+/g, '') || '';
+
 
     const checkIsTrigger = () => {
         const actionId = data.actionId;
