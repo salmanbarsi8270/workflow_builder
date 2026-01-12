@@ -37,6 +37,8 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, ed
     const [isLoadingIssues, setIsLoadingIssues] = useState(false);
 
     const actionId = data.actionId;
+    const isTrigger = data.type === 'trigger';
+    const needsRepoSelection = !['create_repository', 'createRepository', 'newStar', 'newRepo', 'new_star', 'new_repo'].includes(actionId);
     const needsIssueSelection = ['updateIssue', 'closeIssue', 'reOpenIssue', 'lock_issue', 'unlock_issue'].includes(actionId);
 
     useEffect(() => {
@@ -162,7 +164,7 @@ export default function GitHubForm({ data, params, onChange, disabled, nodes, ed
             </div>
 
             {/* Repository Dropdown */}
-            {actionId !== 'create_repository' && actionId !== 'createRepository' && (
+            {needsRepoSelection && (
                 <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-between">
