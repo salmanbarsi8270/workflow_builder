@@ -8,6 +8,7 @@ export interface MCPConfig {
 
 export interface Agent {
   id: string;
+  userId?: string;
   name: string;
   instructions: string;
   model: string;
@@ -25,7 +26,6 @@ export interface Agent {
   }[];
   sub_agents?: Agent[];
   subagents?: Agent[];
-  rag_config?: { enabled: boolean };
   safety_config?: { instructions: string };
 }
 

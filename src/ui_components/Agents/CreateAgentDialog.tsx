@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus, Upload, FileText } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { APP_DEFINITIONS } from '../Automation/metadata';
@@ -38,6 +39,8 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
     const [selectedSubAgents, setSelectedSubAgents] = useState<string[]>([]);
     const [api_key, setApiKey] = useState<string>('');
     const [mcpTools, setMcpTools] = useState<MCPConfig[]>([]);
+    const [files, setFiles] = useState<File[]>([]);
+    const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
 
     // Flattened agents list for easier lookup and selection
     const allAvailableAgents = useMemo(() => {
@@ -87,6 +90,16 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     .map(t => t.mcpConfig as MCPConfig) || [];
                 setMcpTools(existingMcpTools);
 
+                // Fetch existing files
+                fetch(`${API_URL}/api/v1/agents/${initialAgent.id}/knowledge?userId=${userId || initialAgent.userId || 'anonymous'}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.documents) {
+                            setExistingFiles(data.documents);
+                        }
+                    })
+                    .catch(err => console.error("Error fetching knowledge:", err));
+
             } else {
                 // Create Mode
                 resetForm();
@@ -102,6 +115,8 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
         setSelectedTools([]);
         setSelectedSubAgents([]);
         setMcpTools([]);
+        setFiles([]);
+        setExistingFiles([]);
     };
 
     async function getapikey(id: string) {
@@ -114,6 +129,40 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
         const data = await response.json();
         return data.apiKey;
     }
+
+    const handleDeleteFile = async (filename: string) => {
+        if (!initialAgent) return;
+
+        if (!window.confirm(`Are you sure you want to delete "${filename}"?`)) {
+            return;
+        }
+
+        const toastId = toast.loading("Deleting file...");
+
+        try {
+            const response = await fetch(`${API_URL}/api/v1/agents/${initialAgent.id}/knowledge`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId || initialAgent.userId,
+                    filename
+                })
+            });
+
+            if (response.ok) {
+                setExistingFiles(prev => prev.filter(f => f.filename !== filename));
+                toast.success("File deleted successfully");
+            } else {
+                const err = await response.json();
+                toast.error(err.error || "Failed to delete file");
+            }
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            toast.error("Failed to delete file");
+        } finally {
+            toast.dismiss(toastId);
+        }
+    };
 
     useEffect(() => {
         if (selectedConnection) {
@@ -191,6 +240,35 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
 
             if (response.ok) {
                 const savedAgent = await response.json();
+
+                // Handle File Uploads (Knowledge Base)
+                if (files.length > 0) {
+                    const uploader = toast.loading("Uploading knowledge base files...");
+                    try {
+                        const chunks = files.map(async (file) => {
+                            const formData = new FormData();
+                            formData.append('agentId', savedAgent.id);
+                            formData.append('userId', userId || savedAgent.userId || 'anonymous');
+                            formData.append('file', file);
+
+                            const res = await fetch(`${API_URL}/api/v1/agents/${savedAgent.id}/knowledge`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                            if (!res.ok) throw new Error('Upload failed');
+                            return res;
+                        });
+
+                        await Promise.all(chunks);
+                        toast.dismiss(uploader);
+                        toast.success("Knowledge uploaded successfully");
+                    } catch (error) {
+                        console.error("Error uploading knowledge:", error);
+                        toast.dismiss(uploader);
+                        toast.error("Failed to upload knowledge files");
+                    }
+                }
+
                 toast.success(initialAgent ? "Agent updated successfully" : "Agent created successfully");
                 onSuccess(savedAgent, !!initialAgent);
                 onOpenChange(false);
@@ -198,7 +276,9 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
             } else {
                 const err = await response.json();
                 toast.error(err.error || "Failed to save agent");
+                return; // Stop here if agent save failed
             }
+
         } catch (error) {
             console.error("Error saving agent:", error);
             toast.error("Something went wrong");
@@ -267,6 +347,79 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                             onChange={(e) => setModel(e.target.value)}
                             className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 text-xs font-mono"
                         />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="knowledge" className="text-slate-700 dark:text-white font-medium flex items-center justify-between">
+                            <span>Knowledge Base (RAG)</span>
+                            <Badge variant="outline" className="text-[10px] font-normal">PDF, Images, Text</Badge>
+                        </Label>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    id="knowledge"
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        if (e.target.files) {
+                                            setFiles([...files, ...Array.from(e.target.files)]);
+                                        }
+                                    }}
+                                />
+                                <Label htmlFor="knowledge" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full border-dashed border-slate-300 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400">
+                                    <Upload className="mr-2 h-4 w-4" /> Choose Files
+                                </Label>
+                            </div>
+
+                            {/* Existing Files */}
+                            {existingFiles.length > 0 && (
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1">Current Files</Label>
+                                    {existingFiles.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 text-sm">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                                                <span className="truncate max-w-[200px]">{file.filename}</span>
+                                                <span className="text-xs text-muted-foreground">({file.count} chunks)</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
+                                                onClick={() => handleDeleteFile(file.filename)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* New Files */}
+                            {files.length > 0 && (
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-[10px] uppercase tracking-wider text-green-500 font-bold px-1">New Files to Upload</Label>
+                                    {files.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-sm">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText className="h-4 w-4 text-green-500 shrink-0" />
+                                                <span className="truncate max-w-[200px]">{file.name}</span>
+                                                <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(0)} KB)</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
+                                                onClick={() => setFiles(files.filter((_, i) => i !== idx))}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid gap-2">

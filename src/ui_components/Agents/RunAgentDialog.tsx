@@ -21,11 +21,9 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
 
     // Reset state when dialog opens/closes or agent changes
     useEffect(() => {
-        if (open) {
-            setInput('');
-            setResponse('');
-            setIsRunning(false);
-        }
+        setInput('');
+        setResponse('');
+        setIsRunning(false);
     }, [open, agent]);
 
     const handleRun = async () => {
@@ -75,7 +73,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     const chunk = decoder.decode(value, { stream: true });
                     fullText += chunk;
                     setResponse(fullText);
@@ -102,7 +100,7 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden p-0 gap-0">
-                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
                 <DialogHeader className="p-6 pb-2">
                     <DialogTitle className="flex items-center gap-3 text-xl">
                         <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
@@ -110,17 +108,17 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                         </div>
                         <div className="flex flex-col">
                             <span>Run Agent Check</span>
-                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="text-blue-600 dark:text-blue-300 font-semibold">{agent?.name}</span></span>
+                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="text-blue-600 dark:text-blue-300 font-semibold">{agent?.name}</span></span>
                         </div>
                     </DialogTitle>
                 </DialogHeader>
-                
+
                 <div className="p-6 grid gap-6 h-[500px] grid-rows-[auto_1fr]">
                     <div className="grid gap-2">
                         <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User Input</Label>
                         <div className="flex gap-3">
-                            <Textarea 
-                                placeholder="Enter your prompt here..." 
+                            <Textarea
+                                placeholder="Enter your prompt here..."
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 className="resize-none h-24 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-medium leading-relaxed"
@@ -131,9 +129,9 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                                     }
                                 }}
                             />
-                            <Button 
-                                className="h-24 w-28 flex flex-col gap-2 bg-linear-to-b from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-white border-none" 
-                                onClick={handleRun} 
+                            <Button
+                                className="h-24 w-28 flex flex-col gap-2 bg-linear-to-b from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-white border-none"
+                                onClick={handleRun}
                                 disabled={isRunning || !input.trim()}
                             >
                                 {isRunning ? <Loader2 className="h-6 w-6 animate-spin" /> : <Play className="h-6 w-6" />}
