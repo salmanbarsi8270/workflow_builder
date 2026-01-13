@@ -27,6 +27,16 @@ export interface Agent {
   sub_agents?: Agent[];
   subagents?: Agent[];
   safety_config?: { instructions: string };
+  ui_config?: {
+    theme_color: string;
+    template_id: string;
+    logo_url?: string;
+    title?: string;
+    welcome_message?: string;
+    input_placeholder?: string;
+    font_family?: string;
+    show_branding?: boolean;
+  };
 }
 
 export interface ConnectionOption {

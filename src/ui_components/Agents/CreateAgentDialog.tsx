@@ -16,7 +16,6 @@ import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { APP_DEFINITIONS } from '../Automation/metadata';
 import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
-
 interface CreateAgentDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -753,6 +752,6 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     </Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }
