@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search } from 'lucide-react';
 import type { UIDesign } from './types';
 import DesignCard from './DesignCard';

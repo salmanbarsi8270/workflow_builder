@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Check } from 'lucide-react';
 import { TEMPLATES, type UITemplate } from './types';
 

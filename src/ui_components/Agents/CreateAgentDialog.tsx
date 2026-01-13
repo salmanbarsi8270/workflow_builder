@@ -10,13 +10,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus, Upload, FileText } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
 import { McpToolConfig } from './McpToolConfig';
-import { APP_DEFINITIONS } from '../Automation/metadata';
 import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
@@ -833,7 +831,6 @@ export function CreateAgentDialog({
                     <Button
                         onClick={handleSave}
                         disabled={
-<<<<<<< HEAD
                             (() => {
                                 const isDis = isSubmitting ||
                                     !name.trim() ||
@@ -854,14 +851,6 @@ export function CreateAgentDialog({
                                 }
                                 return isDis;
                             })()
-=======
-                            isSubmitting ||
-                            !name.trim() ||
-                            !instructions.trim() ||
-                            !model.trim() ||
-                            !selectedConnection ||
-                            hasMissingRequiredConnections
->>>>>>> origin/dynamic_UI_Design
                         }
                         className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 rounded-lg px-6"
                     >

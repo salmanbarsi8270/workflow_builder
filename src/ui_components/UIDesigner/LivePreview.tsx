@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, User as UserIcon, Bot as BotIcon, Paperclip, Mic } from 'lucide-react';
+import { Send, User as UserIcon, Bot as BotIcon, Paperclip } from 'lucide-react';
 import type { UIDesign } from './types';
 
 interface LivePreviewProps {

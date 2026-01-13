@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Palette, Layout, Type, Save, X } from 'lucide-react';
-import { type UIDesign, TEMPLATES } from './types';
+import { Palette, Layout, Type, Save } from 'lucide-react';
+import { type UIDesign } from './types';
 import TemplateSelector from './TemplateSelector';
 import ColorCustomizer from './ColorCustomizer';
 import TextCustomizer from './TextCustomizer';

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Activity,
     CheckCircle2,
     XCircle,
     TrendingUp,

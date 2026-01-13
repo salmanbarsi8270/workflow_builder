@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Edit2, Trash2, Calendar, MessageSquare } from 'lucide-react';
 import { type UIDesign, TEMPLATES } from './types';
 
