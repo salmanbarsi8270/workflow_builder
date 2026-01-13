@@ -126,6 +126,45 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }
     }, [initialNodes, initialEdges, setNodes, setEdges]); // Removed 'nodes' and 'edges' from deps to avoid self-triggering, but react-hooks/exhaustive-deps will complain. Using local refs instead or stringified versions.
 
+    // --- Automatic Migration of Edge Handles ---
+    // This ensures that stale flows (using 'parallel-output' handle for condition nodes)
+    // are automatically updated to 'true'/'false' for the engine to work.
+    useEffect(() => {
+        if (nodes.length === 0 || edges.length === 0) return;
+
+        let edgesChanged = false;
+        const migratedEdges = edges.map(edge => {
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            if (!sourceNode) return edge;
+
+            if (sourceNode.type === 'condition' || sourceNode.type === 'parallel') {
+                const branches = (sourceNode.data.params as any)?.branches || (sourceNode.data.branches as string[]) || [];
+                const label = edge.data?.label as string;
+                if (!label || branches.length === 0) return edge;
+
+                let expectedHandleId = 'parallel-output';
+                if (sourceNode.type === 'condition') {
+                    expectedHandleId = label.toLowerCase();
+                    if (expectedHandleId === 'if') expectedHandleId = 'true';
+                    if (expectedHandleId === 'else') expectedHandleId = 'false';
+                }
+
+                if (edge.sourceHandle !== expectedHandleId) {
+                    edgesChanged = true;
+                    return { ...edge, sourceHandle: expectedHandleId };
+                }
+            }
+            return edge;
+        });
+
+        if (edgesChanged) {
+            console.log("Migrating stale edge handles...");
+            setEdges(migratedEdges);
+            // Persist the migration to backend
+            onAutoSave?.(nodes, migratedEdges);
+        }
+    }, [nodes, edges, onAutoSave]); // Run when nodes/edges are set
+
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
     };
@@ -419,14 +458,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         currentNodes: Node[],
         currentEdges: Edge[]
     ) => {
+        const isParallel = parallelNode.type === 'parallel';
+        const isCondition = parallelNode.type === 'condition';
+
+        if (!isParallel && !isCondition) return { nextNodes: currentNodes, nextEdges: currentEdges };
+
         const newBranches = safeParseBranches(rawBranches);
         const parentId = parallelNode.id;
+        let mergeNodeId: string | null = parallelNode.data?.mergeNodeId as string;
         let nextNodes = [...currentNodes];
         let nextEdges = [...currentEdges];
 
         // Find existing edges from the single "parallel-output" handle
-        // We filter by source === parentId AND handle === 'parallel-output'
-        // If legacy edges exist (branch-0), we might want to clean them up too, but let's focus on new logic.
         const existingBranchEdges = nextEdges.filter(e =>
             e.source === parentId &&
             (e.sourceHandle === 'parallel-output' || e.sourceHandle?.startsWith('branch-'))
@@ -455,12 +498,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         };
 
         const firstBranchEdge = existingBranchEdges[0];
-        let mergeNodeId: string | null = firstBranchEdge ? findMergeNodeDeep(firstBranchEdge.target) : null;
+        if (!mergeNodeId && firstBranchEdge) {
+            mergeNodeId = findMergeNodeDeep(firstBranchEdge.target);
+        }
 
-        if (!mergeNodeId) return { nextNodes, nextEdges };
-
-        const targetCount = newBranches.length;
-        if (targetCount === 0) return { nextNodes, nextEdges };
+        // If no merge node found, we can still add/remove branches.
+        // Branches without a merge node will just be "dangling" paths.
 
         // 1. Identify and Sort Branch Heads
         const branchTargets = existingBranchEdges.map(e => {
@@ -469,67 +512,108 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         })
             .filter(item => item.node)
             .sort((a, b) => {
+                // If Condition Node, sort by canonical order for stability in standard branches
+                if (isCondition) {
+                    const labelA = a.edge.data?.label || '';
+                    const labelB = b.edge.data?.label || '';
+                    if (labelA === 'If' && labelB !== 'If') return -1;
+                    if (labelB === 'If' && labelA !== 'If') return 1;
+                    if (labelA === 'Else' && labelB !== 'Else') return 1;
+                    if (labelB === 'Else' && labelA !== 'Else') return -1;
+                    // For Else If branches, try to respect their order on canvas via X
+                }
                 const diff = (a.node!.position.x - b.node!.position.x);
                 if (diff !== 0) return diff;
                 return a.node!.id.localeCompare(b.node!.id); // Stable fallback
             });
 
-        // 1. Remove Extraneous Branches
-        if (branchTargets.length > targetCount) {
-            const toRemove = branchTargets.slice(targetCount);
-            toRemove.forEach(({ edge, node }) => {
-                // 1. Remove the Edge entering the branch
+        const targetCount = newBranches.length;
+        const oldCount = branchTargets.length;
+        if (targetCount === 0 && oldCount === 0) return { nextNodes, nextEdges };
+
+        // --- SHIFT-AWARE MATCHING ---
+        // Match existing branches to new labels to preserve subtrees during middle insertion
+        const pool = [...branchTargets];
+        const assignedTargets: (any | null)[] = new Array(targetCount).fill(null);
+
+        // First Pass: Match by Label
+        for (let i = 0; i < targetCount; i++) {
+            const name = newBranches[i];
+            const targetIdx = pool.findIndex(t => t.edge.data?.label === name);
+            if (targetIdx !== -1) {
+                assignedTargets[i] = pool[targetIdx];
+                pool.splice(targetIdx, 1);
+            }
+        }
+
+        // Second Pass: Match Remaining by Index (Renames)
+        // If we have unmatched branches from the pool, they might be renames.
+        // We only do this if it's likely a rename (e.g., oldCount == targetCount)
+        if (pool.length > 0) {
+            for (let i = 0; i < targetCount; i++) {
+                if (!assignedTargets[i] && pool.length > 0) {
+                    assignedTargets[i] = pool.shift();
+                }
+            }
+        }
+        
+        // At this point:
+        // - assignedTargets[i] contains the branch that should go at index i.
+        // - Any EXTRAS in the original branchTargets (that weren't assigned) should be DELETED.
+        
+        // 1. Remove Extraneous Branches (Orphaned ones not in assignedTargets)
+        const allOriginalIds = new Set(branchTargets.map(t => t.edge.id));
+        const keptIds = new Set(assignedTargets.filter(t => t).map(t => t.edge.id));
+        const idsToRemove = [...allOriginalIds].filter(id => !keptIds.has(id));
+
+        for (const edgeId of idsToRemove) {
+            const toRemove = branchTargets.find(t => t.edge.id === edgeId);
+            if (toRemove) {
+                const { edge, node } = toRemove;
                 nextEdges = nextEdges.filter(e => e.id !== edge.id);
 
-                if (node) {
-                    // 2. Cascade Delete: Remove all nodes in this branch
-                    // We use getNodesInBlock to find the scope up to the Merge Node
-                    // Note: We use the CURRENT state of nextNodes/nextEdges (which still has the branch structure)
-                    // But we just removed the *incoming* edge. getNodesInBlock traverses downstream, so it works.
-                    const branchScope = getNodesInBlock(nextNodes, nextEdges, node.id, mergeNodeId, false);
-
-                    // Add the head node itself if not included (implementation dependent, usually included)
+                if (node && node.type !== 'end') {
+                    // Cascade Delete: Remove all nodes in this branch
+                    const branchScope = getNodesInBlock(nextNodes, nextEdges, node.id, mergeNodeId as string, false);
                     branchScope.add(node.id);
 
-                    // Remove Nodes
-                    nextNodes = nextNodes.filter(n => !branchScope.has(n.id));
-
-                    // Remove Edges (Internal and Outgoing to Merge)
-                    nextEdges = nextEdges.filter(e =>
-                        !branchScope.has(e.source) && !branchScope.has(e.target)
-                    );
+                    nextNodes = nextNodes.filter(n => n.type === 'end' || !branchScope.has(n.id));
+                    nextEdges = nextEdges.filter(e => {
+                        const sourceInScope = branchScope.has(e.source);
+                        const targetInScope = branchScope.has(e.target);
+                        if (mergeNodeId && e.target === mergeNodeId) return !sourceInScope;
+                        return !sourceInScope && !targetInScope;
+                    });
                 }
-            });
+            }
         }
 
         // 2. Add New Branches or Update Existing
         for (let i = 0; i < targetCount; i++) {
             const branchName = newBranches[i];
+            const existing = assignedTargets[i];
 
-            if (i < branchTargets.length) {
-                const { node, edge } = branchTargets[i];
-                // Only update label if it's a placeholder. real nodes keep their own names.
+            if (existing) {
+                const { node, edge } = existing;
+                // Update placeholder if needed
                 if (node && node.data.isBranchPlaceholder && node.data.subLabel !== branchName) {
                     nextNodes = nextNodes.map(n => {
-                        if (n.id === node.id) {
-                            return { ...n, data: { ...n.data, subLabel: branchName } };
-                        }
+                        if (n.id === node.id) return { ...n, data: { ...n.data, subLabel: branchName } };
                         return n;
                     });
                 }
-                // Update Existing - Edge Label
-                // Ensure edge label matches branch name
-                if (edge.data?.label !== branchName) {
-                    nextEdges = nextEdges.map(e => {
-                        if (e.id === edge.id) return { ...e, data: { ...e.data, label: branchName } };
-                        return e;
-                    });
+                
+                // Ensure correct handle
+                let expectedHandleId = 'parallel-output';
+                if (isCondition) {
+                    expectedHandleId = branchName.toLowerCase();
+                    if (expectedHandleId === 'if') expectedHandleId = 'true';
+                    if (expectedHandleId === 'else') expectedHandleId = 'false';
                 }
 
-                // Ensure edge uses new handle if it was legacy
-                if (edge.sourceHandle !== 'parallel-output') {
+                if (edge.sourceHandle !== expectedHandleId || edge.data?.label !== branchName) {
                     nextEdges = nextEdges.map(e => {
-                        if (e.id === edge.id) return { ...e, sourceHandle: 'parallel-output', data: { ...e.data, label: branchName } };
+                        if (e.id === edge.id) return { ...e, sourceHandle: expectedHandleId, data: { ...e.data, label: branchName } };
                         return e;
                     });
                 }
@@ -550,23 +634,33 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 };
                 nextNodes.push(placeholder);
 
-                // Edge: Parallel (Single Handle) -> Placeholder
+                // Determine Source Handle ID based on node type and branch name
+                let handleId = 'parallel-output';
+                if (isCondition) {
+                    handleId = branchName.toLowerCase();
+                    if (handleId === 'if') handleId = 'true';
+                    if (handleId === 'else') handleId = 'false';
+                }
+
+                // Edge: Source -> Placeholder
                 nextEdges.push({
                     id: `e-${parentId}-${placeholderId}`,
                     source: parentId,
                     target: placeholderId,
-                    sourceHandle: 'parallel-output',
+                    sourceHandle: handleId,
                     data: { label: branchName }, // Add Label
                     type: 'custom'
                 });
 
-                // Edge: Placeholder -> Merge
-                nextEdges.push({
-                    id: `e-${placeholderId}-${mergeNodeId}`,
-                    source: placeholderId,
-                    target: mergeNodeId,
-                    type: 'custom'
-                });
+                // Edge: Placeholder -> Merge (Only if merge node exists)
+                if (mergeNodeId) {
+                    nextEdges.push({
+                        id: `e-${placeholderId}-${mergeNodeId}`,
+                        source: placeholderId,
+                        target: mergeNodeId,
+                        type: 'custom'
+                    });
+                }
             }
         }
 
@@ -580,20 +674,20 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         const targetNode = nodes.find(n => n.id === selectedNodeId);
 
-        // --- Parallel Branch Reconciliation ---
+        // --- Parallel/Condition Branch Reconciliation ---
         const incomingBranches = data?.params?.branches || data?.branches;
 
-        if ((targetNode?.type === 'parallel' || targetNode?.type === 'loop') && incomingBranches) {
-            const oldBranchesRaw = (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
-            // Parse everything to compare arrays, not strings
-            const oldBranches = safeParseBranches(oldBranchesRaw);
-            const newBranches = safeParseBranches(incomingBranches);
+        if ((targetNode?.type === 'parallel' || targetNode?.type === 'loop' || targetNode?.type === 'condition')) {
+            const currentBranchesRaw = incomingBranches || (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
+            const branchesArr = safeParseBranches(currentBranchesRaw);
 
-            if (JSON.stringify(oldBranches) !== JSON.stringify(newBranches)) {
-                // Pass RAW incoming because safeParseBranches is called inside too (or we can pass parsed)
-                const { nextNodes, nextEdges } = reconcileParallelBranches(targetNode, newBranches, currentNodes, currentEdges);
-                currentNodes = nextNodes;
-                currentEdges = nextEdges;
+            // Always reconcile to ensure handles/edges match the current branches state
+            // especially after my recent change to use true/false handles
+            const { nextNodes: reconciledNodes, nextEdges: reconciledEdges } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
+            
+            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(currentEdges) !== JSON.stringify(reconciledEdges)) {
+                currentNodes = reconciledNodes;
+                currentEdges = reconciledEdges;
                 structureChanged = true;
             }
         }
@@ -918,7 +1012,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 icon: app.id || app.icon || 'default',
                 appName: app.name,
                 ...app,
-                branches: isParallel ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['Branch 1', 'Branch 2']) : undefined
+                branches: (isParallel || isCondition) ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['If', 'Else']) : undefined
             },
             type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : isWait ? 'wait' : 'custom'
         };
@@ -950,48 +1044,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             });
         }
 
-        if (isCondition) {
-            const trueNodeId = Math.random().toString(36).substr(2, 9);
-            const falseNodeId = Math.random().toString(36).substr(2, 9);
-            const mergeNodeId = Math.random().toString(36).substr(2, 9);
-
-            const trueNode: Node = {
-                id: trueNodeId,
-                position: { x: newNodePosition.x - 100, y: newNodePosition.y + 150 },
-                data: { label: 'Add Step', subLabel: 'True Path', isPlaceholder: true, isBranchPlaceholder: true },
-                type: 'custom'
-            };
-
-            const falseNode: Node = {
-                id: falseNodeId,
-                position: { x: newNodePosition.x + 100, y: newNodePosition.y + 150 },
-                data: { label: 'Add Step', subLabel: 'False Path', isPlaceholder: true, isBranchPlaceholder: true },
-                type: 'custom'
-            };
-
-            const mergeNode: Node = {
-                id: mergeNodeId,
-                position: { x: newNodePosition.x, y: newNodePosition.y + 300 },
-                data: { label: 'Add Step', subLabel: 'Merge', isPlaceholder: true, isMergePlaceholder: true },
-                type: 'custom'
-            };
-
-            newNode.data = { ...newNode.data, mergeNodeId: mergeNodeId };
-            additionalNodes = [trueNode, falseNode, mergeNode];
-
-            newEdges.push(
-                { id: `e-${newNodeId}-${trueNodeId}`, source: newNodeId, target: trueNodeId, sourceHandle: 'true', type: 'custom' },
-                { id: `e-${newNodeId}-${falseNodeId}`, source: newNodeId, target: falseNodeId, sourceHandle: 'false', type: 'custom' },
-                { id: `e-${trueNodeId}-${mergeNodeId}`, source: trueNodeId, target: mergeNodeId, type: 'custom' },
-                { id: `e-${falseNodeId}-${mergeNodeId}`, source: falseNodeId, target: mergeNodeId, type: 'custom' }
-            );
-
-            if (originalTargetId) {
-                newEdges.push({ id: `e-${mergeNodeId}-${originalTargetId}`, source: mergeNodeId, target: originalTargetId, type: 'custom' });
-            }
-
-        } else if (isParallel) {
-            const branches = (newNode.data.branches as string[]) || ['Branch 1', 'Branch 2'];
+        if (isCondition || isParallel) {
+            const branches = (newNode.data.branches as string[]) || (isCondition ? ['If', 'Else'] : ['Branch 1', 'Branch 2']);
             const mergeNodeId = Math.random().toString(36).substr(2, 9);
             const mergeNode: Node = {
                 id: mergeNodeId,

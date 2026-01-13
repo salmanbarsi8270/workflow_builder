@@ -1,9 +1,9 @@
-import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Split, Check, X, Loader2, Slash } from "lucide-react";
+import { Split, Loader2, Slash } from "lucide-react";
 import { AppLogoMap } from '../utils/Applogo';
+import { memo } from 'react';
 
 // Matches CustomNode StatusColors
 const StatusColors = {
@@ -51,8 +51,8 @@ const StatusColors = {
 
 const ConditionNode = ({ data, selected }: NodeProps) => {
     const status = (data.status as keyof typeof StatusColors) || 'pending';
-    const label = (data.label as string) || "Logic";
-    const subLabel = (data.subLabel as string) || "Check condition";
+    const label = (data.label as string) || "Condition";
+    const subLabel = (data.subLabel as string) || "Logic Flow";
     const colorConfig = StatusColors[status];
 
     const iconKey = (data.icon as string) || (data.piece as string) || 'condition';
@@ -71,7 +71,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                 className={cn(
                     "w-[280px] p-4 shadow-lg border-2 transition-all duration-300 relative z-10 backdrop-blur-sm",
                     "bg-card/95 hover:bg-card",
-                    selected ? "border-amber-500 ring-2 ring-amber-500/20 scale-[1.02]" : colorConfig.border,
+                    selected ? "border-primary ring-2 ring-primary/20 scale-[1.02]" : colorConfig.border,
                     colorConfig.shadow,
                     status === 'running' && "ring-2 ring-blue-500/20"
                 )}
@@ -83,7 +83,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                     {/* Icon Container */}
                     <div className={cn(
                         "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110",
-                        status === 'pending' ? "bg-amber-100 dark:bg-amber-900/30" : colorConfig.bg
+                        status === 'pending' ? "bg-primary/10" : colorConfig.bg
                     )}>
                         {status === 'running' ? (
                              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -94,8 +94,8 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                                 <img src={logoUrl} alt={iconKey} className="h-6 w-6 object-contain" />
                              ) : (
                                 <Split className={cn(
-                                    "h-6 w-6", 
-                                    status === 'pending' ? "text-amber-600 dark:text-amber-400" : colorConfig.icon
+                                    "h-6 w-6 text-primary", 
+                                    status !== 'pending' && colorConfig.icon
                                  )} />
                              )
                         )}
@@ -111,42 +111,60 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                 </div>
             </Card>
 
-            {/* Output Handles */}
-            <div className="absolute -bottom-[22px] left-1/4 -translate-x-1/2 flex flex-col items-center z-50">
-                <Handle
-                    type="source"
-                    position={Position.Bottom}
-                    id="true"
-                    className="w-3! h-3! relative! transform-none! left-auto! top-auto! bg-transparent! border-0! opacity-0 z-50"
-                />
-                <div className={cn(
-                    "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",
-                    selected && "border-amber-500/50"
-                )}>
-                    <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                    <span className="text-[10px] font-medium text-muted-foreground">Accepted</span>
-                </div>
-            </div>
+            {/* Output Handles - Dynamic based on branches */}
+            {(() => {
+                const branches = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
+                return branches.map((branch: string, i: number) => {
+                    let handleId = branch.toLowerCase();
+                    if (branch.toLowerCase() === 'if') handleId = 'true';
+                    if (branch.toLowerCase() === 'else') handleId = 'false';
+                    
+                    return (
+                        <Handle
+                            key={i}
+                            type="source"
+                            position={Position.Bottom}
+                            id={handleId}
+                            style={{
+                                background: i === 0 ? '#22c55e' : (i === branches.length - 1 ? '#ef4444' : '#6366f1'),
+                                width: 12,
+                                height: 12,
+                                bottom: -6,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                border: '2px solid white',
+                                boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                                zIndex: 50,
+                                opacity: 0 // Invisible but functionally "visible" and interactive for the engine
+                            }}
+                        />
+                    );
+                });
+            })()}
 
-            <div className="absolute -bottom-[22px] left-3/4 -translate-x-1/2 flex flex-col items-center z-50">
-                <Handle
-                    type="source"
-                    position={Position.Bottom}
-                    id="false"
-                    className="w-3! h-3! relative! transform-none! left-auto! top-auto! bg-transparent! border-0! opacity-0 z-50"
-                />
-                <div className={cn(
-                    "flex items-center gap-1 -mt-2 px-2 py-0.5 rounded-b-md rounded-t-none bg-card border border-t-0 border-border/50 shadow-sm",
-                    selected && "border-amber-500/50"
-                )}>
-                    <X className="h-3 w-3 text-red-600 dark:text-red-400" />
-                    <span className="text-[10px] font-medium text-muted-foreground">Rejected</span>
-                </div>
-            </div>
-
+            {/* Legacy/Default Parallel Handle for backward compatibility or parallel nodes using this component */}
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                id="parallel-output"
+                style={{
+                    background: '#6366f1',
+                    width: 12,
+                    height: 12,
+                    bottom: -6,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    border: '2px solid white',
+                    boxShadow: '0 0 10px rgba(99, 102, 241, 0.5)',
+                    zIndex: 49,
+                    opacity: 0
+                }}
+            />
+            
+            {/* Main Visual "Dot" to represent the source of branches */}
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary border-2 border-background shadow-sm z-50" />
         </div>
     );
 };
 
 export default memo(ConditionNode);
-

@@ -130,17 +130,28 @@ export const getNodesInBlock = (nodes: Node[], edges: Edge[], startNodeId: strin
         iterations++;
         const currentId = queue.shift()!;
 
-        // If this is the merge node, we DO NOT traverse its children (that would go outside the block)
-        if (currentId === mergeNodeId) continue;
+        // Stop if we reached the merge node OR if we reached a node that isn't supposed to be in this block
+        if (mergeNodeId && currentId === mergeNodeId) continue;
+        
+        // If mergeNodeId is null, we are in "dangling" mode. 
+        // We still traverse, but we should be careful. 
+        // Usually, reconcileParallelBranches calls this on a branch head.
 
         // Find outgoing edges
         const children = edges.filter(e => e.source === currentId).map(e => e.target);
         
         children.forEach(childId => {
+            // Respect includeMergeNode flag - skip if this is the merge node and we don't want it
+            if (mergeNodeId && childId === mergeNodeId && !includeMergeNode) return;
+
+            const childNode = nodes.find(n => n.id === childId);
             if (!visited.has(childId)) {
                 visited.add(childId);
-                nodesToRemove.add(childId);
-                queue.push(childId);
+                // NEVER include the End node in a cascade delete from a branch
+                if (childNode?.type !== 'end') {
+                    nodesToRemove.add(childId);
+                    queue.push(childId);
+                }
             }
         });
     }
@@ -271,10 +282,10 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
             const handleA = edgeA?.sourceHandle;
             const handleB = edgeB?.sourceHandle;
 
-            // Priority 1: Handle Type (True Left, False Right)
+            // Priority 1: Handle Type (Legacy True Left, False Right - kept for compatibility)
             const getSortIndex = (h: string | null | undefined) => {
-                if (h === 'true') return -1;
-                if (h === 'false') return 9999;
+                if (h === 'true' || h === 'if') return -1;
+                if (h === 'false' || h === 'else') return 9999;
                 return 0;
             };
 
@@ -283,11 +294,10 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
 
             if (scoreA !== scoreB) return scoreA - scoreB;
 
-            // Priority 2: Parallel Branch Order
-            // If it's a Parallel Node, we trust the 'branches' array order over X position
-            // because new nodes might have unsynced X positions (e.g. 0 or default), causing them to jump to the left.
+            // Priority 2: Logic Branch Order
+            // If it's a Parallel or Condition Node, we trust the 'branches' array order
             const sourceNode = layoutNodes.find(n => n.id === nodeId);
-            if (sourceNode?.type === 'parallel' || sourceNode?.type === 'loop') {
+            if (sourceNode?.type === 'parallel' || sourceNode?.type === 'loop' || sourceNode?.type === 'condition') {
                 if (sourceNode.type === 'loop') {
                     if (edgeA?.target === edgeB?.target) return 0; // Pointing to same?
                     // We want Body branch to the LEFT (or center) and Merge branch to the RIGHT?
@@ -385,29 +395,17 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
 
         const outgoing = layoutEdges.filter(e => e.source === nodeId);
         
-        if (node.type === 'condition') {
-             // Expect True/False
-             const trueEdge = outgoing.find(e => e.sourceHandle === 'true' || e.data?.label === 'true');
-             const falseEdge = outgoing.find(e => e.sourceHandle === 'false' || e.data?.label === 'false');
-             
-             // If connection exists (even to Merge), it counts as a branch.
-             // If no connection, we generally don't reserve big space, but standard condition implies 2 paths.
-             // Let's rely on CONNECTED branches.
-             const branches: (string|null)[] = [];
-             if (trueEdge) branches.push(trueEdge.target);
-             if (falseEdge) branches.push(falseEdge.target);
-             
-             // Fix for "Single Branch" condition (rare but possible):
-             // If only one exists, we might want to still center? 
-             // But layout collapse usually happens when both exist but one is "invisible".
-             return branches;
-        }
-        
-        if (node.type === 'parallel') {
-             // Use edge counting or params?
-             // Best to use Edges to match topology.
-             // Group by handle?
-             // Parallel outgoing usually have unique handles or just mapped.
+        if (node.type === 'condition' || node.type === 'parallel') {
+             // Handle both types with dynamic branches
+             const branches = (node.data.params as any)?.branches || (node.data.branches as string[]) || [];
+             if (branches.length > 0) {
+                 const branchTargets: (string|null)[] = [];
+                 branches.forEach((branchName: string) => {
+                     const edge = outgoing.find(e => e.data?.label === branchName || (branchName === 'True' && e.sourceHandle === 'true'));
+                     branchTargets.push(edge ? edge.target : null);
+                 });
+                 return branchTargets;
+             }
              return outgoing.map(e => e.target);
         }
         

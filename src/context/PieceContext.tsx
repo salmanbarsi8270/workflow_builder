@@ -48,6 +48,41 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                             parameters = mapped;
                         }
 
+                        // Special case: Condition logic - inject branches and rules
+                        if (id === 'logic' && actionId === 'condition') {
+                            parameters = [
+                                {
+                                    name: 'branches',
+                                    label: 'Branches',
+                                    type: 'array',
+                                    description: 'Branches for different conditions (If, Else If, Else)',
+                                    default: ['If', 'Else']
+                                },
+                                {
+                                    name: 'rules',
+                                    label: 'Conditions',
+                                    type: 'condition-builder',
+                                    description: 'Complex logical expressions for each branch'
+                                }
+                            ];
+                        }
+
+                        // Special case: Microsoft Excel - transform fileId to dynamic-select for workbook selection
+                        if ((id === 'microsoft_excel' || id === 'excel') && parameters.some((p: any) => p.name === 'fileId')) {
+                            parameters = parameters.map((p: any) => {
+                                if (p.name === 'fileId' && p.type === 'string') {
+                                    return {
+                                        ...p,
+                                        type: 'dynamic-select',
+                                        dynamicOptions: {
+                                            action: 'listWorkbooks'
+                                        }
+                                    };
+                                }
+                                return p;
+                            });
+                        }
+
                         actions.push({
                             id: actionId,
                             name: def.label || def.name || actionId,

@@ -1,0 +1,427 @@
+﻿{
+  "schedule": {
+    "name": "schedule",
+    "actions": [
+      {
+        "id": "trigger",
+        "name": "Schedule",
+        "type": "trigger"
+      }
+    ]
+  },
+  "http": {
+    "name": "http",
+    "actions": [
+      {
+        "id": "request",
+        "name": "HTTP Request",
+        "type": "action"
+      },
+      {
+        "id": "webhook",
+        "name": "webhook",
+        "type": "trigger"
+      }
+    ]
+  },
+  "agent": {
+    "name": "agent",
+    "actions": [
+      {
+        "id": "runAgent",
+        "name": "Run Agent",
+        "type": "action"
+      }
+    ]
+  },
+  "logic": {
+    "name": "logic",
+    "actions": [
+      {
+        "id": "condition",
+        "name": "Condition",
+        "type": "action"
+      },
+      {
+        "id": "parallel",
+        "name": "Parallel",
+        "type": "action"
+      },
+      {
+        "id": "loop",
+        "name": "Loop on Items",
+        "type": "action"
+      }
+    ]
+  },
+  "delay": {
+    "name": "delay",
+    "actions": [
+      {
+        "id": "wait",
+        "name": "Wait",
+        "type": "action"
+      },
+      {
+        "id": "log",
+        "name": "Log",
+        "type": "action"
+      }
+    ]
+  },
+  "onedrive": {
+    "name": "onedrive",
+    "actions": [
+      {
+        "id": "listFiles",
+        "name": "listFiles",
+        "type": "action"
+      },
+      {
+        "id": "uploadFile",
+        "name": "uploadFile",
+        "type": "action"
+      },
+      {
+        "id": "downloadFile",
+        "name": "downloadFile",
+        "type": "action"
+      },
+      {
+        "id": "deleteFile",
+        "name": "deleteFile",
+        "type": "action"
+      },
+      {
+        "id": "getProfile",
+        "name": "getProfile",
+        "type": "action"
+      },
+      {
+        "id": "newFile",
+        "name": "newFile",
+        "type": "trigger"
+      }
+    ]
+  },
+  "outlook": {
+    "name": "outlook",
+    "actions": [
+      {
+        "id": "sendEmail",
+        "name": "sendEmail",
+        "type": "action"
+      },
+      {
+        "id": "listMessages",
+        "name": "listMessages",
+        "type": "action"
+      },
+      {
+        "id": "getProfile",
+        "name": "getProfile",
+        "type": "action"
+      },
+      {
+        "id": "newEmail",
+        "name": "newEmail",
+        "type": "trigger"
+      }
+    ]
+  },
+  "word": {
+    "name": "word",
+    "actions": [
+      {
+        "id": "getContent",
+        "name": "getContent",
+        "type": "action"
+      },
+      {
+        "id": "updateContent",
+        "name": "updateContent",
+        "type": "action"
+      },
+      {
+        "id": "createDocument",
+        "name": "createDocument",
+        "type": "action"
+      },
+      {
+        "id": "getProfile",
+        "name": "getProfile",
+        "type": "action"
+      }
+    ]
+  },
+  "openrouter": {
+    "name": "openrouter",
+    "actions": [
+      {
+        "id": "chat",
+        "name": "chat",
+        "type": "action"
+      },
+      {
+        "id": "listModels",
+        "name": "listModels",
+        "type": "action"
+      }
+    ]
+  },
+  "docs": {
+    "name": "docs",
+    "actions": [
+      {
+        "id": "createDocument",
+        "name": "createDocument",
+        "type": "action"
+      },
+      {
+        "id": "appendText",
+        "name": "appendText",
+        "type": "action"
+      },
+      {
+        "id": "listDocs",
+        "name": "listDocs",
+        "type": "action"
+      },
+      {
+        "id": "get_doc",
+        "name": "get_doc",
+        "type": "action"
+      }
+    ]
+  },
+  "drive": {
+    "name": "drive",
+    "actions": [
+      {
+        "id": "uploadFile",
+        "name": "uploadFile",
+        "type": "action"
+      },
+      {
+        "id": "createFolder",
+        "name": "createFolder",
+        "type": "action"
+      },
+      {
+        "id": "listFolders",
+        "name": "listFolders",
+        "type": "action"
+      }
+    ]
+  },
+  "forms": {
+    "name": "forms",
+    "actions": [
+      {
+        "id": "get_form",
+        "name": "get_form",
+        "type": "action"
+      },
+      {
+        "id": "list_responses",
+        "name": "list_responses",
+        "type": "action"
+      },
+      {
+        "id": "new_response",
+        "name": "new_response",
+        "type": "trigger"
+      }
+    ]
+  },
+  "gmail": {
+    "name": "gmail",
+    "actions": [
+      {
+        "id": "sendEmail",
+        "name": "sendEmail",
+        "type": "action"
+      },
+      {
+        "id": "listMessages",
+        "name": "listMessages",
+        "type": "action"
+      },
+      {
+        "id": "listLabels",
+        "name": "listLabels",
+        "type": "action"
+      },
+      {
+        "id": "getMessage",
+        "name": "getMessage",
+        "type": "action"
+      },
+      {
+        "id": "createDraft",
+        "name": "createDraft",
+        "type": "action"
+      },
+      {
+        "id": "newEmail",
+        "name": "newEmail",
+        "type": "trigger"
+      }
+    ]
+  },
+  "calendar": {
+    "name": "calendar",
+    "actions": [
+      {
+        "id": "create_event",
+        "name": "create_event",
+        "type": "action"
+      },
+      {
+        "id": "list_events",
+        "name": "list_events",
+        "type": "action"
+      },
+      {
+        "id": "new_event",
+        "name": "new_event",
+        "type": "trigger"
+      }
+    ]
+  },
+  "sheets": {
+    "name": "sheets",
+    "actions": [
+      {
+        "id": "appendRow",
+        "name": "appendRow",
+        "type": "action"
+      },
+      {
+        "id": "appendRowSmart",
+        "name": "appendRowSmart",
+        "type": "action"
+      },
+      {
+        "id": "getValues",
+        "name": "getValues",
+        "type": "action"
+      },
+      {
+        "id": "createSpreadsheet",
+        "name": "createSpreadsheet",
+        "type": "action"
+      },
+      {
+        "id": "listSpreadsheets",
+        "name": "listSpreadsheets",
+        "type": "action"
+      },
+      {
+        "id": "listSheets",
+        "name": "listSheets",
+        "type": "action"
+      }
+    ]
+  },
+  "github": {
+    "name": "github",
+    "actions": [
+      {
+        "id": "createRepository",
+        "name": "createRepository",
+        "type": "action"
+      },
+      {
+        "id": "delete_repository",
+        "name": "delete_repository",
+        "type": "action"
+      },
+      {
+        "id": "createIssue",
+        "name": "createIssue",
+        "type": "action"
+      },
+      {
+        "id": "updateIssue",
+        "name": "updateIssue",
+        "type": "action"
+      },
+      {
+        "id": "closeIssue",
+        "name": "closeIssue",
+        "type": "action"
+      },
+      {
+        "id": "reOpenIssue",
+        "name": "reOpenIssue",
+        "type": "action"
+      },
+      {
+        "id": "lock_issue",
+        "name": "lock_issue",
+        "type": "action"
+      },
+      {
+        "id": "unlock_issue",
+        "name": "unlock_issue",
+        "type": "action"
+      },
+      {
+        "id": "listRepos",
+        "name": "listRepos",
+        "type": "action"
+      },
+      {
+        "id": "newStar",
+        "name": "newStar",
+        "type": "trigger"
+      }
+    ]
+  },
+  "excel": {
+    "name": "excel",
+    "actions": [
+      {
+        "id": "createWorkbook",
+        "name": "createWorkbook",
+        "type": "action"
+      },
+      {
+        "id": "createWorksheet",
+        "name": "createWorksheet",
+        "type": "action"
+      },
+      {
+        "id": "createTable",
+        "name": "createTable",
+        "type": "action"
+      },
+      {
+        "id": "addRow",
+        "name": "addRow",
+        "type": "action"
+      },
+      {
+        "id": "getRange",
+        "name": "getRange",
+        "type": "action"
+      },
+      {
+        "id": "updateRange",
+        "name": "updateRange",
+        "type": "action"
+      },
+      {
+        "id": "getProfile",
+        "name": "getProfile",
+        "type": "action"
+      },
+      {
+        "id": "newRow",
+        "name": "newRow",
+        "type": "trigger"
+      }
+    ]
+  }
+}

@@ -8,16 +8,19 @@ import { useState, useEffect } from "react";
 import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
-import { getPieceOptions } from "@/ui_components/api/pieces";
+import { getPieceOptions, getExcelWorkbooks } from "@/ui_components/api/pieces";
 import { API_URL } from "@/ui_components/api/apiurl";
 
 
+import { cn } from "@/lib/utils";
 import { Plus, Trash2, Pencil, List, Loader2 } from "lucide-react";
 import { Button } from "@/components/button"
 import { Switch } from "@/components/ui/switch"
+import { ConditionBuilder } from "@/ui_components/Automation/components/ConditionBuilder";
+
 
 // Robust String Array Input
-const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean }) => {
+const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, isBranches?: boolean }) => {
     // Parse value into array of strings
     const parseValue = (val: any): string[] => {
         if (Array.isArray(val)) return val;
@@ -43,7 +46,13 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: a
     };
 
     const addItem = () => {
-        const newItems = [...items, `Branch ${items.length + 1}`];
+        let newItems;
+        if (isBranches && items.length > 0 && items[items.length - 1].toLowerCase() === 'else') {
+            // Insert before Else
+            newItems = [...items.slice(0, -1), 'Else If', items[items.length - 1]];
+        } else {
+            newItems = [...items, `Item ${items.length + 1}`];
+        }
         handleUpdate(newItems);
     };
 
@@ -60,27 +69,41 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: a
 
     return (
         <div className="flex flex-col gap-2">
-            {items.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                    <Input
-                        value={item}
-                        onChange={(e) => updateItem(index, e.target.value)}
-                        placeholder={`Item ${index + 1}`}
-                        disabled={disabled}
-                        required
-                        className="flex-1 h-8 text-xs"
-                    />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeItem(index)}
-                        disabled={disabled}
-                    >
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
-                </div>
-            ))}
+            {items.map((item, index) => {
+                const isProtected = isBranches && (index === 0 || index === items.length - 1);
+                
+                return (
+                    <div key={index} className="flex items-center gap-2">
+                        <Input
+                            value={item}
+                            onChange={(e) => updateItem(index, e.target.value)}
+                            placeholder={`Item ${index + 1}`}
+                            disabled={disabled || isProtected}
+                            required
+                            className={cn(
+                                "flex-1 h-8 text-xs",
+                                isProtected && "bg-muted/50 font-medium"
+                            )}
+                        />
+                        {!isProtected && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeItem(index)}
+                                disabled={disabled}
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        )}
+                        {isProtected && (
+                            <div className="h-8 w-8 flex items-center justify-center opacity-30">
+                                <Plus className="h-3 w-3 rotate-45" />
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
             <Button
                 variant="outline"
                 size="sm"
@@ -89,7 +112,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled }: { value: a
                 disabled={disabled}
             >
                 <Plus className="h-3 w-3" />
-                Add Item
+                {isBranches ? 'Add Else If' : 'Add Item'}
             </Button>
             <p className="text-[10px] text-muted-foreground italic mt-1">
                 {placeholder}
@@ -164,13 +187,25 @@ const DynamicSelect = ({
                     context[dep] = allParams[dep];
                 });
 
-                const res = await getPieceOptions({
-                    userId,
-                    service,
-                    actionName: dynamicOptions.action,
-                    connectionId,
-                    context
-                });
+                let res;
+                if ((service === 'microsoft_excel' || service === 'excel') && dynamicOptions.action === 'listWorkbooks') {
+                    const data = await getExcelWorkbooks(userId);
+                    res = {
+                        success: true,
+                        options: (data.value || data.files || []).map((f: any) => ({
+                            label: f.name,
+                            value: f.id
+                        }))
+                    };
+                } else {
+                    res = await getPieceOptions({
+                        userId,
+                        service,
+                        actionName: dynamicOptions.action,
+                        connectionId,
+                        context
+                    });
+                }
 
                 if (res.success && Array.isArray(res.options)) {
                     setOptions(res.options);
@@ -549,8 +584,22 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 onChange={(val) => handleChange(param.name, val)}
                                 placeholder={param.description + " (e.g. [\"data1\", \"data2\"])"}
                                 disabled={disabled}
+                                isBranches={param.name === 'branches'}
                             />
                         )}
+
+                        {param.type === 'condition-builder' && (
+                            <ConditionBuilder
+                                value={params[param.name]}
+                                onChange={(val) => handleChange(param.name, val)}
+                                nodes={nodes}
+                                edges={edges || []}
+                                nodeId={nodeId}
+                                disabled={disabled}
+                                branches={params['branches']}
+                            />
+                        )}
+
                         {errors[param.name] && <p className="text-[10px] text-red-500 font-medium">{errors[param.name]}</p>}
                     </div>
                 );

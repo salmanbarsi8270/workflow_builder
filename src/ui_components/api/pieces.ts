@@ -42,3 +42,9 @@ export async function runAction(request: any) {
     const data = await response.json();
     return data;
 }
+
+export async function getExcelWorkbooks(userId: string) {
+    const response = await fetch(`${API_URL}/api/excel/workbooks?userId=${userId}`);
+    const data = await response.json();
+    return data;
+}
