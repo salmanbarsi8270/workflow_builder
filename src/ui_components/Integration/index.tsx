@@ -18,6 +18,7 @@ import type { IntegrationApp } from './types';
 import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
+import { McpForm } from '../Connections/McpForm';
 
 interface IntegrationProps {
   defaultTab?: string;
@@ -41,6 +42,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
+  const [mcpModalOpen, setMcpModalOpen] = useState(false);
 
   useEffect(() => {
     fetchConnections();
@@ -73,7 +75,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             const { getConnections } = await import("../api/connectionlist");
             const data = await getConnections(user.id);
             const list = data.data || [];
-            
+
             const transformedList = list.map((app: any) => ({
               ...app,
               category: app.category || 'default',
@@ -112,7 +114,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     // Search filtering
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(app => 
+      filtered = filtered.filter(app =>
         app.name.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query) ||
         (app.category && app.category.toLowerCase().includes(query))
@@ -157,12 +159,15 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
   const handleConnect = (app: IntegrationApp) => {
     setConnectingApp(app.id);
-    const returnPath = window.location.pathname; 
+    const returnPath = window.location.pathname;
     if (app.id === 'github') {
       window.location.href = `${API_URL}/auth/connect/github?userId=${user?.id}&callbackUrl=${returnPath}`;
-    } 
+    }
     else if (app.id === 'openrouter') {
       handleOpenRouterModel()
+    }
+    else if (app.id === 'mcp') {
+      setMcpModalOpen(true);
     }
     else {
       window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user?.id}&callbackUrl=${returnPath}`;
@@ -195,19 +200,18 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const handleOpenRouterChange = (open: boolean) => {
     setOpenroutermodel(open);
     if (!open) {
-        setConnectingApp(null);
+      setConnectingApp(null);
     }
   }
 
   return (
     <div className="h-screen overflow-y-auto bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       <div className="relative z-10 container mx-auto p-8 w-full flex flex-col h-full gap-8">
         {/* Header Section */}
-        <motion.div 
+        <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 shrink-0"
@@ -234,12 +238,12 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              onClick={fetchConnections} 
+              onClick={fetchConnections}
               disabled={isLoading}
               className="gap-2 h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300"
             >
@@ -250,36 +254,36 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         </motion.div>
 
         {/* Stats Overview */}
-        <motion.div 
+        <motion.div
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.05 }}
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
-          <StatsCard 
-            title="Total Integrations" 
-            value={apps.length} 
+          <StatsCard
+            title="Total Integrations"
+            value={apps.length}
             icon={Globe}
             trend={12}
             color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           />
-          <StatsCard 
-            title="Connected" 
-            value={apps.filter(a => a.connected).length} 
+          <StatsCard
+            title="Connected"
+            value={apps.filter(a => a.connected).length}
             icon={CheckCircle}
             trend={8}
             color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           />
-          <StatsCard 
-            title="Active Accounts" 
-            value={apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0)} 
+          <StatsCard
+            title="Active Accounts"
+            value={apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0)}
             icon={UserCircle}
             trend={15}
             color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           />
-          <StatsCard 
-            title="Synced Today" 
-            value={apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length} 
+          <StatsCard
+            title="Synced Today"
+            value={apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length}
             icon={RefreshCw}
             trend={-3}
             color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -287,10 +291,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         </motion.div>
 
         {/* Controls Bar */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }} 
-          animate={{ y: 0, opacity: 1 }} 
-          transition={{ delay: 0.1 }} 
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
           className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between"
         >
           <div className="flex flex-wrap items-center gap-3">
@@ -301,19 +305,19 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                 <TabsTrigger value="disconnected" className="px-5 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Available</TabsTrigger>
               </TabsList>
             </Tabs>
-            
+
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
-              <Input 
-                placeholder="Search integrations..." 
-                value={searchQuery} 
+              <Input
+                placeholder="Search integrations..."
+                value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10 w-full lg:w-64 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500"
               />
               {searchQuery && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-white/5"
                   onClick={() => setSearchQuery('')}
                 >
@@ -322,7 +326,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="h-10 w-[140px] rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
@@ -337,7 +341,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select value={sortBy} onValueChange={(value: 'popular' | 'name' | 'recent') => setSortBy(value)}>
               <SelectTrigger className="h-10 w-[140px] rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
                 <SelectValue placeholder="Sort by" />
@@ -348,7 +352,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                 <SelectItem value="recent">Recently Added</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <div className="flex items-center gap-1 border border-slate-200 dark:border-white/10 rounded-xl bg-white/50 dark:bg-slate-900/50 p-1">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -367,10 +371,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                 <List className="h-4 w-4" />
               </Button>
             </div>
-            
+
             {getFilterCount() > 0 && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={handleClearFilters}
                 className="h-9 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg px-3 transition-all font-bold text-xs uppercase tracking-widest"
@@ -387,14 +391,14 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           <div className="flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                {activeTab === 'connected' ? 'Connected Services' : 
-                activeTab === 'disconnected' ? 'Available Services' : 'All Services'}
+                {activeTab === 'connected' ? 'Connected Services' :
+                  activeTab === 'disconnected' ? 'Available Services' : 'All Services'}
               </h3>
               <div className="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-black border border-blue-200 dark:border-blue-500/20">
                 {filteredApps.length}
               </div>
             </div>
-            
+
             {searchQuery && (
               <div className="text-sm font-medium text-slate-500 dark:text-blue-200/70">
                 Search results for <span className="text-blue-600 dark:text-blue-400 font-bold italic">"{searchQuery}"</span>
@@ -403,7 +407,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div 
+            <motion.div
               key={`${activeTab}-${viewMode}`}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -427,7 +431,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       </Card>
                     ))
                   ) : filteredApps.length === 0 ? (
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       className="col-span-full py-20 text-center px-4"
@@ -448,11 +452,11 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                     </motion.div>
                   ) : (
                     paginatedApps.map((app) => (
-                      <IntegrationGridCard 
-                        key={app.id} 
-                        app={app} 
-                        onConnect={handleConnect} 
-                        connectingApp={connectingApp} 
+                      <IntegrationGridCard
+                        key={app.id}
+                        app={app}
+                        onConnect={handleConnect}
+                        connectingApp={connectingApp}
                       />
                     ))
                   )}
@@ -477,10 +481,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                   ) : (
                     paginatedApps.map((app) => (
                       <IntegrationListItem
-                        key={app.id} 
-                        app={app} 
-                        onConnect={handleConnect} 
-                        connectingApp={connectingApp} 
+                        key={app.id}
+                        app={app}
+                        onConnect={handleConnect}
+                        connectingApp={connectingApp}
                       />
                     ))
                   )}
@@ -491,7 +495,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         </div>
 
         {/* Pagination Footer */}
-        <CustomPagination 
+        <CustomPagination
           currentPage={currentPage}
           totalItems={filteredApps.length}
           itemsPerPage={itemsPerPage}
@@ -500,6 +504,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         />
 
         <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
+        <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
       </div>
     </div>
   );

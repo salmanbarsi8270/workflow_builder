@@ -1,9 +1,21 @@
+export interface AuthConfig {
+  type: 'none' | 'headers' | 'bearer' | 'apiKey';
+  apiKeyHeader?: string;
+  apiKeyValue?: string;
+  accessToken?: string;
+  headers?: Record<string, string>;
+}
+
 export interface MCPConfig {
   name: string;
   type: 'stdio' | 'sse' | 'http' | 'streamable-http';
   url?: string;
   command?: string;
   args?: string[];
+  enabledTools?: string[]; // List of specific tool names to enable
+  connectionId?: string;
+  auth?: AuthConfig;
+  env?: Record<string, string>;
 }
 
 export interface Agent {
