@@ -37,13 +37,13 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
         onClick={() => onCardClick(agent)}
       >
         <div className={cn(
-            "absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
+          "absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
         )} />
-        
+
         <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden">
           <div className="absolute top-4 right-4 flex items-center gap-2">
             {hasSubagents && (
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsExpanded(!isExpanded);
@@ -92,20 +92,20 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
           </div>
 
           <div className="flex gap-2 relative z-20">
-            <button 
+            <button
               onClick={(e) => onRunClick(agent, e)}
               className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
             >
               <Play className="h-4 w-4" />
               Run
             </button>
-            <button 
+            <button
               onClick={(e) => onEditClick(agent, e)}
               className="bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg transition-all duration-300 hover:border-blue-500/30 text-slate-600 dark:text-white"
             >
               <Settings2 className="h-4 w-4" />
             </button>
-            <button 
+            <button
               onClick={(e) => onDeleteClick(agent.id, e)}
               disabled={isDeleting}
               className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -115,14 +115,14 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
           </div>
         </div>
       </div>
-      
+
       {isExpanded && hasSubagents && (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
           {subagentsList.map((sub, sidx) => (
-            <AgentTreeNode 
-              key={sub.id} 
-              agent={sub} 
-              idx={sidx} 
+            <AgentTreeNode
+              key={sub.id}
+              agent={sub}
+              idx={sidx}
               level={level + 1}
               onCardClick={onCardClick}
               onRunClick={onRunClick}
@@ -144,7 +144,7 @@ export default function Agents() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [aiConnections, setAiConnections] = useState<ConnectionOption[]>([]);
   const [allConnections, setAllConnections] = useState<ConnectionOption[]>([]);
-  
+
   // Dialog States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
@@ -156,7 +156,7 @@ export default function Agents() {
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
 
 
-console.log("agents", agents);
+  console.log("agents", agents);
   useEffect(() => {
     fetchAgents();
     if (user?.id) {
@@ -173,7 +173,7 @@ console.log("agents", agents);
         const data = await response.json();
         setAgents(Array.isArray(data) ? data : []);
       } else {
-         console.error("Failed to fetch agents");
+        console.error("Failed to fetch agents");
       }
     } catch (error) {
       console.error("Error fetching agents:", error);
@@ -190,11 +190,11 @@ console.log("agents", agents);
       const services = data.data || [];
       const aiOptions: ConnectionOption[] = [];
       const allOptions: ConnectionOption[] = [];
-      
+
       services.forEach((service: any) => {
-        const isOpenRouter = (service.id === 'openrouter') || 
-                             (service.name && service.name.toLowerCase().includes('openrouter')) ||
-                             (service.name === 'AI');
+        const isOpenRouter = (service.id === 'openrouter') ||
+          (service.name && service.name.toLowerCase().includes('openrouter')) ||
+          (service.name === 'AI');
 
         if (service.accounts && Array.isArray(service.accounts)) {
           service.accounts.forEach((acc: any) => {
@@ -218,11 +218,11 @@ console.log("agents", agents);
   };
 
   const handleCreateSuccess = (savedAgent: Agent, isEdit: boolean) => {
-      if (isEdit) {
-          setAgents(agents.map(a => a.id === savedAgent.id ? savedAgent : a));
-      } else {
-          setAgents([savedAgent, ...agents]);
-      }
+    if (isEdit) {
+      setAgents(agents.map(a => a.id === savedAgent.id ? savedAgent : a));
+    } else {
+      setAgents([savedAgent, ...agents]);
+    }
   };
 
   const handleDeleteAgent = async (agentId: string, e: React.MouseEvent) => {
@@ -231,44 +231,44 @@ console.log("agents", agents);
 
     setDeletingId(agentId);
     try {
-        const response = await fetch(`${API_URL}/api/v1/agents/${agentId}`, {
-            method: 'DELETE',
-            body: JSON.stringify({ userId: user?.id }),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+      const response = await fetch(`${API_URL}/api/v1/agents/${agentId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ userId: user?.id }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-        if (response.ok) {
-            toast.success("Agent deleted successfully");
-            await fetchAgents();
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            toast.error(errorData.message || "Failed to delete agent");
-        }
+      if (response.ok) {
+        toast.success("Agent deleted successfully");
+        await fetchAgents();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || "Failed to delete agent");
+      }
     } catch (error) {
-        console.error("Error deleting agent:", error);
-        toast.error("Something went wrong");
+      console.error("Error deleting agent:", error);
+      toast.error("Something went wrong");
     } finally {
-        setDeletingId(null);
+      setDeletingId(null);
     }
   };
 
   const handleRunClick = (agent: Agent, e: React.MouseEvent) => {
-      e.stopPropagation();
-      setSelectedRunAgent(agent);
-      setIsRunModalOpen(true);
+    e.stopPropagation();
+    setSelectedRunAgent(agent);
+    setIsRunModalOpen(true);
   };
 
   const handleEditClick = (agent: Agent, e: React.MouseEvent) => {
-      e.stopPropagation();
-      setEditingAgent(agent);
-      setIsCreateModalOpen(true);
+    e.stopPropagation();
+    setEditingAgent(agent);
+    setIsCreateModalOpen(true);
   };
-  
+
   const handleCardClick = (agent: Agent) => {
-      setSelectedInfoAgent(agent);
-      setIsInfoSheetOpen(true);
+    setSelectedInfoAgent(agent);
+    setIsInfoSheetOpen(true);
   };
 
   // Mock stats - in real app calculate from data
@@ -303,19 +303,19 @@ console.log("agents", agents);
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={fetchAgents}
                 disabled={isLoading}
                 className="p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 group"
               >
                 <RefreshCw className={cn("h-5 w-5 text-blue-600 dark:text-blue-400", isLoading && "animate-spin")} />
               </button>
-              <button 
-                  onClick={() => {
-                      setEditingAgent(null);
-                      setIsCreateModalOpen(true);
-                  }}
-                  className="group relative px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+              <button
+                onClick={() => {
+                  setEditingAgent(null);
+                  setIsCreateModalOpen(true);
+                }}
+                className="group relative px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
               >
                 <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="relative flex items-center gap-2 text-white">
@@ -333,7 +333,7 @@ console.log("agents", agents);
               { label: 'Total Executions', value: '1,247', icon: Terminal, color: 'from-blue-500 to-cyan-500' },
               { label: 'Success Rate', value: '98.5%', icon: Star, color: 'from-emerald-500 to-teal-500' }
             ].map((stat, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="relative group cursor-pointer"
                 style={{ animationDelay: `${idx * 100}ms` }}
@@ -347,52 +347,52 @@ console.log("agents", agents);
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
                 </div>
               </div>
-            ))} 
+            ))}
           </div>
         </div>
 
         {/* Agents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading && [1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="group relative">
-                <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl 
+            <div key={i} className="group relative">
+              <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl 
                   border border-slate-200 dark:border-white/10 rounded-2xl p-6 
                   shadow-xl h-full flex flex-col justify-between min-h-[300px]">
 
-                  {/* Status dot */}
-                  <div className="absolute top-4 right-4">
-                    <Skeleton className="h-3 w-3 rounded-full bg-slate-200 dark:bg-white/10" />
-                  </div>
+                {/* Status dot */}
+                <div className="absolute top-4 right-4">
+                  <Skeleton className="h-3 w-3 rounded-full bg-slate-200 dark:bg-white/10" />
+                </div>
 
-                  {/* Icon */}
-                  <div className="mb-4">
-                    <Skeleton className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-white/10" />
-                  </div>
+                {/* Icon */}
+                <div className="mb-4">
+                  <Skeleton className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-white/10" />
+                </div>
 
-                  {/* Title */}
-                  <Skeleton className="h-6 w-3/4 mb-2 bg-slate-200 dark:bg-white/10" />
+                {/* Title */}
+                <Skeleton className="h-6 w-3/4 mb-2 bg-slate-200 dark:bg-white/10" />
 
-                  {/* Model tag */}
-                  <Skeleton className="h-5 w-24 rounded-lg mb-3 bg-slate-200 dark:bg-white/10" />
+                {/* Model tag */}
+                <Skeleton className="h-5 w-24 rounded-lg mb-3 bg-slate-200 dark:bg-white/10" />
 
-                  {/* Description */}
-                  <Skeleton className="h-4 w-full mb-2 bg-slate-200 dark:bg-white/10" />
-                  <Skeleton className="h-4 w-5/6 mb-6 bg-slate-200 dark:bg-white/10" />
+                {/* Description */}
+                <Skeleton className="h-4 w-full mb-2 bg-slate-200 dark:bg-white/10" />
+                <Skeleton className="h-4 w-5/6 mb-6 bg-slate-200 dark:bg-white/10" />
 
-                  {/* Footer */}
-                  <div className="flex justify-between items-center mt-auto mb-4">
-                    <Skeleton className="h-4 w-20 bg-slate-200 dark:bg-white/10" />
-                    <Skeleton className="h-4 w-24 bg-slate-200 dark:bg-white/10" />
-                  </div>
+                {/* Footer */}
+                <div className="flex justify-between items-center mt-auto mb-4">
+                  <Skeleton className="h-4 w-20 bg-slate-200 dark:bg-white/10" />
+                  <Skeleton className="h-4 w-24 bg-slate-200 dark:bg-white/10" />
+                </div>
 
-                  {/* Buttons */}
-                  <div className="flex gap-2">
-                    <Skeleton className="h-10 flex-1 rounded-lg bg-slate-200 dark:bg-white/10" />
-                    <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
-                    <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
-                  </div>
+                {/* Buttons */}
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 flex-1 rounded-lg bg-slate-200 dark:bg-white/10" />
+                  <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
+                  <Skeleton className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-white/10" />
                 </div>
               </div>
+            </div>
           ))}
 
           {agents.length === 0 && !isLoading && (
@@ -403,10 +403,10 @@ console.log("agents", agents);
           )}
 
           {!isLoading && agents.map((agent, idx) => (
-            <AgentTreeNode 
-              key={agent.id} 
-              agent={agent} 
-              idx={idx} 
+            <AgentTreeNode
+              key={agent.id}
+              agent={agent}
+              idx={idx}
               onCardClick={handleCardClick}
               onRunClick={handleRunClick}
               onEditClick={handleEditClick}
@@ -450,31 +450,32 @@ console.log("agents", agents);
       /> */}
 
       {/* Components */}
-      <CreateAgentDialog 
-          open={isCreateModalOpen} 
-          onOpenChange={setIsCreateModalOpen}
-          initialAgent={editingAgent}
-          userId={user?.id}
-          connections={aiConnections}
-          onSuccess={handleCreateSuccess}
-          availableAgents={agents}
+      <CreateAgentDialog
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        initialAgent={editingAgent}
+        userId={user?.id}
+        connections={aiConnections}
+        mcpConnections={allConnections.filter(c => c.service === 'mcp')}
+        onSuccess={handleCreateSuccess}
+        availableAgents={agents}
       />
 
-      <RunAgentDialog 
-        agent={selectedRunAgent} 
-        open={isRunModalOpen} 
-        onOpenChange={setIsRunModalOpen} 
+      <RunAgentDialog
+        agent={selectedRunAgent}
+        open={isRunModalOpen}
+        onOpenChange={setIsRunModalOpen}
         userId={user?.id}
       />
 
-      <AgentInfoSheet 
+      <AgentInfoSheet
         agent={selectedInfoAgent}
         open={isInfoSheetOpen}
         onOpenChange={setIsInfoSheetOpen}
         connections={allConnections}
         onRun={(a) => {
-            setSelectedRunAgent(a);
-            setIsRunModalOpen(true);
+          setSelectedRunAgent(a);
+          setIsRunModalOpen(true);
         }}
       />
     </div>

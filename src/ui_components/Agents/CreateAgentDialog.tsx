@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Trash2, Plus } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
+import { McpToolConfig } from './McpToolConfig';
 import { APP_DEFINITIONS } from '../Automation/metadata';
 import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
@@ -22,14 +23,24 @@ interface CreateAgentDialogProps {
     initialAgent: Agent | null; // If valid, we are editing
     userId?: string;
     connections: ConnectionOption[];
+    mcpConnections?: ConnectionOption[];
     onSuccess: (agent: Agent, isEdit: boolean) => void;
     availableAgents: Agent[];
 }
 
-export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, connections, onSuccess, availableAgents }: CreateAgentDialogProps) {
+export function CreateAgentDialog({
+    open,
+    onOpenChange,
+    initialAgent,
+    userId,
+    connections,
+    mcpConnections = [],
+    onSuccess,
+    availableAgents
+}: CreateAgentDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form State
+    // ... (state definitions remain same)
     const [name, setName] = useState('');
     const [instructions, setInstructions] = useState('');
     const [model, setModel] = useState('');
@@ -211,9 +222,14 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
         setMcpTools([...mcpTools, { name: '', type: 'streamable-http', url: '' }]);
     };
 
-    const updateMcpTool = (index: number, field: keyof MCPConfig, value: string) => {
+    // Filter for MCP connections: Use prop if available, otherwise filter from main connections (fallback)
+    const effectiveMcpConnections = mcpConnections.length > 0
+        ? mcpConnections
+        : connections.filter(c => c.service === 'mcp');
+
+    const updateMcpTool = (index: number, newConfig: MCPConfig) => {
         const newTools = [...mcpTools];
-        newTools[index] = { ...newTools[index], [field]: value };
+        newTools[index] = newConfig;
         setMcpTools(newTools);
     };
 
@@ -384,8 +400,9 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                                                                 appName={app?.id || ''}
                                                                 value={tool.connectionId || ''}
                                                                 onChange={(val) => {
-                                                                    const newTools = [...selectedTools];
-                                                                    newTools[idx].connectionId = val;
+                                                                    const newTools = selectedTools.map((t, i) =>
+                                                                        i === idx ? { ...t, connectionId: val } : t
+                                                                    );
                                                                     setSelectedTools(newTools);
                                                                 }}
                                                                 hasError={isMissing}
@@ -419,12 +436,12 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <div className="grid gap-2">
                         <Label className="text-slate-700 dark:text-white font-medium flex justify-between items-center">
                             <span>MCP Servers (External Tools)</span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={addMcpTool}
-                                    className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                                >
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={addMcpTool}
+                                className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                            >
                                 <Plus className="h-3 w-3 mr-1" /> Add Server
                             </Button>
                         </Label>
@@ -432,56 +449,13 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                         {mcpTools.length > 0 ? (
                             <div className="flex flex-col gap-3">
                                 {mcpTools.map((tool, idx) => (
-                                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg flex flex-col gap-2 relative group">
-                                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
-                                                onClick={() => removeMcpTool(idx)}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Server Name</Label>
-                                                <Input
-                                                    className="h-8 text-sm"
-                                                    placeholder="e.g. Zapier"
-                                                    value={tool.name}
-                                                    onChange={(e) => updateMcpTool(idx, 'name', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Type</Label>
-                                                <Select
-                                                    value={tool.type}
-                                                    onValueChange={(val: any) => updateMcpTool(idx, 'type', val)}
-                                                >
-                                                    <SelectTrigger className="h-8">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="sse">SSE</SelectItem>
-                                                        <SelectItem value="streamable-http">Streamable HTTP</SelectItem>
-                                                        <SelectItem value="http">HTTP</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Server URL</Label>
-                                            <Input
-                                                className="h-8 text-sm font-mono"
-                                                placeholder="https://..."
-                                                value={tool.url}
-                                                onChange={(e) => updateMcpTool(idx, 'url', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
+                                    <McpToolConfig
+                                        key={idx}
+                                        config={tool}
+                                        connections={effectiveMcpConnections}
+                                        onChange={(newConfig) => updateMcpTool(idx, newConfig)}
+                                        onRemove={() => removeMcpTool(idx)}
+                                    />
                                 ))}
                             </div>
                         ) : (
@@ -586,12 +560,26 @@ export function CreateAgentDialog({ open, onOpenChange, initialAgent, userId, co
                     <Button
                         onClick={handleSave}
                         disabled={
-                            isSubmitting || 
-                            !name.trim() || 
-                            !instructions.trim() || 
-                            !model.trim() || 
-                            !selectedConnection ||
-                            hasMissingRequiredConnections
+                            (() => {
+                                const isDis = isSubmitting ||
+                                    !name.trim() ||
+                                    !instructions.trim() ||
+                                    !model.trim() ||
+                                    !selectedConnection ||
+                                    hasMissingRequiredConnections;
+
+                                if (isDis) {
+                                    console.log("Save Disabled Reason:", {
+                                        isSubmitting,
+                                        noName: !name.trim(),
+                                        noInst: !instructions.trim(),
+                                        noModel: !model.trim(),
+                                        noConnection: !selectedConnection,
+                                        missingToolConn: hasMissingRequiredConnections
+                                    });
+                                }
+                                return isDis;
+                            })()
                         }
                         className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-300 rounded-lg px-6"
                     >

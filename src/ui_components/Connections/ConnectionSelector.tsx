@@ -102,6 +102,14 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
         fetchConnections();
     }, [user?.id, appName]);
 
+    // Ensure auto-selection works if value is empty but connections exist
+    useEffect(() => {
+        if (!isLocalLoading && connections.length > 0 && !value) {
+            console.log(`[ConnectionSelector] Auto-selecting first connection for ${appName}`);
+            onChange(connections[0].id);
+        }
+    }, [isLocalLoading, connections, value, appName]);
+
     const handleConnectClick = () => {
         setConnectionName(`${appName} Account ${connections.length + 1}`);
         setApiKey('');
@@ -115,30 +123,30 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
         }
 
         if (mappedService === 'openrouter') {
-             try {
-                 const response = await fetch(`${API_URL}/api/connections/key`, {
+            try {
+                const response = await fetch(`${API_URL}/api/connections/key`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      userId: user.id,
-                      service: 'openrouter',
-                      apiKey: apiKey,
-                      name: connectionName
+                        userId: user.id,
+                        service: 'openrouter',
+                        apiKey: apiKey,
+                        name: connectionName
                     })
-                 });
-                 const data = await response.json();
-                 if (data.success) {
-                     sonner.success("Connection saved!");
-                     setIsModalOpen(false);
-                     await fetchConnections();
-                 } else {
-                     sonner.error(data.error || "Failed to save key");
-                 }
-             } catch (err) {
-                 console.error(err);
-                 sonner.error("Failed to save key");
-             }
-             return;
+                });
+                const data = await response.json();
+                if (data.success) {
+                    sonner.success("Connection saved!");
+                    setIsModalOpen(false);
+                    await fetchConnections();
+                } else {
+                    sonner.error(data.error || "Failed to save key");
+                }
+            } catch (err) {
+                console.error(err);
+                sonner.error("Failed to save key");
+            }
+            return;
         }
 
         const callbackUrl = encodeURIComponent(window.location.pathname + window.location.search);
@@ -201,8 +209,8 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                         <DialogHeader>
                             <DialogTitle>{mappedService === 'openrouter' ? "Add OpenRouter Provider" : `Connect ${appName}`}</DialogTitle>
                             <DialogDescription>
-                                {mappedService === 'openrouter' 
-                                    ? "Configure credentials for OpenRouter." 
+                                {mappedService === 'openrouter'
+                                    ? "Configure credentials for OpenRouter."
                                     : "Give this connection a name to identify it later."}
                             </DialogDescription>
                         </DialogHeader>
@@ -212,7 +220,7 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                                 <div className="rounded-md bg-muted p-4 border text-sm text-muted-foreground flex flex-col gap-2">
                                     <div className="flex items-center gap-2 font-medium text-foreground">
                                         <div className="h-4 w-4 rounded-full border border-foreground/30 flex items-center justify-center text-[10px]">i</div>
-                                         Follow these instructions to get your OpenRouter API Key:
+                                        Follow these instructions to get your OpenRouter API Key:
                                     </div>
                                     <ol className="list-decimal pl-5 space-y-1">
                                         <li>
@@ -250,8 +258,8 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
 
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
-                            <Button 
-                                onClick={handleConfirmConnect} 
+                            <Button
+                                onClick={handleConfirmConnect}
                                 disabled={disabled || (mappedService === 'openrouter' ? !apiKey.trim() : !connectionName.trim())}
                             >
                                 {mappedService === 'openrouter' ? "Save" : "Connect & Authenticate"}
@@ -336,8 +344,8 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
                     <DialogHeader>
                         <DialogTitle>Connect {appName}</DialogTitle>
                         <DialogDescription>
-                            {mappedService === 'openrouter' 
-                                ? "Enter your OpenRouter API Key." 
+                            {mappedService === 'openrouter'
+                                ? "Enter your OpenRouter API Key."
                                 : "Give this connection a name to identify it later."}
                         </DialogDescription>
                     </DialogHeader>
@@ -366,8 +374,8 @@ export default function ConnectionSelector({ appName, value, onChange, disabled 
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={disabled}>Cancel</Button>
-                        <Button 
-                            onClick={handleConfirmConnect} 
+                        <Button
+                            onClick={handleConfirmConnect}
                             disabled={disabled || !connectionName.trim() || (mappedService === 'openrouter' && !apiKey.trim())}
                         >
                             {mappedService === 'openrouter' ? "Save Connection" : "Connect & Authenticate"}

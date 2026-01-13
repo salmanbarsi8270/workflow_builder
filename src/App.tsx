@@ -13,6 +13,8 @@ import Automation from './ui_components/Automation';
 import Connections from './ui_components/Connections';
 import Templates from './ui_components/Templates';
 import Agents from './ui_components/Agents';
+import Guardrails from './ui_components/Guardrails';
+import LiveEvals from './ui_components/Evals';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const location = useLocation();
@@ -40,7 +42,7 @@ export function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
-                    
+
                     {/* Protected Routes with Sidebar Layout */}
                     <Route element={<RequireAuth><SidebarIconExample /></RequireAuth>}>
                         <Route path="/" element={<WorkflowDashboard />} />
@@ -50,8 +52,10 @@ export function App() {
                         <Route path="/automation" element={<Automation />} />
                         <Route path="/automation/:id" element={<Automation />} />
                         <Route path="/agents" element={<Agents />} />
+                        <Route path="/guardrails" element={<Guardrails />} />
+                        <Route path="/evals" element={<LiveEvals />} />
                     </Route>
-                    
+
                     <Route path="*" element={<ErrorPage />} />
                 </Routes>
             </BrowserRouter>
