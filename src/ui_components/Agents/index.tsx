@@ -151,6 +151,24 @@ export default function Agents() {
   const [allConnections, setAllConnections] = useState<ConnectionOption[]>([]);
   const [workflows, setWorkflows] = useState<AutomationItem[]>([]);
 
+  // Dialog States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isRunModalOpen, setIsRunModalOpen] = useState(false);
+  const [isInfoSheetOpen, setIsInfoSheetOpen] = useState(false);
+
+  // Selected Agents for Actions
+  const [selectedRunAgent, setSelectedRunAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
+  const [isOpeningRun, setIsOpeningRun] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const topLevelAgents = agents.filter(a => !a.parent_agent);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedAgents = topLevelAgents.slice(startIndex, startIndex + itemsPerPage);
+
   // console.log("agents", agents);
   useEffect(() => {
     fetchAgents();

@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Shield, Activity } from 'lucide-react'
+import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Shield, Activity, Palette } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -63,6 +63,8 @@ export function SidebarIconExample() {
         return "Guardrails";
       case "/evals":
         return "Live Evaluations";
+      case "/ui-designer":
+        return "UI Designer";
       default:
         return "Workflow Builder";
     }
@@ -110,6 +112,11 @@ export function SidebarIconExample() {
       title: "Live Evals",
       url: "/evals",
       icon: <Activity size={20} />,
+    },
+    {
+      title: "UI Designer",
+      url: "/ui-designer",
+      icon: <Palette size={20} />,
     },
   ]
 

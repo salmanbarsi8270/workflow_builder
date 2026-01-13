@@ -15,6 +15,12 @@ import Templates from './ui_components/Templates';
 import Agents from './ui_components/Agents';
 import Guardrails from './ui_components/Guardrails';
 import LiveEvals from './ui_components/Evals';
+import UIDesigner from './ui_components/UIDesigner';
+
+function UIDesignerWrapper() {
+    const { user } = useUser();
+    return <UIDesigner userId={user?.id || ''} />;
+}
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const location = useLocation();
@@ -57,6 +63,7 @@ export function App() {
                             <Route path="/agents" element={<Agents />} />
                             <Route path="/guardrails" element={<Guardrails />} />
                             <Route path="/evals" element={<LiveEvals />} />
+                            <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                         </Route>
 
                         <Route path="*" element={<ErrorPage />} />
