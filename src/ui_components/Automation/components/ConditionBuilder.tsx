@@ -126,7 +126,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
 
     useEffect(() => {
         if (isInternalChangeRef.current) {
-            isInternalChangeRef.current = false; // RESET 
+            isInternalChangeRef.current = false; // Reset to stop loop
             onChange(configs);
             lastValueRef.current = configs;
         }
@@ -147,7 +147,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
     };
 
     const lastBranch = branchesArr.length > 0 ? branchesArr[branchesArr.length - 1] : '';
-    const isLastElse = lastBranch && typeof lastBranch === 'string' && lastBranch.toLowerCase() === 'else';
+    const isLastElse = typeof lastBranch === 'string' && lastBranch.toLowerCase() === 'else';
     const conditionalBranches = branchesArr.slice(0, isLastElse ? -1 : undefined);
 
     return (
@@ -333,7 +333,7 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
             </div>
 
             <div className="space-y-3">
-                {Array.isArray(group?.children) && group.children.map((child, index) => (
+                {group.children.map((child, index) => (
                     <div key={child.id} className="relative">
                         {index > 0 && (
                             <div className="absolute -top-3 left-3 h-3 w-px bg-border flex items-center justify-center">

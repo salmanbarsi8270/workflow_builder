@@ -89,13 +89,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [templateDescription, setTemplateDescription] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
 
-    // --- Tree Layout Algorithm (Expanded for Diamonds) ---
-    const onLayout = useCallback((passedNodes?: Node[], passedEdges?: Edge[]) => {
-        const layoutNodes = passedNodes || nodes;
-        const layoutEdges = passedEdges || edges;
-        return calculateLayout(layoutNodes, layoutEdges);
-    }, [nodes, edges]);
-
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
     useEffect(() => {
@@ -109,12 +102,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     status: undefined,
                     duration: undefined,
                     output: undefined
-                },
-                width: undefined, // Ignore layout measurements
-                height: undefined,
-                measured: undefined,
-                selected: undefined,
-                dragging: undefined
+                }
             });
 
             const currentNodesStr = JSON.stringify(nodes.map(cleanNode));
@@ -147,7 +135,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 setEdges(initialEdges);
             }
         }
-    }, [initialNodes, initialEdges, nodes, edges, setNodes, setEdges]);
+    }, [initialNodes, initialEdges, setNodes, setEdges]); // Removed 'nodes' and 'edges' from deps to avoid self-triggering, but react-hooks/exhaustive-deps will complain. Using local refs instead or stringified versions.
 
     // --- Automatic Migration of Edge Handles ---
     // This ensures that stale flows (using 'parallel-output' handle for condition nodes)
@@ -210,6 +198,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     useEffect(() => {
         nodesRef.current = nodes;
     }, [nodes]);
+
+    // --- Tree Layout Algorithm (Expanded for Diamonds) ---
+    const onLayout = useCallback((passedNodes?: Node[], passedEdges?: Edge[]) => {
+        const layoutNodes = passedNodes || nodes;
+        const layoutEdges = passedEdges || edges;
+
+        return calculateLayout(layoutNodes, layoutEdges);
+    }, [nodes, edges]);
 
     // Socket listeners for run progress
     useEffect(() => {
@@ -454,7 +450,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     };
 
     // Helper: Safely parse branches from string or array
-    const safeParseBranches = useCallback((input: any): string[] => {
+    const safeParseBranches = (input: any): string[] => {
         if (Array.isArray(input)) return input;
         if (typeof input === 'string') {
             try {
@@ -472,7 +468,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             }
         }
         return [];
-    }, []);
+    };
 
     // Helper: Reconcile Parallel Branches (Add/Remove placeholders based on config)
     const reconcileParallelBranches = (
@@ -713,59 +709,59 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     };
 
     const handleUpdateNode = useCallback((label: string, data?: any, immediate: boolean = false) => {
-        setNodes(prevNodes => {
-            let currentNodes = prevNodes;
-            let currentEdges = edges; // Note: using edges from outer scope, usually safe in these effects
-            let structureChanged = false;
+        // Use ref to get latest nodes without re-creating callback on every node change
+        let currentNodes = nodesRef.current;
+        let currentEdges = edges; // edges are also frequent, but let's trust the prop/state 
+        let structureChanged = false;
 
-            const targetNode = currentNodes.find(n => n.id === selectedNodeId);
-            if (!targetNode) return prevNodes;
+        const targetNode = currentNodes.find(n => n.id === selectedNodeId);
+        if (!targetNode) return;
 
-            // --- Parallel/Condition Branch Reconciliation ---
-            const incomingBranches = data?.params?.branches || data?.branches;
+        // --- Parallel/Condition Branch Reconciliation ---
+        const incomingBranches = data?.params?.branches || data?.branches;
 
-            if ((targetNode.type === 'parallel' || targetNode.type === 'loop' || targetNode.type === 'condition')) {
-                const currentBranchesRaw = incomingBranches || (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
-                const branchesArr = safeParseBranches(currentBranchesRaw);
+        if ((targetNode.type === 'parallel' || targetNode.type === 'loop' || targetNode.type === 'condition')) {
+            const currentBranchesRaw = incomingBranches || (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
+            const branchesArr = safeParseBranches(currentBranchesRaw);
 
-                const { nextNodes: reconciledNodes, nextEdges: reconciledEdges, mergeNodeId: recoveredMergeId, normalizedBranches } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
+            const { nextNodes: reconciledNodes, nextEdges: reconciledEdges, mergeNodeId: recoveredMergeId, normalizedBranches } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
+            
+            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches)) {
+                currentNodes = reconciledNodes;
+                currentEdges = reconciledEdges;
+                structureChanged = true;
                 
-                if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches)) {
-                    currentNodes = reconciledNodes;
-                    currentEdges = reconciledEdges;
-                    structureChanged = true;
-                    
-                    // Persist recovered mergeNodeId if it was missing 
-                    if (recoveredMergeId && !targetNode.data.mergeNodeId) {
-                        data = { ...data, mergeNodeId: recoveredMergeId };
-                    }
-                    if (normalizedBranches && targetNode.type === 'condition') {
-                        const updatedParams = { ...(data?.params || targetNode.data.params || {}), branches: normalizedBranches };
-                        data = { ...data, params: updatedParams, branches: normalizedBranches };
-                    }
+                // Persist recovered mergeNodeId if it was missing 
+                if (recoveredMergeId && !targetNode.data.mergeNodeId) {
+                    data = { ...data, mergeNodeId: recoveredMergeId };
+                }
+                if (normalizedBranches && targetNode.type === 'condition') {
+                    const updatedParams = { ...(data?.params || targetNode.data.params || {}), branches: normalizedBranches };
+                    data = { ...data, params: updatedParams, branches: normalizedBranches };
                 }
             }
+        }
 
-            const updatedNodes = currentNodes.map((node) => {
-                if (node.id === selectedNodeId) {
-                    return { ...node, data: { ...node.data, ...data, label: label, isPlaceholder: false } };
-                }
-                return node;
-            });
-
-            // If structure changed (reconcile added/removed nodes), run layout.
-            // Otherwise just update the specific node.
-            const finalNodes = structureChanged ? onLayout(updatedNodes, currentEdges) : updatedNodes;
-
-            if (structureChanged) setEdges(currentEdges);
-
-            if (immediate) {
-                // Use a timeout or queue to avoid updating during render if possible, 
-                // but handleUpdateNode is usually called from user events.
-                onAutoSave(finalNodes, currentEdges);
+        const updatedNodes = currentNodes.map((node) => {
+            if (node.id === selectedNodeId) {
+                return { ...node, data: { ...node.data, ...data, label: label, isPlaceholder: false } };
             }
-            return finalNodes;
+            return node;
         });
+
+        // If structure changed (reconcile added/removed nodes), run layout.
+        // Otherwise just update the specific node.
+        const finalNodes = structureChanged ? onLayout(updatedNodes, currentEdges) : updatedNodes;
+
+        setNodes(finalNodes);
+        
+        if (structureChanged) {
+            setEdges(currentEdges);
+        }
+
+        if (immediate) {
+             onAutoSave(finalNodes, currentEdges);
+        }
     }, [selectedNodeId, edges, onLayout, onAutoSave, setNodes, setEdges]);
 
     const handleDeleteNode = (targetId?: string) => {
@@ -1223,7 +1219,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (branches.length > 0) {
                         const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
                         
-                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || (normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase())))) {
+                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()))) {
                              nextEdges = rEdges;
                              nextNodes = rNodes.map(n => {
                                  if (n.id === node.id) {
