@@ -15,6 +15,7 @@ import { API_URL } from "@/ui_components/api/apiurl"
 import { Check, Copy, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 
 interface HTTPFormProps {
     data: any;
@@ -42,7 +43,9 @@ export default function HTTPForm({ data: nodeData, params, onChange, disabled, n
     // WEBHOOK TRIGGER VIEW
     if (nodeData.actionId === 'webhook' || nodeData.action === 'webhook' || nodeData.trigger === 'webhook') {
         // Construct Webhook URL
-        const webhookUrl = flowId ? `${API_URL}/api/webhooks/${flowId}` : 'Save workflow to generate URL';
+        const isWorkerMode = params.executionMode !== 'direct'; // Default to true (Queue)
+        const workerQuery = isWorkerMode ? '' : '?worker=false';
+        const webhookUrl = flowId ? `${API_URL}/api/webhooks/${flowId}${workerQuery}` : 'Save workflow to generate URL';
 
         const handleCopy = () => {
             if (!flowId) {
@@ -55,16 +58,77 @@ export default function HTTPForm({ data: nodeData, params, onChange, disabled, n
             setTimeout(() => setCopied(false), 2000);
         };
 
+        const toggleMethod = (method: string) => {
+            const currentMethods = Array.isArray(params.methods) ? params.methods : ['GET', 'POST'];
+            if (currentMethods.includes(method)) {
+                // Don't allow emptying the list completely? or allow it
+                if (currentMethods.length === 1) return; // minimal one
+                handleChange('methods', currentMethods.filter((m: string) => m !== method));
+            } else {
+                handleChange('methods', [...currentMethods, method]);
+            }
+        };
+
         return (
             <div className="space-y-6">
+                {/* Execution Mode */}
+                <div className="p-4 bg-muted/30 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                            Execution Mode
+                            {isWorkerMode ? (
+                                <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full border border-blue-500/20">Async / Queue</span>
+                            ) : (
+                                <span className="text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full border border-amber-500/20">Sync / Direct</span>
+                            )}
+                        </Label>
+                        <Switch
+                            checked={!isWorkerMode}
+                            onCheckedChange={(checked) => handleChange('executionMode', checked ? 'direct' : 'queue')}
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        {isWorkerMode
+                            ? "Requests are queued and processed in the background. Returns immediate success. Best for high volume."
+                            : "Requests are processed immediately. The caller waits for the workflow to complete and receives the final result."}
+                    </p>
+                </div>
+
+                {/* Allowed Methods */}
+                <div className="space-y-3">
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                        Allowed Methods
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                        {['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'].map((method) => {
+                            const isSelected = (Array.isArray(params.methods) ? params.methods : ['GET', 'POST']).includes(method);
+                            return (
+                                <div
+                                    key={method}
+                                    onClick={() => !disabled && toggleMethod(method)}
+                                    className={`
+                                        cursor-pointer px-3 py-1.5 rounded-md text-xs font-semibold border transition-all select-none
+                                        ${isSelected
+                                            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                            : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                        }
+                                        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}
+                                >
+                                    {method}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <div className="p-4 bg-muted/30 border rounded-lg space-y-3">
                     <div className="flex items-center gap-2 text-primary font-medium">
                         <Globe className="h-4 w-4" />
                         <h3>Webhook URL</h3>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Send a POST request to this URL to trigger this workflow.
-                        The JSON body of the request will be available in the trigger output.
+                        Send a request to this URL to trigger this workflow.
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                         <div className="relative flex-1">
@@ -91,7 +155,7 @@ export default function HTTPForm({ data: nodeData, params, onChange, disabled, n
                         Test Command (cURL)
                     </Label>
                     <div className="bg-slate-950 text-slate-50 p-3 rounded-md font-mono text-[10px] overflow-x-auto whitespace-pre-wrap">
-                        {`curl -X POST "${webhookUrl}" \\
+                        {`curl -X ${(Array.isArray(params.methods) ? params.methods[0] : 'POST')} "${webhookUrl}" \\
 -H "Content-Type: application/json" \\
 -d '{"message": "Hello from frontend"}'`}
                     </div>
