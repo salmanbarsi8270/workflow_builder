@@ -29,14 +29,14 @@ export interface Agent {
   connectionId?: string;
   connection_id?: string;
   parent_agent?: string | null;
-  tools?: { 
-      name: string; 
-      type?: 'piece' | 'mcp' | 'workflow';
-      piece?: string; 
-      action?: string; 
-      mcpConfig?: MCPConfig; 
-      connectionId?: string;
-      workflowId?: string;
+  tools?: {
+    name: string;
+    type?: 'piece' | 'mcp' | 'workflow';
+    piece?: string;
+    action?: string;
+    mcpConfig?: MCPConfig;
+    connectionId?: string;
+    workflowId?: string;
   }[];
   sub_agents?: Agent[];
   subagents?: Agent[];
