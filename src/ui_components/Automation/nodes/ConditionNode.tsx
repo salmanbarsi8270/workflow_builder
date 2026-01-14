@@ -114,10 +114,8 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
             {/* Output Handles - Dynamic based on branches */}
             {(() => {
                 const branches = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
-                return branches.map((branch: string, i: number) => {
-                    let handleId = branch.toLowerCase();
-                    if (branch.toLowerCase() === 'if') handleId = 'true';
-                    if (branch.toLowerCase() === 'else') handleId = 'false';
+                return branches.map((_: string, i: number) => {
+                    const handleId = String(i);
                     
                     return (
                         <Handle

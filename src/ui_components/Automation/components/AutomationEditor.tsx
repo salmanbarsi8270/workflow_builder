@@ -1215,7 +1215,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (branches.length > 0) {
                         const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
                         
-                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()))) {
+                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches?.map((b: string) => b.toLowerCase()))) {
                              nextEdges = rEdges;
                              nextNodes = rNodes.map(n => {
                                  if (n.id === node.id) {
