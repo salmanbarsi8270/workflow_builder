@@ -353,7 +353,7 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
                                 onRemove={removeChild}
                             />
                         ) : (
-                            <div className="group/rule relative p-3 rounded-lg border bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all">
+                            <div className="group/rule relative p-3 rounded-lg border bg-card/50 transition-all">
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 

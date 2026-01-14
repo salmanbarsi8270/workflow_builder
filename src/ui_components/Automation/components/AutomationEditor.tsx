@@ -632,10 +632,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Ensure correct handle
                 let expectedHandleId = 'parallel-output';
                 if (isCondition) {
-                    const lowerLabel = branchName.toLowerCase();
-                    if (lowerLabel === 'if') expectedHandleId = 'true';
-                    else if (lowerLabel === 'else') expectedHandleId = 'false';
-                    else expectedHandleId = lowerLabel;
+                    // Use branch index as handle ID for multi-branch conditions
+                    expectedHandleId = String(i);
                 }
 
                 if (edge.sourceHandle !== expectedHandleId || edge.data?.label !== branchName) {
@@ -674,13 +672,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 };
                 nextNodes.push(placeholder);
 
-                // Determine Source Handle ID based on node type and branch name
+                // Determine Source Handle ID based on node type and branch index
                 let handleId = 'parallel-output';
                 if (isCondition) {
-                    const lowerId = branchName.toLowerCase();
-                    if (lowerId === 'if') handleId = 'true';
-                    else if (lowerId === 'else') handleId = 'false';
-                    else handleId = lowerId;
+                    // Use branch index as handle ID for multi-branch conditions
+                    handleId = String(i);
                 }
 
                 // Edge: Source -> Placeholder
