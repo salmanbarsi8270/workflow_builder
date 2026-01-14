@@ -606,7 +606,7 @@ const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disa
                         No 'Build Object' steps found.
                     </div>
                 )}
-                {availableNodes.map(node => (
+                {availableNodes.map((node:any) => (
                     <SelectItem key={node.id} value={node.id}>
                         <div className="flex flex-col text-left">
                             <span className="font-medium">{node.data.label || node.id}</span>
