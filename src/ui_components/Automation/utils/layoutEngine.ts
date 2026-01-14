@@ -2,7 +2,7 @@ import { type Node, type Edge, Position } from '@xyflow/react';
 
 const NODE_HEIGHT = 100;
 const NODE_WIDTH = 280;
-const NODE_GAP_Y = 100; 
+const NODE_GAP_Y = 140; 
 const NODE_GAP_X = 60; 
 
 /**
@@ -305,11 +305,11 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
                     return 0;
                 }
                 const branches = (sourceNode.data.params as any)?.branches || (sourceNode.data.branches as string[]) || [];
-                const labelA = edgeA?.data?.label;
-                const labelB = edgeB?.data?.label;
+                const labelA = (edgeA?.data?.label as string) || (edgeA?.sourceHandle === 'true' ? 'If' : (edgeA?.sourceHandle === 'false' ? 'Else' : ''));
+                const labelB = (edgeB?.data?.label as string) || (edgeB?.sourceHandle === 'true' ? 'If' : (edgeB?.sourceHandle === 'false' ? 'Else' : ''));
 
-                const indexA = branches.indexOf(labelA);
-                const indexB = branches.indexOf(labelB);
+                const indexA = branches.findIndex((b: string) => b.toLowerCase() === labelA.toLowerCase());
+                const indexB = branches.findIndex((b: string) => b.toLowerCase() === labelB.toLowerCase());
 
                 if (indexA !== -1 && indexB !== -1) {
                     return indexA - indexB;
@@ -401,7 +401,16 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
              if (branches.length > 0) {
                  const branchTargets: (string|null)[] = [];
                  branches.forEach((branchName: string) => {
-                     const edge = outgoing.find(e => e.data?.label === branchName || (branchName === 'True' && e.sourceHandle === 'true'));
+                     const lowerName = branchName.toLowerCase();
+                     const edge = outgoing.find(e => {
+                         const label = (e.data as any)?.label?.toLowerCase();
+                         const handle = e.sourceHandle?.toLowerCase();
+                         
+                         if (label === lowerName) return true;
+                         if (lowerName === 'if' && handle === 'true') return true;
+                         if (lowerName === 'else' && handle === 'false') return true;
+                         return false;
+                     });
                      branchTargets.push(edge ? edge.target : null);
                  });
                  return branchTargets;

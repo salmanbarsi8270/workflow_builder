@@ -94,14 +94,14 @@ export function SidebarIconExample() {
       icon: <HugeiconsIcon icon={Layout01Icon} size={20} />,
     },
     {
-      title: "AI Agents",
-      url: "/agents",
-      icon: <Bot size={20} />,
-    },
-    {
       title: "Automations",
       url: "/automation",
       icon: <Workflow size={20} />,
+    },
+    {
+      title: "AI Agents",
+      url: "/agents",
+      icon: <Bot size={20} />,
     },
     {
       title: "Guardrails",

@@ -101,10 +101,12 @@ export default function CustomEdge({
   });
 
   // CUSTOM PATH: For nodes entering a Merge Node (Convergence Point)
-  // We force a "Merge Bus" line at targetY - 40 to ensure symmetry
+  // We force a "Merge Bus" line to ensure symmetry
   const isTargetMergeNode = targetNode?.data?.isMergeNode;
   if (isTargetMergeNode) {
-    const mergeY = targetY; // Bus aligned with Node (was targetY - 40)
+    const verticalGap = Math.abs(targetY - sourceY);
+    const busOffset = verticalGap > 80 ? 40 : verticalGap * 0.5;
+    const mergeY = targetY - busOffset;
     edgePath = `M ${sourceX},${sourceY} L ${sourceX},${mergeY} L ${targetX},${mergeY} L ${targetX},${targetY}`;
 
     // Position label/button on the vertical segment coming from source

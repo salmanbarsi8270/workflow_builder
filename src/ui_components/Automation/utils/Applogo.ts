@@ -14,6 +14,8 @@ import utility from '@/assets/app-logos/utility.png';
 import wait from '@/assets/app-logos/wait.png';
 import agent from '@/assets/app-logos/agent.png';
 import form from '@/assets/app-logos/form.png';
+import email_utils from '@/assets/app-logos/email-utils.png';
+import data_icon from '@/assets/app-logos/data.png';
 
 
 export const AppLogoMap: Record<string, string> = {
@@ -38,5 +40,7 @@ export const AppLogoMap: Record<string, string> = {
   'google_calendar': '/google_calendar.png',
   'google-calendar': '/google_calendar.png',
   'calendar': '/google_calendar.png',
+  'email-utils': email_utils,
+  'data': data_icon,
 };
 

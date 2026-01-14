@@ -16,6 +16,7 @@ export interface PieceOptionsRequest {
 export async function getPieces() {
     const response = await fetch(`${API_URL}/api/pieces`);
     const data = await response.json();
+    // console.log("pieces", data)
     return data;
 }
 
