@@ -65,50 +65,53 @@ function createDefaultGroup(): ConditionGroup {
 }
 
 export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabled, branches = ['If', 'Else'] }: ConditionBuilderProps) => {
+    const branchesArr = Array.isArray(branches) ? branches : [];
+
     // Value: { 0: ConditionGroup, 1: ConditionGroup, ... }
     const [configs, setConfigs] = useState<Record<string, ConditionGroup>>(value || {});
     const [expandedBranches, setExpandedBranches] = useState<Set<number>>(new Set([0]));
-    const [prevBranches, setPrevBranches] = useState<string[]>(branches);
+    const [prevBranches, setPrevBranches] = useState<string[]>(branchesArr);
 
     // Sync configs when branches change (e.g. insertion/deletion/reorder)
     useEffect(() => {
-        if (!branches || !branches.length) return;
+        const currentBranches = Array.isArray(branches) ? branches : [];
+        if (!currentBranches.length) return;
         
         // Detect additions/deletions/shifts to avoid losing logic data
-        if (JSON.stringify(branches) !== JSON.stringify(prevBranches)) {
+        if (JSON.stringify(currentBranches) !== JSON.stringify(prevBranches)) {
             const newConfigs = { ...configs };
             
-            if (branches.length > prevBranches.length) {
+            if (currentBranches.length > prevBranches.length) {
                 // Addition detected - shift configs forward from insertion point
-                const insertIdx = branches.findIndex((b, i) => b !== prevBranches[i]);
-                if (insertIdx !== -1 && insertIdx < branches.length - 1) {
-                    for (let i = branches.length - 2; i >= insertIdx; i--) {
+                const insertIdx = currentBranches.findIndex((b, i) => b !== prevBranches[i]);
+                if (insertIdx !== -1 && insertIdx < currentBranches.length - 1) {
+                    for (let i = currentBranches.length - 2; i >= insertIdx; i--) {
                         if (newConfigs[i]) newConfigs[i + 1] = newConfigs[i];
                         else delete newConfigs[i + 1];
                     }
                     delete newConfigs[insertIdx]; // Fresh start for the new branch
                 }
-            } else if (branches.length < prevBranches.length) {
+            } else if (currentBranches.length < prevBranches.length) {
                 // Deletion detected - shift configs back from deletion point
-                const deleteIdx = prevBranches.findIndex((b, i) => b !== branches[i]);
+                const deleteIdx = prevBranches.findIndex((b, i) => b !== currentBranches[i]);
                 if (deleteIdx !== -1) {
                     for (let i = deleteIdx; i < prevBranches.length - 1; i++) {
                         if (newConfigs[i + 1]) newConfigs[i] = newConfigs[i + 1];
                         else delete newConfigs[i];
                     }
-                    delete newConfigs[prevBranches.length - 2]; // Remove the now-invalid last index
+                    delete newConfigs[prevBranches.length - 2]; 
                 }
             }
             
             setConfigs(newConfigs);
-            setPrevBranches(branches);
+            setPrevBranches(currentBranches);
         }
 
         // Also sync if 'value' came from prop (e.g. external save/load)
         if (value && JSON.stringify(value) !== JSON.stringify(configs)) {
             setConfigs(value);
         }
-    }, [branches, value, prevBranches]);
+    }, [branches, value, prevBranches, configs]);
 
     useEffect(() => {
         onChange(configs);
@@ -127,8 +130,9 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
         });
     };
 
-    // Filter out the last branch if it's "Else"
-    const conditionalBranches = branches.slice(0, branches.length > 0 && branches[branches.length - 1].toLowerCase() === 'else' ? -1 : undefined);
+    const lastBranch = branchesArr.length > 0 ? branchesArr[branchesArr.length - 1] : '';
+    const isLastElse = typeof lastBranch === 'string' && lastBranch.toLowerCase() === 'else';
+    const conditionalBranches = branchesArr.slice(0, isLastElse ? -1 : undefined);
 
     return (
         <div className="space-y-4">
@@ -190,7 +194,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                     </div>
                 )}
                 
-                {branches.length > 0 && branches[branches.length - 1].toLowerCase() === 'else' && (
+                {isLastElse && (
                     <div className="px-3 py-2 border border-dashed rounded-lg bg-muted/10 opacity-60">
                          <span className="text-xs font-medium italic">Else branch (Fallback) - No conditions needed</span>
                     </div>

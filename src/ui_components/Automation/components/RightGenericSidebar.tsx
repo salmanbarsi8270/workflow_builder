@@ -590,7 +590,19 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
 
                                         {FormComponent ? (
                                             <div className="space-y-4">
-                                                <FormComponent data={selectedNode.data} params={localParams} onChange={handleParamChange} parameters={actionDef?.parameters || []} errors={validationErrors} nodes={nodes} edges={edges} nodeId={selectedNode.id} disabled={isLocked} flowId={flowId} />
+                                                <FormComponent 
+                                                    data={selectedNode.data} 
+                                                    params={localParams} 
+                                                    onChange={handleParamChange} 
+                                                    parameters={actionDef?.parameters || []} 
+                                                    errors={validationErrors} 
+                                                    nodes={nodes} 
+                                                    edges={edges} 
+                                                    nodeId={selectedNode.id} 
+                                                    nodeType={selectedNode.type}
+                                                    disabled={isLocked} 
+                                                    flowId={flowId} 
+                                                />
                                             </div>
                                         ) : (
                                             <div className="p-8 border border-dashed rounded-lg text-center space-y-3">

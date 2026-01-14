@@ -116,7 +116,7 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                         name: piece.name || piece.label || id,
                         description: piece.description || `Integrations and actions for ${piece.name || id}`,
                         icon: piece.icon || piece.logo || id,
-                        category: piece.category || (['utility', 'logic', 'delay', 'schedule', 'http'].includes(id) ? 'utility' : (id === 'agent' ? 'agent' : 'app')),
+                        category: piece.category || (['utility', 'logic', 'delay', 'schedule', 'http', 'email-utils', 'data'].includes(id) ? 'utility' : (id === 'agent' ? 'agent' : 'app')),
                         actions: actions
                     } as AppDefinition;
                 });

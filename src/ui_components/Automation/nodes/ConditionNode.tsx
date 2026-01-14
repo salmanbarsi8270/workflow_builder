@@ -127,15 +127,14 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                             id={handleId}
                             style={{
                                 background: i === 0 ? '#22c55e' : (i === branches.length - 1 ? '#ef4444' : '#6366f1'),
-                                width: 12,
-                                height: 12,
-                                bottom: -6,
+                                width: 8,
+                                height: 8,
+                                bottom: -4,
                                 left: '50%',
                                 transform: 'translateX(-50%)',
-                                border: '2px solid white',
-                                boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                                border: '1px solid white',
                                 zIndex: 50,
-                                opacity: 0 // Invisible but functionally "visible" and interactive for the engine
+                                opacity: 0.05 // Almost invisible but exists for the engine and tiny hint on hover
                             }}
                         />
                     );

@@ -20,7 +20,7 @@ import { ConditionBuilder } from "@/ui_components/Automation/components/Conditio
 
 
 // Robust String Array Input
-const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, isBranches?: boolean }) => {
+const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, nodeType }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, isBranches?: boolean, nodeType?: string }) => {
     // Parse value into array of strings
     const parseValue = (val: any): string[] => {
         if (Array.isArray(val)) return val;
@@ -32,6 +32,22 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }
 
     const [items, setItems] = useState<string[]>(parseValue(value));
 
+    // Helper to recount and re-label "Else If" branches correctly
+    const rebalanceConditionLabels = (newItems: string[]) => {
+        if (nodeType !== 'condition') return newItems;
+        
+        // Count how many "Else If" (or "else if") branches we have
+        let elseIfCount = 0;
+        return newItems.map((_item, index) => {
+            if (index === 0) return 'If';
+            if (index === newItems.length - 1) return 'Else';
+            
+            // It's an internal branch
+            elseIfCount++;
+            return `Else If ${elseIfCount}`;
+        });
+    };
+
     // Sync from parent props
     useEffect(() => {
         const parsed = parseValue(value);
@@ -41,15 +57,19 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }
     }, [value]);
 
     const handleUpdate = (newItems: string[]) => {
-        setItems(newItems);
-        onChange(newItems);
+        const balancedItems = rebalanceConditionLabels(newItems);
+        setItems(balancedItems);
+        onChange(balancedItems);
     };
 
     const addItem = () => {
         let newItems;
-        if (isBranches && items.length > 0 && items[items.length - 1].toLowerCase() === 'else') {
-            // Insert before Else
+        const isCondition = nodeType === 'condition';
+        if (isBranches && isCondition && items.length > 0 && items[items.length - 1].toLowerCase() === 'else') {
+            // Insert before else
             newItems = [...items.slice(0, -1), 'Else If', items[items.length - 1]];
+        } else if (isBranches && nodeType === 'parallel') {
+            newItems = [...items, `Branch ${items.length + 1}`];
         } else {
             newItems = [...items, `Item ${items.length + 1}`];
         }
@@ -70,7 +90,9 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }
     return (
         <div className="flex flex-col gap-2">
             {items.map((item, index) => {
-                const isProtected = isBranches && (index === 0 || index === items.length - 1);
+                const isCondition = nodeType === 'condition';
+                const lowerItem = item.toLowerCase();
+                const isProtected = isBranches && isCondition && (lowerItem === 'if' || lowerItem === 'else' || index === 0 || index === items.length - 1);
                 
                 return (
                     <div key={index} className="flex items-center gap-2">
@@ -112,7 +134,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches }
                 disabled={disabled}
             >
                 <Plus className="h-3 w-3" />
-                {isBranches ? 'Add Else If' : 'Add Item'}
+                {isBranches ? (nodeType === 'parallel' ? 'Add Branch' : 'Add Else If') : 'Add Item'}
             </Button>
             <p className="text-[10px] text-muted-foreground italic mt-1">
                 {placeholder}
@@ -131,6 +153,7 @@ interface GenericActionFormProps {
     edges?: any[]; // added edges
     errors?: Record<string, string>;
     nodeId?: string;
+    nodeType?: string;
 }
 
 
@@ -394,7 +417,7 @@ const AgentSelector = ({
     );
 };
 
-export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId }: GenericActionFormProps) {
+export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId, nodeType }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
 
@@ -578,13 +601,14 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             </div>
                         )}
 
-                        {param.type === 'array' && (
+                         {param.type === 'array' && (
                             <StringArrayInput
                                 value={params[param.name]}
                                 onChange={(val) => handleChange(param.name, val)}
                                 placeholder={param.description + " (e.g. [\"data1\", \"data2\"])"}
                                 disabled={disabled}
                                 isBranches={param.name === 'branches'}
+                                nodeType={nodeType}
                             />
                         )}
 

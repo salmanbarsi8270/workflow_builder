@@ -463,17 +463,24 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         if (!isParallel && !isCondition) return { nextNodes: currentNodes, nextEdges: currentEdges };
 
-        const newBranches = safeParseBranches(rawBranches);
+        let newBranches = safeParseBranches(rawBranches);
+        if (isCondition && newBranches.length > 0) {
+            let elseIfCount = 0;
+            newBranches = newBranches.map((_item, index) => {
+                if (index === 0) return 'If';
+                if (index === newBranches.length - 1 && newBranches.length > 1) return 'Else';
+                elseIfCount++;
+                return `Else If ${elseIfCount}`;
+            });
+        }
         const parentId = parallelNode.id;
         let mergeNodeId: string | null = parallelNode.data?.mergeNodeId as string;
         let nextNodes = [...currentNodes];
         let nextEdges = [...currentEdges];
 
-        // Find existing edges from the single "parallel-output" handle
-        const existingBranchEdges = nextEdges.filter(e =>
-            e.source === parentId &&
-            (e.sourceHandle === 'parallel-output' || e.sourceHandle?.startsWith('branch-'))
-        );
+        // Find existing edges from the node.
+        // We catch ALL edges so we can clean up any "ghost" lines that don't belong to a branch.
+        const existingBranchEdges = nextEdges.filter(e => e.source === parentId);
 
         // Helper to find the Merge Node by following the first branch to its "end"
         const findMergeNodeDeep = (startNodeId: string): string | null => {
@@ -606,9 +613,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Ensure correct handle
                 let expectedHandleId = 'parallel-output';
                 if (isCondition) {
-                    expectedHandleId = branchName.toLowerCase();
-                    if (expectedHandleId === 'if') expectedHandleId = 'true';
-                    if (expectedHandleId === 'else') expectedHandleId = 'false';
+                    const lowerLabel = branchName.toLowerCase();
+                    if (lowerLabel === 'if') expectedHandleId = 'true';
+                    else if (lowerLabel === 'else') expectedHandleId = 'false';
+                    else expectedHandleId = lowerLabel;
                 }
 
                 if (edge.sourceHandle !== expectedHandleId || edge.data?.label !== branchName) {
@@ -616,6 +624,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         if (e.id === edge.id) return { ...e, sourceHandle: expectedHandleId, data: { ...e.data, label: branchName } };
                         return e;
                     });
+                }
+                
+                // If it was pointed to merge, ensure that edge exists and is clean
+                if (mergeNodeId) {
+                    const hasMergeEdge = nextEdges.some(e => e.source === node.id && e.target === mergeNodeId);
+                    if (!hasMergeEdge && node.data.isBranchPlaceholder) {
+                        nextEdges.push({
+                            id: `e-${node.id}-${mergeNodeId}`,
+                            source: node.id,
+                            target: mergeNodeId,
+                            type: 'custom'
+                        });
+                    }
                 }
 
             } else {
@@ -637,9 +658,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // Determine Source Handle ID based on node type and branch name
                 let handleId = 'parallel-output';
                 if (isCondition) {
-                    handleId = branchName.toLowerCase();
-                    if (handleId === 'if') handleId = 'true';
-                    if (handleId === 'else') handleId = 'false';
+                    const lowerId = branchName.toLowerCase();
+                    if (lowerId === 'if') handleId = 'true';
+                    else if (lowerId === 'else') handleId = 'false';
+                    else handleId = lowerId;
                 }
 
                 // Edge: Source -> Placeholder
@@ -664,7 +686,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             }
         }
 
-        return { nextNodes, nextEdges };
+        return { nextNodes, nextEdges, mergeNodeId, normalizedBranches: newBranches };
     };
 
     const handleUpdateNode = (label: string, data?: any, immediate: boolean = false) => {
@@ -681,14 +703,21 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             const currentBranchesRaw = incomingBranches || (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
             const branchesArr = safeParseBranches(currentBranchesRaw);
 
-            // Always reconcile to ensure handles/edges match the current branches state
-            // especially after my recent change to use true/false handles
-            const { nextNodes: reconciledNodes, nextEdges: reconciledEdges } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
+            const { nextNodes: reconciledNodes, nextEdges: reconciledEdges, mergeNodeId: recoveredMergeId, normalizedBranches } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
             
-            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(currentEdges) !== JSON.stringify(reconciledEdges)) {
+            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches)) {
                 currentNodes = reconciledNodes;
                 currentEdges = reconciledEdges;
                 structureChanged = true;
+                
+                // Persist recovered mergeNodeId if it was missing 
+                if (recoveredMergeId && !targetNode.data.mergeNodeId) {
+                    data = { ...data, mergeNodeId: recoveredMergeId };
+                }
+                if (normalizedBranches && targetNode.type === 'condition') {
+                    const updatedParams = { ...(data?.params || targetNode.data.params || {}), branches: normalizedBranches };
+                    data = { ...data, params: updatedParams, branches: normalizedBranches };
+                }
             }
         }
 
@@ -1012,7 +1041,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 icon: app.id || app.icon || 'default',
                 appName: app.name,
                 ...app,
-                branches: (isParallel || isCondition) ? (app.parameters?.find((p: any) => p.name === 'branches')?.default || ['If', 'Else']) : undefined
+                branches: isCondition ? ['If', 'Else'] : isParallel ? ['Branch 1', 'Branch 2'] : undefined
             },
             type: isCondition ? 'condition' : isParallel ? 'parallel' : isLoop ? 'loop' : isWait ? 'wait' : 'custom'
         };
@@ -1045,7 +1074,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         }
 
         if (isCondition || isParallel) {
-            const branches = (newNode.data.branches as string[]) || (isCondition ? ['If', 'Else'] : ['Branch 1', 'Branch 2']);
+            const branches = (newNode.data.branches as string[]) || (isCondition ? ['if', 'else'] : ['Branch 1', 'Branch 2']);
             const mergeNodeId = Math.random().toString(36).substr(2, 9);
             const mergeNode: Node = {
                 id: mergeNodeId,
@@ -1066,8 +1095,17 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 };
                 branchPlaceholders.push(placeholder);
 
+                // Determine Handle ID
+                let handleId = 'parallel-output';
+                if (isCondition) {
+                    const lowerBranch = branchName.toLowerCase();
+                    if (lowerBranch === 'if') handleId = 'true';
+                    else if (lowerBranch === 'else') handleId = 'false';
+                    else handleId = branchName.toLowerCase();
+                }
+
                 newEdges.push(
-                    { id: `e-${newNodeId}-${placeholderId}`, source: newNodeId, target: placeholderId, sourceHandle: 'parallel-output', data: { label: branchName }, type: 'custom' },
+                    { id: `e-${newNodeId}-${placeholderId}`, source: newNodeId, target: placeholderId, sourceHandle: handleId, data: { label: branchName }, type: 'custom' },
                     { id: `e-${placeholderId}-${mergeNodeId}`, source: placeholderId, target: mergeNodeId, type: 'custom' }
                 );
             });
@@ -1152,14 +1190,45 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             const activeNodeIds = new Set(nodes.map(n => n.id));
             const validEdges = edges.filter(e => activeNodeIds.has(e.source) && activeNodeIds.has(e.target));
 
-            if (validEdges.length !== edges.length) {
-                console.log("Cleaning up orphaned edges...");
-                setEdges(validEdges);
-                // Return here to allow next render to process clean state
+            // 2. Structural Integrity: Ensure logic branches converge & use correct handles
+            let structureFixed = false;
+            let nextEdges = [...validEdges];
+            let nextNodes = [...nodes];
+
+            nodes.forEach(node => {
+                const isLogic = node.type === 'condition' || node.type === 'parallel';
+                if (isLogic) {
+                    const branches = safeParseBranches((node.data.params as any)?.branches || node.data.branches || (node.type === 'condition' ? ['If', 'Else'] : []));
+                    if (branches.length > 0) {
+                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
+                        
+                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches) !== JSON.stringify(normalizedBranches)) {
+                             nextEdges = rEdges;
+                             nextNodes = rNodes.map(n => {
+                                 if (n.id === node.id) {
+                                     let updatedNode = { ...n };
+                                     if (recoveredId) updatedNode.data = { ...updatedNode.data, mergeNodeId: recoveredId };
+                                     if (normalizedBranches) {
+                                         const updatedParams = { ...(updatedNode.data.params || {}), branches: normalizedBranches };
+                                         updatedNode.data = { ...updatedNode.data, params: updatedParams, branches: normalizedBranches };
+                                     }
+                                     return updatedNode;
+                                 }
+                                 return n;
+                             });
+                             structureFixed = true;
+                        }
+                    }
+                }
+            });
+
+            if (structureFixed) {
+                setNodes(onLayout(nextNodes, nextEdges));
+                setEdges(nextEdges);
                 return;
             }
 
-            // 2. Auto-Layout/Fit View
+            // 3. Auto-Layout/Fit View
             const timer = setTimeout(() => {
                 rfInstance?.fitView({ padding: 0.2, duration: 300 });
             }, 100);
