@@ -143,6 +143,143 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
     );
 };
 
+const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes, edges, nodeId }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, nodes: Node[], edges: any[], nodeId?: string }) => {
+    // Parse value into array of {key, value}
+    const parseValue = (val: any): { key: string, value: string }[] => {
+        try {
+            if (typeof val === 'string') {
+                const parsed = JSON.parse(val);
+                return Object.entries(parsed).map(([k, v]) => ({ key: k, value: String(v) }));
+            }
+            if (typeof val === 'object' && val !== null) {
+                return Object.entries(val).map(([k, v]) => ({ key: k, value: String(v) }));
+            }
+        } catch { }
+        return [];
+    };
+
+    const [items, setItems] = useState<{ key: string, value: string }[]>(parseValue(value));
+
+    // Sync from parent props if changed externally
+    useEffect(() => {
+        const parsed = parseValue(value);
+        // Deep compare to avoid loops (simple JSON stringify is sufficient here)
+        if (JSON.stringify(parsed) !== JSON.stringify(items)) {
+            setItems(parsed);
+        }
+    }, [value]);
+
+    const handleUpdate = (newItems: { key: string, value: string }[]) => {
+        setItems(newItems);
+        // Serialize to object
+        const obj: Record<string, string> = {};
+        newItems.forEach(item => {
+            if (item.key) obj[item.key] = item.value;
+        });
+        onChange(obj);
+    };
+
+    const addItem = () => {
+        handleUpdate([...items, { key: '', value: '' }]);
+    };
+
+    const removeItem = (index: number) => {
+        const newItems = items.filter((_, i) => i !== index);
+        handleUpdate(newItems);
+    };
+
+    const updateItem = (index: number, field: 'key' | 'value', val: string) => {
+        const newItems = [...items];
+        newItems[index] = { ...newItems[index], [field]: val };
+        handleUpdate(newItems);
+    };
+
+    const handleVariableSelect = (index: number, v: string) => {
+        const currentVal = items[index].value || '';
+        updateItem(index, 'value', currentVal + v);
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="border rounded-md overflow-hidden bg-background/50">
+                {/* Items */}
+                <div className="divide-y max-h-[300px] overflow-auto">
+                    {items.length === 0 && (
+                        <div className="p-4 text-center text-muted-foreground text-[10px] italic">
+                            No properties defined. Click add below.
+                        </div>
+                    )}
+                    {items.map((item, index) => (
+                        <div key={index} className="flex flex-col gap-2 p-3 group hover:bg-muted/20 transition-colors bg-card/30">
+                            {/* Key Row */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-medium text-muted-foreground uppercase opacity-70 w-8">Key</span>
+                                <Input
+                                    value={item.key}
+                                    onChange={(e) => updateItem(index, 'key', e.target.value)}
+                                    placeholder="key_name"
+                                    className="flex-1 h-7 text-xs font-medium font-mono border shadow-sm bg-background/50 focus:bg-background"
+                                    disabled={disabled}
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground/50 hover:text-red-500 shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition-all"
+                                    onClick={() => removeItem(index)}
+                                    disabled={disabled}
+                                    title="Remove Property"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+
+                            {/* Value Row */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-medium text-muted-foreground uppercase opacity-70 w-8">Val</span>
+                                <div className="flex-1 flex items-center gap-1">
+                                    <Input
+                                        value={item.value}
+                                        onChange={(e) => updateItem(index, 'value', e.target.value)}
+                                        placeholder="Value"
+                                        className="flex-1 h-7 text-xs border shadow-sm bg-background/50 focus:bg-background min-w-0"
+                                        disabled={disabled}
+                                    />
+                                    <VariablePicker
+                                        nodes={nodes}
+                                        edges={edges}
+                                        onSelect={(v) => handleVariableSelect(index, v)}
+                                        currentNodeId={nodeId}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Footer/Add Action */}
+                <div className="p-2 border-t bg-muted/20">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full h-7 text-xs gap-2 text-primary hover:text-primary hover:bg-primary/5"
+                        onClick={addItem}
+                        disabled={disabled}
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Property
+                    </Button>
+                </div>
+            </div>
+
+            {placeholder && (
+                <p className="text-[10px] text-muted-foreground italic px-1">
+                    {placeholder}
+                </p>
+            )}
+        </div>
+    );
+};
+
 interface GenericActionFormProps {
     data: any;
     params: any;
@@ -417,6 +554,71 @@ const AgentSelector = ({
     );
 };
 
+const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disabled }: {
+    value: string,
+    onChange: (val: string) => void,
+    nodes: Node[],
+    currentNodeId?: string,
+    placeholder?: string,
+    disabled?: boolean
+}) => {
+    // Extract step ID from value like {{steps.ID.data...}}
+    const getStepId = (val: string) => {
+        const match = val?.match(/\{\{steps\.(.+?)\.data/);
+        return match ? match[1] : '';
+    };
+
+    const currentStepId = getStepId(value);
+
+    // Filter available nodes (only buildObject steps)
+    const availableNodes = nodes.filter(n =>
+        n.id !== currentNodeId &&
+        n.type !== 'end' &&
+        (n.data?.actionId === 'buildObject' || n.data?.actionId === 'updateObject') // Allow chaining updates if needed, but primarily buildObject
+    );
+
+    const handleSelect = (stepId: string) => {
+        // Construct the variable reference.
+        // We default to the root data object for maximum compatibility with the 'data' piece spreading.
+        const ref = `{{steps.${stepId}.data}}`;
+        onChange(ref);
+    };
+
+    return (
+        <Select
+            value={currentStepId}
+            onValueChange={handleSelect}
+            disabled={disabled}
+        >
+            <SelectTrigger className="w-full">
+                <SelectValue placeholder={placeholder || "Select a Build Object step"}>
+                    {currentStepId ? (
+                        (() => {
+                            const n = nodes.find(node => node.id === currentStepId);
+                            return n ? `${n.data.label || n.id}` : currentStepId;
+                        })()
+                    ) : (placeholder || "Select a Build Object step")}
+                </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+                {availableNodes.length === 0 && (
+                    <div className="p-2 text-center text-xs text-muted-foreground italic">
+                        No 'Build Object' steps found.
+                    </div>
+                )}
+                {availableNodes.map(node => (
+                    <SelectItem key={node.id} value={node.id}>
+                        <div className="flex flex-col text-left">
+                            <span className="font-medium">{node.data.label || node.id}</span>
+                            <span className="text-[10px] text-muted-foreground">{node.data.appName || node.data.piece}</span>
+                        </div>
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+};
+
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId, nodeType }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
@@ -641,6 +843,30 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                     {param.description || (params[param.name] ? 'True' : 'False')}
                                 </Label>
                             </div>
+                        )}
+
+                        {(param.type === 'dictionary') && (
+                            <DictionaryInput
+                                value={params[param.name]}
+                                onChange={(val) => handleChange(param.name, val)}
+                                placeholder={param.description}
+                                disabled={disabled}
+                                nodes={nodes}
+                                edges={edges}
+                                nodeId={nodeId}
+                            />
+                        )}
+
+                        {/* Improved Step Selector for Object Actions */}
+                        {(param.type === 'step-select') && (
+                            <StepSelector
+                                value={params[param.name]}
+                                onChange={(val) => handleChange(param.name, val)}
+                                nodes={nodes}
+                                currentNodeId={nodeId}
+                                placeholder={param.description}
+                                disabled={disabled}
+                            />
                         )}
 
                         {(param.type === 'object' || param.type === 'json') && (
