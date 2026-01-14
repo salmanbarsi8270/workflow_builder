@@ -36,13 +36,13 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
     // Helper to recount and re-label "Else If" branches correctly
     const rebalanceConditionLabels = (newItems: string[]) => {
         if (nodeType !== 'condition') return newItems;
-        
+
         // Count how many "Else If" (or "else if") branches we have
         let elseIfCount = 0;
         return newItems.map((_item, index) => {
             if (index === 0) return 'If';
             if (index === newItems.length - 1) return 'Else';
-            
+
             // It's an internal branch
             elseIfCount++;
             return `Else If ${elseIfCount}`;
@@ -94,7 +94,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
                 const isCondition = nodeType === 'condition';
                 const lowerItem = item.toLowerCase();
                 const isProtected = isBranches && isCondition && (lowerItem === 'if' || lowerItem === 'else' || index === 0 || index === items.length - 1);
-                
+
                 return (
                     <div key={index} className="flex items-center gap-2">
                         <Input
@@ -575,12 +575,30 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 // Find node by ID (1 is trigger)
                 const sourceNode = nodes.find(n => n.id === sourceNodeId || (sourceNodeId === 'trigger' && n.id === '1'));
 
-                if (sourceNode && (sourceNode.data?.params as any)?.properties) {
-                    const sourceProps = (sourceNode.data.params as any).properties as Record<string, any>;
-                    const currentUpdates = params.updates || {};
+                if (sourceNode) {
+                    let sourceProps: Record<string, any> = {};
+                    const nodeParams = (sourceNode.data?.params as any) || {};
 
-                    // Logic to check if we should overwrite or merge
-                    // We'll merge keys and set values to their corresponding step mappings
+                    // Collect properties from buildObject or local dictionary
+                    if (nodeParams.properties) {
+                        try {
+                            sourceProps = typeof nodeParams.properties === 'string'
+                                ? JSON.parse(nodeParams.properties)
+                                : nodeParams.properties;
+                        } catch (e) { }
+                    }
+
+                    // Also merge from updates if it was an updateObject step
+                    if (nodeParams.updates) {
+                        try {
+                            const upds = typeof nodeParams.updates === 'string'
+                                ? JSON.parse(nodeParams.updates)
+                                : nodeParams.updates;
+                            sourceProps = { ...sourceProps, ...upds };
+                        } catch (e) { }
+                    }
+
+                    const currentUpdates = params.updates || {};
                     const newUpdates: Record<string, string> = { ...currentUpdates };
                     let changed = false;
 
@@ -782,7 +800,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             </div>
                         )}
 
-                         {param.type === 'array' && (
+                        {param.type === 'array' && (
                             <StringArrayInput
                                 value={params[param.name]}
                                 onChange={(val) => handleChange(param.name, val)}
