@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,10 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
     const [configs, setConfigs] = useState<Record<string, ConditionGroup>>(value || {});
     const [expandedBranches, setExpandedBranches] = useState<Set<number>>(new Set([0]));
     const [prevBranches, setPrevBranches] = useState<string[]>(branchesArr);
+    
+    // Track last value from parent to avoid loops
+    const lastValueRef = useRef<any>(value);
+    const isInternalChangeRef = useRef<boolean>(false);
 
     // Sync configs when branches change (e.g. insertion/deletion/reorder)
     useEffect(() => {
@@ -102,22 +106,34 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                     delete newConfigs[prevBranches.length - 2]; 
                 }
             }
-            
+            isInternalChangeRef.current = true;
             setConfigs(newConfigs);
             setPrevBranches(currentBranches);
         }
 
         // Also sync if 'value' came from prop (e.g. external save/load)
-        if (value && JSON.stringify(value) !== JSON.stringify(configs)) {
-            setConfigs(value);
+        if (value && JSON.stringify(value) !== JSON.stringify(lastValueRef.current)) {
+            const valStr = JSON.stringify(value);
+            const configsStr = JSON.stringify(configs);
+            
+            if (valStr !== configsStr) {
+                lastValueRef.current = value;
+                isInternalChangeRef.current = false;
+                setConfigs(value);
+            }
         }
-    }, [branches, value, prevBranches, configs]);
+    }, [branches, value, prevBranches]); // Removed configs as dependency to avoid re-triggering on local state change
 
     useEffect(() => {
-        onChange(configs);
-    }, [configs]);
+        if (isInternalChangeRef.current) {
+            isInternalChangeRef.current = false; // RESET 
+            onChange(configs);
+            lastValueRef.current = configs;
+        }
+    }, [configs, onChange]);
 
     const updateBranchConfig = (index: number, newConfig: ConditionGroup) => {
+        isInternalChangeRef.current = true;
         setConfigs(prev => ({ ...prev, [index]: newConfig }));
     };
 
@@ -131,7 +147,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
     };
 
     const lastBranch = branchesArr.length > 0 ? branchesArr[branchesArr.length - 1] : '';
-    const isLastElse = typeof lastBranch === 'string' && lastBranch.toLowerCase() === 'else';
+    const isLastElse = lastBranch && typeof lastBranch === 'string' && lastBranch.toLowerCase() === 'else';
     const conditionalBranches = branchesArr.slice(0, isLastElse ? -1 : undefined);
 
     return (
@@ -317,7 +333,7 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
             </div>
 
             <div className="space-y-3">
-                {group.children.map((child, index) => (
+                {Array.isArray(group?.children) && group.children.map((child, index) => (
                     <div key={child.id} className="relative">
                         {index > 0 && (
                             <div className="absolute -top-3 left-3 h-3 w-px bg-border flex items-center justify-center">
