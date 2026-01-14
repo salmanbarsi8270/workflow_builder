@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,6 +18,8 @@ import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { Workflow as WorkflowIcon } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+
 interface CreateAgentDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -55,7 +56,13 @@ export function CreateAgentDialog({
     const [api_key, setApiKey] = useState<string>('');
     const [mcpTools, setMcpTools] = useState<MCPConfig[]>([]);
     const [files, setFiles] = useState<File[]>([]);
+    // ... previous code ...
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
+
+    // Guardrails State
+    const [enableGuardrails, setEnableGuardrails] = useState(false);
+    // Keep internal bannedWords for Edit mode persistence if needed, but UI is hidden
+    const [bannedWords, setBannedWords] = useState<string[]>([]);
 
     // Flattened agents list for easier lookup and selection
     const allAvailableAgents = useMemo(() => {
@@ -105,6 +112,18 @@ export function CreateAgentDialog({
                     })
                     .catch(err => console.error("Error fetching knowledge:", err));
 
+                // Fetch Guardrails
+                // Fetch Guardrails
+                fetch(`${API_URL}/api/guardrails?agentId=${initialAgent.id}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const hasBannedWords = data.inputGuardrails?.bannedWords?.length > 0;
+                        const hasOutputRules = data.outputGuardrails?.list?.length > 0 || data.outputGuardrails?.emailRedaction;
+                        setBannedWords(data.inputGuardrails?.bannedWords || []);
+                        setEnableGuardrails(hasBannedWords || hasOutputRules);
+                    })
+                    .catch(err => console.error("Error fetching guardrails:", err));
+
             } else {
                 // Create Mode
                 resetForm();
@@ -122,7 +141,13 @@ export function CreateAgentDialog({
         setMcpTools([]);
         setFiles([]);
         setExistingFiles([]);
+        setBannedWords([]);
+
     };
+
+    // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
+
+    // ... existing helper functions ...
 
     async function getapikey(id: string) {
         if (!id) return '';
@@ -184,6 +209,8 @@ export function CreateAgentDialog({
 
         return requiresConnection && !tool.connectionId;
     });
+
+
 
     const handleSave = async () => {
         if (!name.trim()) {
@@ -254,6 +281,32 @@ export function CreateAgentDialog({
 
             if (response.ok) {
                 const savedAgent = await response.json();
+
+                // Handle Guardrails Save
+                // Handle Guardrails Save
+                try {
+                    const defaultOutputConfig = enableGuardrails ? {
+                        list: [{ type: 'email', config: { replacement: '[hidden-email]' } }],
+                        emailRedaction: true
+                    } : { list: [], emailRedaction: false };
+
+                    const defaultInputConfig = enableGuardrails ? {
+                        bannedWords: bannedWords
+                    } : { bannedWords: [] };
+
+                    await fetch(`${API_URL}/api/guardrails`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            agentId: savedAgent.id,
+                            inputGuardrails: defaultInputConfig,
+                            outputGuardrails: defaultOutputConfig
+                        })
+                    });
+                } catch (grError) {
+                    console.error("Error saving guardrails:", grError);
+                    toast.error("Agent saved, but Failed to save Guardrails");
+                }
 
                 // Handle File Uploads (Knowledge Base)
                 if (files.length > 0) {
@@ -708,6 +761,20 @@ export function CreateAgentDialog({
                         )}
                     </div>
 
+                    {/* Guardrails Section */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div className="space-y-0.5">
+                            <Label className="text-base font-semibold text-slate-900 dark:text-white">Enable Guardrails</Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Automatically redact PII (Email, Phone) and filter content.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={enableGuardrails}
+                            onCheckedChange={setEnableGuardrails}
+                        />
+                    </div>
+
                     {/* Sub-Agents Selection */}
                     <div className="grid gap-2">
                         <Label className="text-slate-700 dark:text-white font-medium">Sub-Agents</Label>
@@ -858,7 +925,7 @@ export function CreateAgentDialog({
                         {initialAgent ? "Save Changes" : "Create Agent"}
                     </Button>
                 </DialogFooter>
-            </DialogContent>
+            </DialogContent >
         </Dialog >
     );
 }
