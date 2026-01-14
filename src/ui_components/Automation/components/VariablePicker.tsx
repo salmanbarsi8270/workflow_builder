@@ -37,6 +37,18 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
   const normalizedCurrentNodeId = currentNodeId ? String(currentNodeId) : null;
 
   const checkIsTrigger = (node: Node) => {
+    // Strict Input Check: Only Node "1" or explicit "trigger" ID is the trigger
+    if (node.id === '1' || node.id === 'trigger' || node.id === 'webhook') return true;
+
+    // If the node has a randomly generated ID (usually 9 chars) or uuid, it is an action.
+    // Triggers in this system are strictly single-root and normalized to '1' or 'trigger'.
+    return false;
+
+    /* 
+       LEGACY / DANGEROUS LOGIC REMOVED:
+       The following logic causes false positives for 'http_request' because 'request' is aliased as a trigger
+       in the HTTP piece metadata. Since we can rely on ID in this builder, we disable this check.
+       
     const appName = node.data?.appName;
     const actionId = node.data?.actionId as string;
     const icon = node.data?.icon as string;
@@ -50,7 +62,8 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
     if (piece.triggers?.includes(actionId)) return true;
     if (piece.metadata?.triggers?.[actionId]) return true;
 
-    return false;
+    return false; 
+    */
   };
 
   // Graph Traversal for Scoping
