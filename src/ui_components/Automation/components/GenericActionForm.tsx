@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePieces } from "@/context/PieceContext";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
@@ -14,10 +14,9 @@ import { API_URL } from "@/ui_components/api/apiurl";
 
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Pencil, List, Loader2 } from "lucide-react";
-import { Button } from "@/components/button"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ConditionBuilder } from "@/ui_components/Automation/components/ConditionBuilder";
-import { Badge } from "@/components/badge";
 
 
 // Robust String Array Input
@@ -36,13 +35,13 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
     // Helper to recount and re-label "Else If" branches correctly
     const rebalanceConditionLabels = (newItems: string[]) => {
         if (nodeType !== 'condition') return newItems;
-        
+
         // Count how many "Else If" (or "else if") branches we have
         let elseIfCount = 0;
         return newItems.map((_item, index) => {
             if (index === 0) return 'If';
             if (index === newItems.length - 1) return 'Else';
-            
+
             // It's an internal branch
             elseIfCount++;
             return `Else If ${elseIfCount}`;
@@ -94,7 +93,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
                 const isCondition = nodeType === 'condition';
                 const lowerItem = item.toLowerCase();
                 const isProtected = isBranches && isCondition && (lowerItem === 'if' || lowerItem === 'else' || index === 0 || index === items.length - 1);
-                
+
                 return (
                     <div key={index} className="flex items-center gap-2">
                         <Input
@@ -143,102 +142,6 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
         </div>
     );
 };
-
-const DictionaryInput = ({ value, onChange, nodes, edges, nodeId, disabled }: {
-    value: any,
-    onChange: (val: any) => void,
-    nodes: Node[],
-    edges: Edge[],
-    nodeId?: string,
-    disabled?: boolean
-}) => {
-    const parseValue = (val: any): [string, string][] => {
-        let entries: [string, any][] = [];
-        if (val && typeof val === 'object' && !Array.isArray(val)) {
-            entries = Object.entries(val);
-        } else if (typeof val === 'string') {
-            try {
-                const parsed = JSON.parse(val);
-                if (parsed && typeof parsed === 'object') entries = Object.entries(parsed);
-            } catch { }
-        }
-
-        if (entries.length === 0) return [['', '']];
-        return entries.map(([k, v]) => [k, String(v)]);
-    };
-
-    const [pairs, setPairs] = useState<[string, string][]>(parseValue(value));
-    const [lastPushedJson, setLastPushedJson] = useState(JSON.stringify(value));
-
-    // Sync from parent props
-    useEffect(() => {
-        const currentJson = JSON.stringify(value);
-        if (currentJson === lastPushedJson) return;
-
-        const parsed = parseValue(value);
-        setPairs(parsed);
-        setLastPushedJson(currentJson);
-    }, [value]);
-
-    const handleUpdate = (newPairs: [string, string][]) => {
-        setPairs(newPairs);
-        const obj: Record<string, string> = {};
-        newPairs.forEach(([k, v]) => {
-            if (k) obj[k] = v;
-        });
-        const nextJson = JSON.stringify(obj);
-        setLastPushedJson(nextJson);
-        onChange(obj);
-    };
-
-    const addPair = () => handleUpdate([...pairs, ['', '']]);
-    const removePair = (idx: number) => handleUpdate(pairs.filter((_, i) => i !== idx));
-    const updatePair = (idx: number, k: string, v: string) => {
-        const next = [...pairs];
-        next[idx] = [k, v];
-        handleUpdate(next);
-    };
-
-    return (
-        <div className="flex flex-col gap-3">
-            {pairs.map(([k, v], idx) => (
-                <div key={idx} className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/20 relative group">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Property {idx + 1}</Label>
-                        {pairs.length > 1 && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removePair(idx)}>
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
-                        )}
-                    </div>
-
-                    <div className="space-y-3">
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-[10px] text-muted-foreground">Key</Label>
-                                <VariablePicker nodes={nodes} edges={edges} onSelect={(val) => updatePair(idx, k + val, v)} currentNodeId={nodeId} />
-                            </div>
-                            <Input value={k} onChange={(e) => updatePair(idx, e.target.value, v)} placeholder="Property Name (e.g. user_id)" className="h-8 text-xs bg-background" disabled={disabled} />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-[10px] text-muted-foreground">Value</Label>
-                                <VariablePicker nodes={nodes} edges={edges} onSelect={(val) => updatePair(idx, k, v + val)} currentNodeId={nodeId} />
-                            </div>
-                            <Input value={v} onChange={(e) => updatePair(idx, k, e.target.value)} placeholder="Value or {{variable}}" className="h-8 text-xs bg-background" disabled={disabled} />
-                        </div>
-                    </div>
-                </div>
-            ))}
-            <Button variant="outline" size="sm" className="w-full h-8 text-xs border-dashed gap-2 text-muted-foreground hover:text-primary hover:border-primary/50" onClick={addPair} disabled={disabled}>
-                <Plus className="h-3.5 w-3.5" />
-                Add Property
-            </Button>
-        </div>
-    );
-};
-
 
 interface GenericActionFormProps {
     data: any;
@@ -514,51 +417,6 @@ const AgentSelector = ({
     );
 };
 
-const StepSelectInput = ({ value, onChange, disabled, nodes, nodeId }: {
-    value: string;
-    onChange: (val: string) => void;
-    disabled?: boolean;
-    nodes: Node[];
-    nodeId?: string;
-}) => {
-    const previousNodes = nodes.filter(n =>
-        n.id !== nodeId &&
-        n.id !== 'end' &&
-        !n.data?.isPlaceholder &&
-        (n.data?.actionId === 'buildObject' || n.data?.appName === 'Data & Objects')
-    );
-    return (
-        <Select value={value || ""} onValueChange={onChange} disabled={disabled}>
-            <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a source object step..." />
-            </SelectTrigger>
-            <SelectContent>
-                {previousNodes.map(n => {
-                    const isTrigger = n.id === '1';
-                    const pathId = isTrigger ? 'trigger' : n.id;
-                    const actionId = n.data?.actionId;
-                    // Determine output property name
-                    let outputKey = 'data';
-                    if (actionId === 'buildObject') outputKey = 'data.object';
-                    else if (actionId === 'updateObject') outputKey = 'data.updatedObject';
-
-                    const mapping = `{{steps.${pathId}.${outputKey}}}`;
-
-                    return (
-                        <SelectItem key={n.id} value={mapping}>
-                            <div className="flex items-center gap-2">
-                                <span className="font-medium">{(n.data?.label as string) || n.id}</span>
-                                <Badge variant="secondary" className="text-[9px] h-4 px-1 opacity-60">ID: {n.id}</Badge>
-                            </div>
-                        </SelectItem>
-                    );
-                })}
-            </SelectContent>
-        </Select>
-    );
-};
-
-
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId, nodeType }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
@@ -575,12 +433,30 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 // Find node by ID (1 is trigger)
                 const sourceNode = nodes.find(n => n.id === sourceNodeId || (sourceNodeId === 'trigger' && n.id === '1'));
 
-                if (sourceNode && (sourceNode.data?.params as any)?.properties) {
-                    const sourceProps = (sourceNode.data.params as any).properties as Record<string, any>;
-                    const currentUpdates = params.updates || {};
+                if (sourceNode) {
+                    let sourceProps: Record<string, any> = {};
+                    const nodeParams = (sourceNode.data?.params as any) || {};
 
-                    // Logic to check if we should overwrite or merge
-                    // We'll merge keys and set values to their corresponding step mappings
+                    // Collect properties from buildObject or local dictionary
+                    if (nodeParams.properties) {
+                        try {
+                            sourceProps = typeof nodeParams.properties === 'string'
+                                ? JSON.parse(nodeParams.properties)
+                                : nodeParams.properties;
+                        } catch (e) { }
+                    }
+
+                    // Also merge from updates if it was an updateObject step
+                    if (nodeParams.updates) {
+                        try {
+                            const upds = typeof nodeParams.updates === 'string'
+                                ? JSON.parse(nodeParams.updates)
+                                : nodeParams.updates;
+                            sourceProps = { ...sourceProps, ...upds };
+                        } catch (e) { }
+                    }
+
+                    const currentUpdates = params.updates || {};
                     const newUpdates: Record<string, string> = { ...currentUpdates };
                     let changed = false;
 
@@ -600,9 +476,9 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 }
             }
         }
-    }, [params.sourceObject, nodes]);
+    }, [params.sourceObject, nodes, data.actionId, params, onChange]);
 
-    const handleChange = (field: string, value: any) => {
+    const handleChange = useCallback((field: string, value: any) => {
         const updated = { ...params, [field]: value };
 
         // Clear dependent fields if the parent changes
@@ -613,7 +489,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
         });
 
         onChange(updated);
-    };
+    }, [params, parameters, onChange]);
 
     const handleVariableSelect = (field: string, variable: string) => {
         const currentValue = params[field] || '';
@@ -782,7 +658,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             </div>
                         )}
 
-                         {param.type === 'array' && (
+                        {param.type === 'array' && (
                             <StringArrayInput
                                 value={params[param.name]}
                                 onChange={(val) => handleChange(param.name, val)}
@@ -802,27 +678,6 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 nodeId={nodeId}
                                 disabled={disabled}
                                 branches={params['branches']}
-                            />
-                        )}
-
-                        {param.type === 'dictionary' && (
-                            <DictionaryInput
-                                value={params[param.name]}
-                                onChange={(val) => handleChange(param.name, val)}
-                                nodes={nodes}
-                                edges={edges || []}
-                                nodeId={nodeId}
-                                disabled={disabled}
-                            />
-                        )}
-
-                        {param.type === 'step-select' && (
-                            <StepSelectInput
-                                value={params[param.name]}
-                                onChange={(val) => handleChange(param.name, val)}
-                                nodes={nodes}
-                                nodeId={nodeId}
-                                disabled={disabled}
                             />
                         )}
 

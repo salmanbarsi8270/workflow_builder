@@ -93,9 +93,20 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
     useEffect(() => {
         if (initialNodes.length > 0 || initialEdges.length > 0) {
-            // Check if we already have these nodes to avoid loops
-            const currentNodesStr = JSON.stringify(nodes.map(n => ({ id: n.id, data: n.data, position: n.position })));
-            const incomingNodesStr = JSON.stringify(initialNodes.map(n => ({ id: n.id, data: n.data, position: n.position })));
+            const cleanNode = (n: any) => ({
+                id: n.id,
+                type: n.type,
+                position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
+                data: {
+                    ...n.data,
+                    status: undefined,
+                    duration: undefined,
+                    output: undefined
+                }
+            });
+
+            const currentNodesStr = JSON.stringify(nodes.map(cleanNode));
+            const incomingNodesStr = JSON.stringify(initialNodes.map(cleanNode));
             
             if (currentNodesStr !== incomingNodesStr) {
                 setNodes(prevNodes => {
@@ -187,6 +198,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     useEffect(() => {
         nodesRef.current = nodes;
     }, [nodes]);
+
+    // --- Tree Layout Algorithm (Expanded for Diamonds) ---
+    const onLayout = useCallback((passedNodes?: Node[], passedEdges?: Edge[]) => {
+        const layoutNodes = passedNodes || nodes;
+        const layoutEdges = passedEdges || edges;
+
+        return calculateLayout(layoutNodes, layoutEdges);
+    }, [nodes, edges]);
 
     // Socket listeners for run progress
     useEffect(() => {
@@ -689,17 +708,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         return { nextNodes, nextEdges, mergeNodeId, normalizedBranches: newBranches };
     };
 
-    const handleUpdateNode = (label: string, data?: any, immediate: boolean = false) => {
-        let currentNodes = nodes;
-        let currentEdges = edges;
+    const handleUpdateNode = useCallback((label: string, data?: any, immediate: boolean = false) => {
+        // Use ref to get latest nodes without re-creating callback on every node change
+        let currentNodes = nodesRef.current;
+        let currentEdges = edges; // edges are also frequent, but let's trust the prop/state 
         let structureChanged = false;
 
-        const targetNode = nodes.find(n => n.id === selectedNodeId);
+        const targetNode = currentNodes.find(n => n.id === selectedNodeId);
+        if (!targetNode) return;
 
         // --- Parallel/Condition Branch Reconciliation ---
         const incomingBranches = data?.params?.branches || data?.branches;
 
-        if ((targetNode?.type === 'parallel' || targetNode?.type === 'loop' || targetNode?.type === 'condition')) {
+        if ((targetNode.type === 'parallel' || targetNode.type === 'loop' || targetNode.type === 'condition')) {
             const currentBranchesRaw = incomingBranches || (targetNode.data.params as any)?.branches || (targetNode.data.branches as string[]) || [];
             const branchesArr = safeParseBranches(currentBranchesRaw);
 
@@ -733,12 +754,15 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         const finalNodes = structureChanged ? onLayout(updatedNodes, currentEdges) : updatedNodes;
 
         setNodes(finalNodes);
-        if (structureChanged) setEdges(currentEdges);
+        
+        if (structureChanged) {
+            setEdges(currentEdges);
+        }
 
         if (immediate) {
-            onAutoSave(finalNodes, currentEdges);
+             onAutoSave(finalNodes, currentEdges);
         }
-    };
+    }, [selectedNodeId, edges, onLayout, onAutoSave, setNodes, setEdges]);
 
     const handleDeleteNode = (targetId?: string) => {
         const idToDelete = targetId || selectedNodeId;
@@ -1175,13 +1199,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     };
 
 
-    // --- Tree Layout Algorithm (Expanded for Diamonds) ---
-    const onLayout = useCallback((passedNodes?: Node[], passedEdges?: Edge[]) => {
-        const layoutNodes = passedNodes || nodes;
-        const layoutEdges = passedEdges || edges;
-
-        return calculateLayout(layoutNodes, layoutEdges);
-    }, [nodes, edges]);
 
     // AUTO-ADJUST VIEWPORT & CLEANUP ON CHANGE
     useEffect(() => {
@@ -1202,7 +1219,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (branches.length > 0) {
                         const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
                         
-                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches) !== JSON.stringify(normalizedBranches)) {
+                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()))) {
                              nextEdges = rEdges;
                              nextNodes = rNodes.map(n => {
                                  if (n.id === node.id) {

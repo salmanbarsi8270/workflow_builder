@@ -43,7 +43,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
     // Use dynamic pieces metadata
     const piece = pieces[icon] || Object.values(pieces).find(p => p.name === appName);
-    
+
     if (!piece || !actionId) return false;
 
     // Check if it is listed in triggers
@@ -243,7 +243,47 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
                       const lowerSearch = search.toLowerCase();
                       const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
 
-                      const filteredSchema = schema.filter((prop: any) => {
+                      const getDiscoveredSchema = () => {
+                        let finalSchema = [...schema];
+                        const nodeParams = (node.data?.params as any) || {};
+
+                        // Extract from properties (buildObject)
+                        if (nodeParams.properties) {
+                          try {
+                            const props = typeof nodeParams.properties === 'string' ? JSON.parse(nodeParams.properties) : nodeParams.properties;
+                            Object.keys(props).forEach(key => {
+                              const exists = finalSchema.find(s => s.name === key || s.name === `object.${key}` || s.name === `updatedObject.${key}`);
+                              if (!exists) {
+                                const rawType = typeof props[key];
+                                const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                finalSchema.push({ name: key, type });
+                              }
+                            });
+                          } catch (e) { }
+                        }
+
+                        // Extract from updates (updateObject)
+                        if (nodeParams.updates) {
+                          try {
+                            const upds = typeof nodeParams.updates === 'string' ? JSON.parse(nodeParams.updates) : nodeParams.updates;
+                            Object.keys(upds).forEach(key => {
+                              const exists = finalSchema.find(s => s.name === key);
+                              if (!exists) {
+                                const rawType = typeof upds[key];
+                                const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                finalSchema.push({ name: key, type });
+                              }
+                            });
+                          } catch (e) { }
+                        }
+
+
+
+                        return finalSchema;
+                      };
+
+                      const discoveredSchema = getDiscoveredSchema();
+                      const filteredSchema = discoveredSchema.filter((prop: any) => {
                         if (!search) return true;
                         return matchesNodeLabel ||
                           prop.name.toLowerCase().includes(lowerSearch) ||
@@ -275,7 +315,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
                                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                                   <span className="flex items-center gap-0.5">
                                     <Code className="h-2.5 w-2.5" />
-                                    {schema.length} props
+                                    {discoveredSchema.length} props
                                   </span>
                                   <span>•</span>
                                   <span>ID: {node.id}</span>
@@ -284,7 +324,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="text-[8px] h-5 px-1.5 font-medium bg-primary/10 text-primary">
-                                {filteredSchema.length || schema.length} vars
+                                {filteredSchema.length || discoveredSchema.length} vars
                               </Badge>
                               {isExpanded ? (
                                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -341,20 +381,31 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
                                       <Badge variant="outline" className="ml-auto text-[10px]">any</Badge>
                                     </Button>
                                   ) : (
-                                    filteredSchema.map((prop: any, idx: number) => (
-                                      <Button key={`${prop.name}-${idx}`} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10 group mb-0.5 last:mb-0" onClick={() => handleSelect(`{{steps.${pathNodeId}.data.${prop.name}}}`)}>
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <div className="p-1 rounded bg-primary/5 group-hover:bg-primary/10">
-                                            {getTypeIcon(prop.type)}
+                                    filteredSchema.map((prop: any, idx: number) => {
+                                      // Determine mapping path
+                                      let mappingPath = prop.name;
+
+                                      // Handle cases where outputSchema has 'object.xxx' but we want to map directly or via 'data.object.xxx'
+                                      // If it's buildObject, we usually want steps.ID.data.object.key OR steps.ID.data.key (due to my spread fix)
+                                      // VariablePicker usually maps steps.ID.data.PROP
+
+                                      const mapping = `{{steps.${pathNodeId}.data.${mappingPath}}}`;
+
+                                      return (
+                                        <Button key={`${prop.name}-${idx}`} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10 group mb-0.5 last:mb-0" onClick={() => handleSelect(mapping)}>
+                                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <div className="p-1 rounded bg-primary/5 group-hover:bg-primary/10">
+                                              {getTypeIcon(prop.type)}
+                                            </div>
+                                            <span className="truncate font-medium">{prop.name}</span>
                                           </div>
-                                          <span className="truncate font-medium">{prop.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 ml-auto">
-                                          <Badge variant="outline" className="text-[10px] capitalize font-normal opacity-70 group-hover:opacity-100">{prop.type}</Badge>
-                                          <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </div>
-                                      </Button>
-                                    ))
+                                          <div className="flex items-center gap-2 ml-auto">
+                                            <Badge variant="outline" className="text-[10px] capitalize font-normal opacity-70 group-hover:opacity-100">{prop.type}</Badge>
+                                            <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                          </div>
+                                        </Button>
+                                      );
+                                    })
                                   )}
                                 </div>
                               </motion.div>
