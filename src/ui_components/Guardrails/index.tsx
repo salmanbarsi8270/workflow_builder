@@ -27,7 +27,7 @@ interface Agent {
 export default function Guardrails() {
     const { user } = useUser();
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    // const [saving, setSaving] = useState(false); // Unused
     const [bannedWords, setBannedWords] = useState<string[]>([]);
     const [newWord, setNewWord] = useState('');
     const [outputGuardrails, setOutputGuardrails] = useState<GuardrailItem[]>([]);
@@ -36,7 +36,19 @@ export default function Guardrails() {
 
     // Agent Selection (Multi-select)
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+    // Initialize from localStorage to persist selection across reloads
+    const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('guardrails_selected_ids');
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error("Failed to parse saved selection", e);
+                return [];
+            }
+        }
+        return [];
+    });
     const [openAgentSelect, setOpenAgentSelect] = useState(false);
 
     useEffect(() => {
@@ -46,22 +58,26 @@ export default function Guardrails() {
     }, [user?.id]);
 
     useEffect(() => {
+        // Persist selection changes
+        if (selectedAgentIds.length > 0) {
+            localStorage.setItem('guardrails_selected_ids', JSON.stringify(selectedAgentIds));
+        } else {
+            localStorage.removeItem('guardrails_selected_ids');
+        }
+
+        // If single agent selected, fetch their config
         // If single agent selected, fetch their config
         if (selectedAgentIds.length === 1) {
             fetchGuardrails(selectedAgentIds[0]);
         } else if (selectedAgentIds.length > 1) {
-            // Multi-select: We clear current view or keep it?
-            // User might want to ADD to all.
-            // Let's clear visual state to avoid confusion (showing Agent A's words while Agent B is also selected)
-            // Or better: Show empty state with "Multi-edit mode" indicator
+            // Multi-select mode: Use the first agent's config as a baseline/template
+            // This prevents the "It's gone" confusion where everything disappears
+            fetchGuardrails(selectedAgentIds[0]);
+        } else {
+            // No selection: Clear formatting
             setBannedWords([]);
             setOutputGuardrails([]);
             setLoading(false);
-        } else if (agents.length > 0 && selectedAgentIds.length === 0) {
-            // Initial load default? Maybe don't auto-select multiple, but select first one?
-            // Actually, let's auto-select the first one for convenience if list is loaded and selection is empty
-            // But only once.
-            // (Logic moved to fetchAgents)
         }
     }, [selectedAgentIds]);
 
@@ -72,11 +88,7 @@ export default function Guardrails() {
             const agentList = res.data; // adjust if wrapper object
             setAgents(Array.isArray(agentList) ? agentList : res.data.agents || []);
 
-            if (Array.isArray(agentList) && agentList.length > 0 && selectedAgentIds.length === 0) {
-                setSelectedAgentIds([agentList[0].id]);
-            } else if (res.data.agents && res.data.agents.length > 0 && selectedAgentIds.length === 0) {
-                setSelectedAgentIds([res.data.agents[0].id]);
-            }
+            // Auto-select logic REMOVED as per user request
         } catch (e) {
             console.error("Failed to fetch agents", e);
         } finally {
@@ -88,7 +100,8 @@ export default function Guardrails() {
         setLoading(true);
         try {
             console.log(`📡 [Guardrails:UI] Fetching configuration for agent ${agentId}...`);
-            const response = await axios.get(`${API_URL}/api/guardrails?agentId=${agentId}`);
+            const uid = user?.id || 'anonymous';
+            const response = await axios.get(`${API_URL}/api/guardrails?agentId=${agentId}&userId=${uid}`);
             const data = response.data;
 
             setBannedWords(data.inputGuardrails?.bannedWords || []);
@@ -107,63 +120,50 @@ export default function Guardrails() {
         }
     };
 
-    const handleSave = async () => {
-        if (selectedAgentIds.length === 0) {
-            toast.error("Please select at least one agent");
-            return;
-        }
-        setSaving(true);
-        try {
-            // UX Tweak: If there's a word in the input that wasn't "added" yet, add it now
-            let finalBannedWords = [...bannedWords];
-            if (newWord.trim() && !finalBannedWords.includes(newWord.trim())) {
-                finalBannedWords.push(newWord.trim());
-                setBannedWords(finalBannedWords);
-                setNewWord('');
-            }
+    const internalSave = async (overrideBanned?: string[], overrideOutput?: GuardrailItem[]) => {
+        if (selectedAgentIds.length === 0) return;
 
-            // Prepare payload
-            // If multiple agents, we send `agentIds`
+        // Don't set loading/saving state for auto-saves to avoid UI flicker, or use a subtle indicator?
+        // User requested "auto-save", subtle is better.
+        // But for now let's keep it simple.
+
+        try {
+            const finalBannedWords = overrideBanned || bannedWords;
+            const finalOutput = overrideOutput || outputGuardrails;
+
             const newConfig = {
-                agentIds: selectedAgentIds, // Backend supports this now
-                agentId: selectedAgentIds.length === 1 ? selectedAgentIds[0] : null, // Backend fallback
+                agentIds: selectedAgentIds,
+                agentId: selectedAgentIds.length === 1 ? selectedAgentIds[0] : null,
+                userId: user?.id,
                 inputGuardrails: { bannedWords: finalBannedWords },
-                outputGuardrails: {
-                    list: outputGuardrails,
-                    emailRedaction: false
-                }
+                outputGuardrails: { list: finalOutput, emailRedaction: false }
             };
 
             await axios.post(`${API_URL}/api/guardrails`, newConfig);
-            toast.success(selectedAgentIds.length > 1 ? "Guardrails saved to all selected agents" : "Guardrails saved successfully");
-
-            // If multiple were selected, maybe refresh?
-            // If single, refresh to be sure?
-            if (selectedAgentIds.length === 1) {
-                fetchGuardrails(selectedAgentIds[0]);
-            }
+            toast.success("Changes saved");
         } catch (error) {
-            console.error('❌ [Guardrails:UI] Error saving guardrails:', error);
-            toast.error("Failed to save guardrails");
-        } finally {
-            setSaving(false);
+            console.error('❌ [Guardrails:UI] Error saving:', error);
+            toast.error("Failed to save changes");
         }
     };
 
     const addBannedWord = () => {
         if (newWord.trim() && !bannedWords.includes(newWord.trim())) {
-            setBannedWords([...bannedWords, newWord.trim()]);
+            const newExcl = [...bannedWords, newWord.trim()];
+            setBannedWords(newExcl);
             setNewWord('');
+            internalSave(newExcl, undefined);
         }
     };
 
     const removeBannedWord = (word: string) => {
-        setBannedWords(bannedWords.filter(w => w !== word));
+        const newExcl = bannedWords.filter(w => w !== word);
+        setBannedWords(newExcl);
+        internalSave(newExcl, undefined);
     };
 
     const addOutputGuardrail = (type: string) => {
         if (!type) return;
-
         let initialConfig = {};
         switch (type) {
             case 'email': initialConfig = { replacement: '[hidden-email]' }; break;
@@ -172,15 +172,17 @@ export default function Guardrails() {
             case 'profanity': initialConfig = { mode: 'redact', replacement: '[censored]' }; break;
             case 'maxlength': initialConfig = { maxCharacters: 1000, mode: 'truncate' }; break;
         }
-
-        setOutputGuardrails([...outputGuardrails, { type: type as any, config: initialConfig }]);
+        const newList = [...outputGuardrails, { type: type as any, config: initialConfig }];
+        setOutputGuardrails(newList);
         setSelectedType('');
+        internalSave(undefined, newList);
     };
 
     const removeOutputGuardrail = (index: number) => {
         const newList = [...outputGuardrails];
         newList.splice(index, 1);
         setOutputGuardrails(newList);
+        internalSave(undefined, newList);
     };
 
     const updateGuardrailConfig = (index: number, key: string, value: any) => {
@@ -190,6 +192,11 @@ export default function Guardrails() {
             config: { ...newList[index].config, [key]: value }
         };
         setOutputGuardrails(newList);
+    };
+
+    // New helper for onBlur auto-save
+    const triggerAutoSave = () => {
+        internalSave();
     };
 
     const toggleAgentSelection = (agentId: string) => {
@@ -328,11 +335,13 @@ export default function Guardrails() {
                                     <div className="w-full flex flex-col items-center justify-center py-8 text-slate-300 dark:text-slate-700">
                                         <Shield className="h-10 w-10 mb-2 opacity-20" />
                                         <p className="font-bold text-sm">
-                                            {selectedAgentIds.length > 1 ? "Start adding words to apply to all selected agents" : "No banned words configured"}
+                                            {selectedAgentIds.length === 0 ? "Select an agent above to configure guardrails" :
+                                                selectedAgentIds.length > 1 ? "Start adding words to apply to all selected agents" : "No banned words configured"}
                                         </p>
                                     </div>
                                 )}
                             </div>
+                            {/* Auto-save enabled, no button needed */}
                         </CardContent>
                     </Card>
 
@@ -350,9 +359,9 @@ export default function Guardrails() {
                         </CardHeader>
                         <CardContent className="p-6 space-y-6">
                             <div className="flex gap-2">
-                                <Select value={selectedType} onValueChange={setSelectedType}>
+                                <Select value={selectedType} onValueChange={setSelectedType} disabled={selectedAgentIds.length === 0}>
                                     <SelectTrigger className="h-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-sm">
-                                        <SelectValue placeholder="Add New Rule..." />
+                                        <SelectValue placeholder={selectedAgentIds.length === 0 ? "Select Agent First..." : "Add New Rule..."} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="email">Email Redaction</SelectItem>
@@ -404,6 +413,7 @@ export default function Guardrails() {
                                                     <Input
                                                         value={item.config.replacement || ''}
                                                         onChange={(e) => updateGuardrailConfig(idx, 'replacement', e.target.value)}
+                                                        onBlur={triggerAutoSave}
                                                         className="h-9 text-xs bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5"
                                                     />
                                                 </div>
@@ -415,6 +425,7 @@ export default function Guardrails() {
                                                         type="number"
                                                         value={item.config.minimumDigits || 6}
                                                         onChange={(e) => updateGuardrailConfig(idx, 'minimumDigits', parseInt(e.target.value))}
+                                                        onBlur={triggerAutoSave}
                                                         className="h-9 text-xs bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5"
                                                     />
                                                 </div>
@@ -424,31 +435,15 @@ export default function Guardrails() {
                                 ))}
                                 {outputGuardrails.length === 0 && (
                                     <div className="text-center py-10 text-slate-400 text-sm border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl">
-                                        No output rules active.
+                                        {selectedAgentIds.length === 0 ? "Select an agent to configure output rules." : "No output rules active."}
                                     </div>
                                 )}
                             </div>
+                            {/* Auto-save enabled, no button needed */}
                         </CardContent>
                     </Card>
                 </div>
             )}
-
-            <div className="fixed bottom-8 right-8 z-50">
-                <Button
-                    onClick={handleSave}
-                    disabled={saving || selectedAgentIds.length === 0 || loading}
-                    className="h-14 px-8 rounded-full bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 font-black shadow-2xl active:scale-95 transition-all text-base border-4 border-slate-50 dark:border-slate-900"
-                >
-                    {saving ? (
-                        <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        "Save Guardrails"
-                    )}
-                </Button>
-            </div>
         </div>
     );
 }
