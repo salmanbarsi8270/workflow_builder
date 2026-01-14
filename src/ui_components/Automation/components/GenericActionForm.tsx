@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePieces } from "@/context/PieceContext";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
@@ -14,7 +14,7 @@ import { API_URL } from "@/ui_components/api/apiurl";
 
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Pencil, List, Loader2 } from "lucide-react";
-import { Button } from "@/components/button"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ConditionBuilder } from "@/ui_components/Automation/components/ConditionBuilder";
 import { Badge } from "@/components/badge";
@@ -618,9 +618,9 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 }
             }
         }
-    }, [params.sourceObject, nodes]);
+    }, [params.sourceObject, nodes, data.actionId, params, onChange]);
 
-    const handleChange = (field: string, value: any) => {
+    const handleChange = useCallback((field: string, value: any) => {
         const updated = { ...params, [field]: value };
 
         // Clear dependent fields if the parent changes
@@ -631,7 +631,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
         });
 
         onChange(updated);
-    };
+    }, [params, parameters, onChange]);
 
     const handleVariableSelect = (field: string, variable: string) => {
         const currentValue = params[field] || '';
