@@ -35,13 +35,13 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
     // Helper to recount and re-label "Else If" branches correctly
     const rebalanceConditionLabels = (newItems: string[]) => {
         if (nodeType !== 'condition') return newItems;
-        
+
         // Count how many "Else If" (or "else if") branches we have
         let elseIfCount = 0;
         return newItems.map((_item, index) => {
             if (index === 0) return 'If';
             if (index === newItems.length - 1) return 'Else';
-            
+
             // It's an internal branch
             elseIfCount++;
             return `Else If ${elseIfCount}`;
@@ -93,7 +93,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
                 const isCondition = nodeType === 'condition';
                 const lowerItem = item.toLowerCase();
                 const isProtected = isBranches && isCondition && (lowerItem === 'if' || lowerItem === 'else' || index === 0 || index === items.length - 1);
-                
+
                 return (
                     <div key={index} className="flex items-center gap-2">
                         <Input
@@ -421,6 +421,63 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
     const { user } = useUser();
     const userId = user?.id || '';
 
+    // Auto-fill logic for updateObject
+    useEffect(() => {
+        if (data.actionId === 'updateObject' && params.sourceObject) {
+            // Extract node ID and optionally sub-path from {{steps.NODE_ID.data...}}
+            const match = params.sourceObject.match(/\{\{steps\.(.+?)\.data(?:\.(.+?))?\}\}/);
+            const sourceNodeId = match ? match[1] : null;
+            const subPath = match ? match[2] : null; // 'object' or 'updatedObject'
+
+            if (sourceNodeId) {
+                // Find node by ID (1 is trigger)
+                const sourceNode = nodes.find(n => n.id === sourceNodeId || (sourceNodeId === 'trigger' && n.id === '1'));
+
+                if (sourceNode) {
+                    let sourceProps: Record<string, any> = {};
+                    const nodeParams = (sourceNode.data?.params as any) || {};
+
+                    // Collect properties from buildObject or local dictionary
+                    if (nodeParams.properties) {
+                        try {
+                            sourceProps = typeof nodeParams.properties === 'string'
+                                ? JSON.parse(nodeParams.properties)
+                                : nodeParams.properties;
+                        } catch (e) { }
+                    }
+
+                    // Also merge from updates if it was an updateObject step
+                    if (nodeParams.updates) {
+                        try {
+                            const upds = typeof nodeParams.updates === 'string'
+                                ? JSON.parse(nodeParams.updates)
+                                : nodeParams.updates;
+                            sourceProps = { ...sourceProps, ...upds };
+                        } catch (e) { }
+                    }
+
+                    const currentUpdates = params.updates || {};
+                    const newUpdates: Record<string, string> = { ...currentUpdates };
+                    let changed = false;
+
+                    const mappingPrefix = `steps.${sourceNodeId}.data${subPath ? '.' + subPath : ''}`;
+
+                    Object.keys(sourceProps).forEach(key => {
+                        if (key && !newUpdates.hasOwnProperty(key)) {
+                            // Automatically map to the source property
+                            newUpdates[key] = `{{${mappingPrefix}.${key}}}`;
+                            changed = true;
+                        }
+                    });
+
+                    if (changed) {
+                        onChange({ ...params, updates: newUpdates });
+                    }
+                }
+            }
+        }
+    }, [params.sourceObject, nodes, data.actionId, params, onChange]);
+
     const handleChange = useCallback((field: string, value: any) => {
         const updated = { ...params, [field]: value };
 
@@ -601,7 +658,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                             </div>
                         )}
 
-                         {param.type === 'array' && (
+                        {param.type === 'array' && (
                             <StringArrayInput
                                 value={params[param.name]}
                                 onChange={(val) => handleChange(param.name, val)}
