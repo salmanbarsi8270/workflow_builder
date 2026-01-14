@@ -563,7 +563,6 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
     const { user } = useUser();
     const userId = user?.id || '';
 
-    const handleChange = useCallback((field: string, value: any) => {
     // Auto-fill logic for updateObject
     useEffect(() => {
         if (data.actionId === 'updateObject' && params.sourceObject) {
@@ -601,9 +600,9 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                 }
             }
         }
-    }, [params.sourceObject, nodes]);
+    }, [params.sourceObject, nodes, data.actionId, params, onChange]);
 
-    const handleChange = (field: string, value: any) => {
+    const handleChange = useCallback((field: string, value: any) => {
         const updated = { ...params, [field]: value };
 
         // Clear dependent fields if the parent changes
