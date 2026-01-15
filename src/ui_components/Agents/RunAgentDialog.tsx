@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Terminal, Loader2, Play, Bot } from "lucide-react";
-import { API_URL } from '../api/apiurl';
+import { AI_URL } from '../api/apiurl';
 import type { Agent } from './types';
 
 interface RunAgentDialogProps {
@@ -39,12 +39,21 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
         setResponse(''); // Clear previous response
 
         try {
-            const res = await fetch(`${API_URL}/api/v1/agents/${agent.id}/run`, {
+            // Direct AI_URL call to VoltAgent Core API
+            const res = await fetch(`${AI_URL}/agents/${agent.id}/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     input: input,
-                    userId: userId
+                    options: {
+                        userId: userId,
+                        conversationId: agent.id,
+                        temperature: 0.7,
+                        contextLimit: 10,
+                        context: {
+                            userId: userId,
+                        }
+                    }
                 })
             });
 
@@ -62,11 +71,11 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
                 const data = await res.json();
-                // Prefer 'text', then 'output', then stringify the object if neither exists
+                // Extract text from response
                 const reply = data.text || data.output || data._output || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
                 setResponse(reply);
             } else {
-                // Fallback to streaming reader if it's not JSON
+                // Handle SSE streaming response
                 if (!res.body) {
                     setResponse("Error: No response body received.");
                     return;
@@ -75,29 +84,66 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = '';
+                let buffer = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     const chunk = decoder.decode(value, { stream: true });
-                    fullText += chunk;
-                    setResponse(fullText);
-                }
+                    buffer += chunk;
 
-                // After streaming, try to see if the whole thing was a JSON object
-                try {
-                    const parsed = JSON.parse(fullText);
-                    const reply = parsed.text || parsed.output || parsed._output || fullText;
-                    setResponse(reply);
-                } catch (e) {
-                    // Not a JSON, keep as is
+                    // Parse SSE format: "data: {...}\n\n"
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const jsonStr = line.slice(6); // Remove "data: " prefix
+                                const data = JSON.parse(jsonStr);
+                                
+                                // Extract text from text-delta events
+                                if (data.type === 'text-delta' && data.text) {
+                                    fullText += data.text;
+                                    setResponse(fullText);
+                                }
+                                
+                                // Handle tool calls
+                                if (data.type === 'tool-call-start' && data.toolName) {
+                                    fullText += `\n\n🔧 Executing tool: ${data.toolName}...\n`;
+                                    setResponse(fullText);
+                                }
+                                
+                                if (data.type === 'tool-call' && data.toolName) {
+                                    fullText += `\n✅ Tool executed: ${data.toolName}\n`;
+                                    if (data.result) {
+                                        fullText += `Result: ${typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)}\n`;
+                                    }
+                                    setResponse(fullText);
+                                }
+                                
+                                if (data.type === 'tool-call-delta' && data.text) {
+                                    fullText += data.text;
+                                    setResponse(fullText);
+                                }
+                                
+                                // Handle errors
+                                if (data.error) {
+                                    setResponse(`Error: ${data.error}`);
+                                    return;
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON or non-JSON lines
+                            }
+                        }
+                    }
                 }
             }
 
         } catch (error) {
             console.error(error);
-            setResponse("Error: Something went wrong while communicating with the agent.");
+            setResponse("Error: Something went wrong while communicating with the AI service.");
         } finally {
             setIsRunning(false);
         }
@@ -117,12 +163,14 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span style={{ color: themeColor }} className="font-semibold">{uiConfig.title || 'Run Agent Check'}</span>
-                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">Test environment for <span className="font-semibold">{agent?.name}</span></span>
+                            <span style={{ color: themeColor }} className="font-bold text-lg">{agent?.name || 'Agent'}</span>
+                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                                {agent?.model ? `Model: ${agent.model}` : 'Run Agent'}
+                            </span>
                         </div>
                     </DialogTitle>
                     <DialogDescription className="sr-only">
-                        Interact with your agent and see its live responses here.
+                        Interact with {agent?.name} and see its live responses here.
                     </DialogDescription>
                 </DialogHeader>
 
