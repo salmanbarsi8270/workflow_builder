@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePieces } from "@/context/PieceContext";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector"
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { type Node, type Edge } from "@xyflow/react";
 import { VariablePicker } from "@/ui_components/Automation/components/VariablePicker";
 import { useUser } from "@/context/UserContext";
@@ -153,9 +153,15 @@ const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes, edges,
     };
 
     const [items, setItems] = useState<{ key: string, value: string }[]>(parseValue(value));
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Sync from parent props if changed externally
     useEffect(() => {
+        // If user is typing inside this component, don't overwrite with potential stale props
+        if (containerRef.current?.contains(document.activeElement)) {
+            return;
+        }
+
         const parsed = parseValue(value);
         // Deep compare to avoid loops (simple JSON stringify is sufficient here)
         if (JSON.stringify(parsed) !== JSON.stringify(items)) {
@@ -194,7 +200,7 @@ const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes, edges,
     };
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2" ref={containerRef}>
             <div className="border rounded-md overflow-hidden bg-background/50">
                 {/* Items */}
                 <div className="divide-y max-h-[300px] overflow-auto">
@@ -564,11 +570,11 @@ const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disa
 
     const currentStepId = getStepId(value);
 
-    // Filter available nodes (only buildObject steps)
+    // Filter available nodes (Build Object or Update Object)
     const availableNodes = nodes.filter(n =>
         n.id !== currentNodeId &&
         n.type !== 'end' &&
-        (n.data?.actionId === 'buildObject' || n.data?.actionId === 'updateObject') // Allow chaining updates if needed, but primarily buildObject
+        (n.data?.actionId === 'buildObject' || n.data?.actionId === 'updateObject')
     );
 
     const handleSelect = (stepId: string) => {
@@ -585,13 +591,13 @@ const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disa
             disabled={disabled}
         >
             <SelectTrigger className="w-full">
-                <SelectValue placeholder={placeholder || "Select a Build Object step"}>
+                <SelectValue placeholder={placeholder || "Select an Object step"}>
                     {currentStepId ? (
                         (() => {
                             const n = nodes.find(node => node.id === currentStepId);
                             return n ? `${n.data.label || n.id}` : currentStepId;
                         })()
-                    ) : (placeholder || "Select a Build Object step")}
+                    ) : (placeholder || "Select an Object step")}
                 </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -600,7 +606,7 @@ const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disa
                         No 'Build Object' steps found.
                     </div>
                 )}
-                {availableNodes.map((node:any) => (
+                {availableNodes.map((node: any) => (
                     <SelectItem key={node.id} value={node.id}>
                         <div className="flex flex-col text-left">
                             <span className="font-medium">{node.data.label || node.id}</span>
