@@ -1,7 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Split, Loader2, Slash } from "lucide-react";
+import { Split, Loader2, Slash, CheckCircle2 } from "lucide-react";
 import { AppLogoMap } from '../utils/Applogo';
 import { memo } from 'react';
 
@@ -51,8 +51,8 @@ const StatusColors = {
 
 const ConditionNode = ({ data, selected }: NodeProps) => {
     const status = (data.status as keyof typeof StatusColors) || 'pending';
-    const label = (data.label as string) || "Condition";
-    const subLabel = (data.subLabel as string) || "Logic Flow";
+    const label = (data.label as string) || "Router";
+    const subLabel = (data.subLabel as string) || "Branching Logic";
     const colorConfig = StatusColors[status];
 
     const iconKey = (data.icon as string) || (data.piece as string) || 'condition';
@@ -106,18 +106,45 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-semibold truncate leading-tight">{label}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground truncate mb-2">{subLabel}</span>
+                        <span className="text-xs text-muted-foreground truncate mb-2">
+                            {status === 'success' && (data.output as any)?.branch ? (
+                                <span className="text-primary font-bold flex items-center gap-1 uppercase tracking-tighter">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    {(data.output as any).branch === 'else' ? 'Otherwise' : (data.output as any).branch}
+                                </span>
+                            ) : subLabel}
+                        </span>
                     </div>
                 </div>
             </Card>
+
+            {/* Branch Label Helpers */}
+            <div className="absolute -bottom-10 left-0 right-0 flex justify-between px-6 pointer-events-none">
+                {(() => {
+                    const branchesArr = (data.branches as string[]) || ['If', 'Else'];
+                    return branchesArr.map((b, i) => {
+                        const isElse = i === branchesArr.length - 1 && branchesArr.length > 1;
+                        const labelText = isElse ? 'Otherwise' : (branchesArr.length > 2 ? `Branch ${i + 1}` : b);
+                        return (
+                            <div key={i} className="flex flex-col items-center">
+                                <div className={cn(
+                                    "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shadow-xs transition-all duration-300",
+                                    isElse ? "bg-muted text-muted-foreground border-border" : "bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+                                )}>
+                                    {labelText}
+                                </div>
+                            </div>
+                        );
+                    });
+                })()}
+            </div>
 
             {/* Output Handles - Dynamic based on branches */}
             {(() => {
                 const branches = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
                 return branches.map((branch: string, i: number) => {
-                    let handleId = branch.toLowerCase();
-                    if (branch.toLowerCase() === 'if') handleId = 'true';
-                    if (branch.toLowerCase() === 'else') handleId = 'false';
+                    // Mapper expects numeric indices for multi-branch logic
+                    const handleId = String(i);
                     
                     return (
                         <Handle
@@ -130,16 +157,20 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                                 width: 8,
                                 height: 8,
                                 bottom: -4,
-                                left: '50%',
+                                left: `${((i + 1) / (branches.length + 1)) * 100}%`, // Distribute handles
                                 transform: 'translateX(-50%)',
                                 border: '1px solid white',
                                 zIndex: 50,
-                                opacity: 0.05 // Almost invisible but exists for the engine and tiny hint on hover
+                                opacity: 0.1 // Slight hint for builder
                             }}
                         />
                     );
                 });
             })()}
+
+            {/* Legacy Compatibility Handles (Invisible) - Keeps old edges from breaking */}
+            <Handle type="source" position={Position.Bottom} id="true" style={{ opacity: 0, pointerEvents: 'none', left: '25%' }} />
+            <Handle type="source" position={Position.Bottom} id="false" style={{ opacity: 0, pointerEvents: 'none', left: '75%' }} />
 
             {/* Legacy/Default Parallel Handle for backward compatibility or parallel nodes using this component */}
             <Handle

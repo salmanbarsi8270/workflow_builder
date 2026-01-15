@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, ListFilter, Type, CheckCircle2, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, Plus, ListFilter, Type, CheckCircle2, AlertCircle, ChevronDown, ChevronRight, Split } from "lucide-react";
 import { VariablePicker } from "./VariablePicker";
 import { cn } from "@/lib/utils";
 import { type Node, type Edge } from "@xyflow/react";
@@ -13,6 +13,7 @@ interface ConditionRule {
     left: string;
     operator: string;
     right: string;
+    dataType?: 'text' | 'number' | 'boolean';
 }
 
 interface ConditionGroup {
@@ -33,20 +34,26 @@ interface ConditionBuilderProps {
 }
 
 const OPERATORS = [
-    { label: 'Equals', value: 'eq', icon: <CheckCircle2 className="h-3 w-3" /> },
-    { label: 'Not Equals', value: 'neq', icon: <XIcon /> },
-    { label: 'Contains', value: 'contains', icon: <ListFilter className="h-3 w-3" /> },
-    { label: 'Does Not Contain', value: 'not_contains', icon: <AlertCircle className="h-3 w-3" /> },
-    { label: 'Greater Than', value: 'gt', icon: <span className="text-[10px] font-bold">&gt;</span> },
-    { label: 'Less Than', value: 'lt', icon: <span className="text-[10px] font-bold">&lt;</span> },
-    { label: 'Greater or Equal', value: 'gte', icon: <span className="text-[10px] font-bold">&gt;=</span> },
-    { label: 'Less or Equal', value: 'lte', icon: <span className="text-[10px] font-bold">&lt;=</span> },
-    { label: 'Starts With', value: 'starts_with', icon: <Type className="h-3 w-3" /> },
-    { label: 'Ends With', value: 'ends_with', icon: <Type className="h-3 w-3" /> },
-    { label: 'Is Empty', value: 'empty', icon: <AlertCircle className="h-3 w-3" /> },
-    { label: 'Is Not Empty', value: 'not_empty', icon: <CheckCircle2 className="h-3 w-3" /> },
-    { label: 'Exists', value: 'exists', icon: <CheckCircle2 className="h-3 w-3" /> },
-    { label: 'Does Not Exist', value: 'not_exists', icon: <AlertCircle className="h-3 w-3" /> },
+    { label: 'Equals', value: 'eq', symbol: '=' },
+    { label: 'Does not equal', value: 'neq', symbol: '≠' },
+    { label: 'Contains', value: 'contains', symbol: '⊃' },
+    { label: 'Does not contain', value: 'not_contains', symbol: '⊅' },
+    { label: 'Greater than', value: 'gt', symbol: '>' },
+    { label: 'Less than', value: 'lt', symbol: '<' },
+    { label: 'Greater or equal', value: 'gte', symbol: '≥' },
+    { label: 'Less or equal', value: 'lte', symbol: '≤' },
+    { label: 'Starts with', value: 'starts_with', symbol: 'A*' },
+    { label: 'Ends with', value: 'ends_with', symbol: '*Z' },
+    { label: 'Is empty', value: 'empty', symbol: '∅' },
+    { label: 'Is not empty', value: 'not_empty', symbol: '≠∅' },
+    { label: 'Exists', value: 'exists', symbol: '✓' },
+    { label: 'Does not exist', value: 'not_exists', symbol: '✗' },
+];
+
+const DATA_TYPES = [
+    { label: 'Text', value: 'text' },
+    { label: 'Number', value: 'number' },
+    { label: 'Boolean', value: 'boolean' },
 ];
 
 function XIcon() {
@@ -60,7 +67,7 @@ function createDefaultGroup(): ConditionGroup {
         id: Math.random().toString(36).substr(2, 9),
         type: 'group',
         logicalOperator: 'AND',
-        children: [{ id: Math.random().toString(36).substr(2, 9), left: '', operator: 'eq', right: '' }]
+        children: [{ id: Math.random().toString(36).substr(2, 9), left: '', operator: 'eq', right: '', dataType: 'text' }]
     };
 }
 
@@ -154,11 +161,11 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <ListFilter className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Logic Configuration</span>
+                    <Split className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Router Settings</span>
                 </div>
                 <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary/20">
-                    {conditionalBranches.length} Branches
+                    {conditionalBranches.length} {conditionalBranches.length === 1 ? 'Path' : 'Paths'}
                 </Badge>
             </div>
 
@@ -178,7 +185,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                             >
                                 <div className="flex items-center gap-2">
                                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                    <span className="text-xs font-semibold">{branchName} Condition</span>
+                                    <span className="text-xs font-semibold">Branch {index + 1}</span>
                                 </div>
                                 {!isExpanded && (
                                      <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
@@ -188,7 +195,11 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                             </div>
 
                             {isExpanded && (
-                                <div className="p-3">
+                                <div className="p-3 bg-background/20">
+                                    <div className="mb-3 flex items-center gap-2 px-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Execute If</span>
+                                        <div className="h-px flex-1 bg-border/50" />
+                                    </div>
                                     <ConditionGroupRenderer
                                         group={branchConfig}
                                         onChange={(newConfig) => updateBranchConfig(index, newConfig)}
@@ -211,8 +222,18 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                 )}
                 
                 {isLastElse && (
-                    <div className="px-3 py-2 border border-dashed rounded-lg bg-muted/10 opacity-60">
-                         <span className="text-xs font-medium italic">Else branch (Fallback) - No conditions needed</span>
+                    <div className="mt-6 border-t pt-4">
+                        <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">Otherwise</span>
+                            </div>
+                            <Badge variant="secondary" className="text-[9px] uppercase font-bold opacity-50">Fallback Path</Badge>
+                        </div>
+                        <div className="mt-2 p-3 bg-muted/5 rounded-lg border border-dashed border-border/50 text-[10px] text-muted-foreground flex items-center gap-2">
+                            <AlertCircle className="h-3 w-3" />
+                            Executed if no other branch conditions are met.
+                        </div>
                     </div>
                 )}
             </div>
@@ -243,7 +264,8 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
             id: Math.random().toString(36).substr(2, 9),
             left: '',
             operator: 'eq',
-            right: ''
+            right: '',
+            dataType: 'text'
         };
         onChange({ ...group, children: [...group.children, newRule] });
     };
@@ -253,7 +275,7 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
             id: Math.random().toString(36).substr(2, 9),
             type: 'group',
             logicalOperator: 'AND',
-            children: [{ id: Math.random().toString(36).substr(2, 9), left: '', operator: 'eq', right: '' }]
+            children: [{ id: Math.random().toString(36).substr(2, 9), left: '', operator: 'eq', right: '', dataType: 'text' }]
         };
         onChange({ ...group, children: [...group.children, newGroup] });
     };
@@ -281,52 +303,59 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
         )}>
             {/* Visual Logic Label */}
             <div className="absolute top-0 right-0 p-1">
-                <div className={cn(
-                    "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-bl-md",
-                    group.logicalOperator === 'OR' ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
-                )}>
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={cn(
+                        "h-5 text-[9px] font-bold uppercase tracking-wider px-1.5 rounded-bl-md",
+                        group.logicalOperator === 'OR' ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"
+                    )}
+                    onClick={toggleOperator}
+                >
                     {group.logicalOperator}
-                </div>
+                </Button>
             </div>
 
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2 mb-2">
                 <div className="flex items-center gap-1">
-                    <Button
-                        variant="outline"
+                   <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Match</span>
+                   <Button
+                        variant="ghost"
                         size="sm"
                         className={cn(
-                            "h-7 px-2 text-[10px] font-bold uppercase tracking-tighter",
-                            group.logicalOperator === 'AND' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            "h-6 px-1.5 text-[10px] font-bold",
+                            group.logicalOperator === 'AND' ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-primary"
                         )}
-                        onClick={toggleOperator}
-                        disabled={disabled}
+                        onClick={() => group.logicalOperator !== 'AND' && toggleOperator()}
                     >
-                        AND
+                        ALL
                     </Button>
+                    <span className="text-[10px] text-muted-foreground/30">/</span>
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         className={cn(
-                            "h-7 px-2 text-[10px] font-bold uppercase tracking-tighter",
-                            group.logicalOperator === 'OR' ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"
+                            "h-6 px-1.5 text-[10px] font-bold",
+                            group.logicalOperator === 'OR' ? "text-amber-600 bg-amber-500/5" : "text-muted-foreground hover:text-amber-600"
                         )}
-                        onClick={toggleOperator}
-                        disabled={disabled}
+                        onClick={() => group.logicalOperator !== 'OR' && toggleOperator()}
                     >
-                        OR
+                        ANY
                     </Button>
                 </div>
 
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 px-2" onClick={addRule} disabled={disabled}>
-                        <Plus className="h-3 w-3" /> Rule
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold gap-1 px-1 text-primary hover:bg-primary/5" onClick={addRule} disabled={disabled}>
+                        <Plus className="h-3 w-3" /> AND Rule
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 px-2" onClick={addGroup} disabled={disabled}>
-                        <Plus className="h-3 w-3" /> Group
-                    </Button>
+                    {depth === 0 && (
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold gap-1 px-1 text-amber-600 hover:bg-amber-500/5" onClick={addGroup} disabled={disabled}>
+                            <Plus className="h-3 w-3" /> OR Group
+                        </Button>
+                    )}
                     {onRemove && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemove(group.id)} disabled={disabled}>
-                            <Trash2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/50 hover:text-destructive" onClick={() => onRemove(group.id)} disabled={disabled}>
+                            <Trash2 className="h-3 w-3" />
                         </Button>
                     )}
                 </div>
@@ -386,7 +415,7 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
                                         />
                                     </div>
 
-                                    <div className="w-32">
+                                    <div className="w-32 space-y-1.5">
                                         <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest block mb-1.5">
                                             Operator
                                         </span>
@@ -396,15 +425,35 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
                                             disabled={disabled}
                                         >
                                             <SelectTrigger className="h-8 text-[11px] px-2 font-medium">
-                                                <SelectValue />
+                                                <SelectValue>
+                                                    <span className="font-mono text-sm">
+                                                        {OPERATORS.find(op => op.value === (child as ConditionRule).operator)?.symbol || '='}
+                                                    </span>
+                                                </SelectValue>
                                             </SelectTrigger>
                                             <SelectContent position="item-aligned">
                                                 {OPERATORS.map(op => (
                                                     <SelectItem key={op.value} value={op.value}>
                                                         <div className="flex items-center gap-2">
-                                                            {op.icon}
+                                                            <span className="font-mono text-sm w-6 text-center">{op.symbol}</span>
                                                             <span>{op.label}</span>
                                                         </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select
+                                            value={(child as ConditionRule).dataType || 'text'}
+                                            onValueChange={(val) => updateChild(child.id, { dataType: val as any })}
+                                            disabled={disabled}
+                                        >
+                                            <SelectTrigger className="h-7 text-[10px] px-2 bg-muted/30">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {DATA_TYPES.map(dt => (
+                                                    <SelectItem key={dt.value} value={dt.value}>
+                                                        {dt.label}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
