@@ -85,10 +85,12 @@ export default function Guardrails() {
         setAgentsLoading(true);
         try {
             const res = await axios.get(`${API_URL}/api/v1/agents?userId=${user?.id}`);
-            const agentList = res.data; // adjust if wrapper object
-            setAgents(Array.isArray(agentList) ? agentList : res.data.agents || []);
+            const agentData = res.data;
+            const actualAgents = Array.isArray(agentData) ? agentData : agentData.agents || [];
+            setAgents(actualAgents);
 
-            // Auto-select logic REMOVED as per user request
+            // Sync selection with actual agents (Remove deleted agent IDs from state)
+            setSelectedAgentIds(prev => prev.filter(id => actualAgents.some((a: any) => a.id === id)));
         } catch (e) {
             console.error("Failed to fetch agents", e);
         } finally {
