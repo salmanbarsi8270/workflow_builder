@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, ListFilter, Type, CheckCircle2, AlertCircle, ChevronDown, ChevronRight, Split } from "lucide-react";
+import { Trash2, Plus, AlertCircle, ChevronDown, ChevronRight, Split } from "lucide-react";
 import { VariablePicker } from "./VariablePicker";
 import { cn } from "@/lib/utils";
 import { type Node, type Edge } from "@xyflow/react";
@@ -55,12 +55,6 @@ const DATA_TYPES = [
     { label: 'Number', value: 'number' },
     { label: 'Boolean', value: 'boolean' },
 ];
-
-function XIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-    )
-}
 
 function createDefaultGroup(): ConditionGroup {
     return {
@@ -170,7 +164,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
             </div>
 
             <div className="space-y-3">
-                {conditionalBranches.map((branchName, index) => {
+                {conditionalBranches.map((index:any) => {
                     const branchConfig = configs[index] || createDefaultGroup();
                     const isExpanded = expandedBranches.has(index);
 
