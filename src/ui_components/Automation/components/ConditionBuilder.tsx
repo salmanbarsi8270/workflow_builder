@@ -419,45 +419,43 @@ const ConditionGroupRenderer = ({ group, onChange, nodes, edges, nodeId, disable
                                         <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest block mb-1.5">
                                             Operator
                                         </span>
-                                        <Select
-                                            value={(child as ConditionRule).operator}
-                                            onValueChange={(val) => updateChild(child.id, { operator: val })}
-                                            disabled={disabled}
-                                        >
-                                            <SelectTrigger className="h-8 text-[11px] px-2 font-medium">
-                                                <SelectValue>
-                                                    <span className="font-mono text-sm">
-                                                        {OPERATORS.find(op => op.value === (child as ConditionRule).operator)?.symbol || '='}
-                                                    </span>
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                            <SelectContent position="item-aligned">
-                                                {OPERATORS.map(op => (
-                                                    <SelectItem key={op.value} value={op.value}>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-mono text-sm w-6 text-center">{op.symbol}</span>
-                                                            <span>{op.label}</span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select
-                                            value={(child as ConditionRule).dataType || 'text'}
-                                            onValueChange={(val) => updateChild(child.id, { dataType: val as any })}
-                                            disabled={disabled}
-                                        >
-                                            <SelectTrigger className="h-7 text-[10px] px-2 bg-muted/30">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {DATA_TYPES.map(dt => (
-                                                    <SelectItem key={dt.value} value={dt.value}>
-                                                        {dt.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="flex items-center gap-1 mt-4">
+                                            <div>
+                                                <Select value={(child as ConditionRule).operator} onValueChange={(val) => updateChild(child.id, { operator: val })} disabled={disabled}>
+                                                    <SelectTrigger className="h-8 text-[11px] px-2 font-medium">
+                                                        <SelectValue>
+                                                            <span className="font-mono text-sm">
+                                                                {OPERATORS.find(op => op.value === (child as ConditionRule).operator)?.symbol || '='}
+                                                            </span>
+                                                        </SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent position="item-aligned">
+                                                        {OPERATORS.map(op => (
+                                                            <SelectItem key={op.value} value={op.value}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-mono text-sm w-6 text-center">{op.symbol}</span>
+                                                                    <span>{op.label}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Select value={(child as ConditionRule).dataType || 'text'} onValueChange={(val) => updateChild(child.id, { dataType: val as any })} disabled={disabled}>
+                                                    <SelectTrigger className="h-7 text-[10px] px-2 bg-muted/30">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {DATA_TYPES.map(dt => (
+                                                            <SelectItem key={dt.value} value={dt.value}>
+                                                                {dt.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectContent>
+                                            </Select>
+                                            </div>  
+                                        </div>
                                     </div>
 
                                     {!['empty', 'not_empty', 'exists', 'not_exists'].includes((child as ConditionRule).operator) ? (
