@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -64,6 +64,24 @@ export function CreateAgentDialog({
     // Keep internal bannedWords for Edit mode persistence if needed, but UI is hidden
     const [bannedWords, setBannedWords] = useState<string[]>([]);
 
+    // UI Design State
+    const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
+    const [selectedUiDesign, setSelectedUiDesign] = useState<string>('');
+
+    // Fetch UI Designs
+    useEffect(() => {
+        if (open && userId) {
+            fetch(`${API_URL}/api/v1/ui-designs?userId=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setUiDesigns(data);
+                    }
+                })
+                .catch(err => console.error("Error fetching UI designs:", err));
+        }
+    }, [open, userId]);
+
     // Flattened agents list for easier lookup and selection
     const allAvailableAgents = useMemo(() => {
         // Keep agents in tree format for recursive rendering
@@ -94,7 +112,10 @@ export function CreateAgentDialog({
                 const subAgents = initialAgent.sub_agents || initialAgent.subagents || [];
                 setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
+                setSelectedSubAgents(subAgents.map(a => a.id) || []);
+                setApiKey(initialAgent.api_key || '');
                 setSelectedConnection(initialAgent.connectionId || initialAgent.connection_id || '');
+                setSelectedUiDesign(initialAgent.ui_design_id || ''); // Load UI Design
 
                 // Load existing MCP tools if any
                 const existingMcpTools = initialAgent.tools
@@ -141,8 +162,12 @@ export function CreateAgentDialog({
         setMcpTools([]);
         setFiles([]);
         setExistingFiles([]);
+        setSelectedSubAgents([]);
+        setMcpTools([]);
+        setFiles([]);
+        setExistingFiles([]);
         setBannedWords([]);
-
+        setSelectedUiDesign('');
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -259,7 +284,8 @@ export function CreateAgentDialog({
                 connectionId: selectedConnection,
                 userId: userId,
                 sub_agents: selectedSubAgents,
-                tools: [...formattedTools, ...formattedMcpTools]
+                tools: [...formattedTools, ...formattedMcpTools],
+                ui_design_id: selectedUiDesign // Add to payload
             };
 
             let response;
@@ -419,6 +445,28 @@ export function CreateAgentDialog({
                             onChange={(e) => setModel(e.target.value)}
                             className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 text-xs font-mono"
                         />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="ui-design" className="text-slate-700 dark:text-white font-medium">Agent UI Design</Label>
+                        <Select value={selectedUiDesign} onValueChange={setSelectedUiDesign}>
+                            <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500">
+                                <SelectValue placeholder="Select a UI Design (Optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none_selected">
+                                    <span className="text-slate-500">Default Style</span>
+                                </SelectItem>
+                                {uiDesigns.map(design => (
+                                    <SelectItem key={design.id} value={design.id}>
+                                        <div className="flex items-center gap-2">
+                                            <Palette className="h-3 w-3 text-purple-500" />
+                                            <span>{design.name}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="grid gap-2">
