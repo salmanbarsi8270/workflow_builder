@@ -25,6 +25,7 @@ export interface Agent {
   instructions: string;
   model: string;
   created_at?: string;
+  guardrails_enabled?: boolean;
   api_key?: string;
   connectionId?: string;
   connection_id?: string;
@@ -51,6 +52,10 @@ export interface Agent {
     font_family?: string;
     show_branding?: boolean;
   };
+  ui_design_id?: string;
+  is_published?: boolean;
+  public_url_slug?: string;
+  visibility?: 'public' | 'private';
 }
 
 export interface ConnectionOption {

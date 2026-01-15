@@ -16,6 +16,7 @@ import Agents from './ui_components/Agents';
 import Guardrails from './ui_components/Guardrails';
 import LiveEvals from './ui_components/Evals';
 import UIDesigner from './ui_components/UIDesigner';
+import { PublicChat } from './ui_components/PublicChat/PublicChat';
 
 function UIDesignerWrapper() {
     const { user } = useUser();
@@ -65,6 +66,8 @@ export function App() {
                             <Route path="/evals" element={<LiveEvals />} />
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                         </Route>
+
+                        <Route path="/chat/:slug" element={<PublicChat />} />
 
                         <Route path="*" element={<ErrorPage />} />
                     </Routes>

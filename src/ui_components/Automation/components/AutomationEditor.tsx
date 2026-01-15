@@ -1213,11 +1213,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 if (isLogic) {
                     const branches = safeParseBranches((node.data.params as any)?.branches || node.data.branches || (node.type === 'condition' ? ['If', 'Else'] : []));
                     if (branches.length > 0) {
-                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
+                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches }:any = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
                         
                         if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || (normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase())))) {
                              nextEdges = rEdges;
-                             nextNodes = rNodes.map(n => {
+                             nextNodes = rNodes.map((n:any) => {
                                  if (n.id === node.id) {
                                      let updatedNode = { ...n };
                                      if (recoveredId) updatedNode.data = { ...updatedNode.data, mergeNodeId: recoveredId };
