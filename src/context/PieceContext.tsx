@@ -13,7 +13,7 @@ interface PieceContextType {
 const PieceContext = createContext<PieceContextType | undefined>(undefined);
 
 export function PieceProvider({ children }: { children: ReactNode }) {
-    const [pieces, setPieces] = useState<AppDefinition[]>([]); 
+    const [pieces, setPieces] = useState<AppDefinition[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -26,16 +26,16 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                 const rawPieces = response.pieces;
                 const piecesArray = Object.entries(rawPieces).map(([id, piece]: [string, any]) => {
                     const actions: any[] = [];
-                    
+
                     // Helper to add an action or trigger
                     const addDef = (actionId: string, def: any, type: 'action' | 'trigger') => {
                         let parameters = Array.isArray(def.parameters) ? def.parameters : [];
 
                         // Special case: Provide custom type and labels for Agent selection
                         if (id === 'agent' && actionId === 'runAgent') {
-                            const order = ['connection', 'agentId', 'input'];
+                            const order = ['connection', 'agentId', 'input', 'timeout'];
                             const mapped: any[] = [];
-                            
+
                             order.forEach(name => {
                                 const p = parameters.find((param: any) => param.name === name);
                                 if (p) {
@@ -44,7 +44,7 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                                     else if (name === 'input') mapped.push({ ...p, label: 'USER INPUT' });
                                 }
                             });
-                            
+
                             parameters = mapped;
                         }
 
@@ -103,12 +103,12 @@ export function PieceProvider({ children }: { children: ReactNode }) {
 
                     // 2. Fallback: If metadata is missing but actions/triggers exist as objects directly
                     if (actions.length === 0) {
-                         if (piece.actions && typeof piece.actions === 'object' && !Array.isArray(piece.actions)) {
-                             Object.entries(piece.actions).forEach(([aid, val]) => addDef(aid, val, 'action'));
-                         }
-                         if (piece.triggers && typeof piece.triggers === 'object' && !Array.isArray(piece.triggers)) {
-                             Object.entries(piece.triggers).forEach(([tid, val]) => addDef(tid, val, 'trigger'));
-                         }
+                        if (piece.actions && typeof piece.actions === 'object' && !Array.isArray(piece.actions)) {
+                            Object.entries(piece.actions).forEach(([aid, val]) => addDef(aid, val, 'action'));
+                        }
+                        if (piece.triggers && typeof piece.triggers === 'object' && !Array.isArray(piece.triggers)) {
+                            Object.entries(piece.triggers).forEach(([tid, val]) => addDef(tid, val, 'trigger'));
+                        }
                     }
 
                     return {

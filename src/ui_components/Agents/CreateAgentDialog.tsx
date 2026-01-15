@@ -141,7 +141,11 @@ export function CreateAgentDialog({
                         const hasBannedWords = data.inputGuardrails?.bannedWords?.length > 0;
                         const hasOutputRules = data.outputGuardrails?.list?.length > 0 || data.outputGuardrails?.emailRedaction;
                         setBannedWords(data.inputGuardrails?.bannedWords || []);
-                        setEnableGuardrails(hasBannedWords || hasOutputRules);
+                        // Use explicit flag if available, otherwise fallback to inference
+                        const flag = initialAgent.guardrails_enabled !== undefined
+                            ? initialAgent.guardrails_enabled
+                            : (hasBannedWords || hasOutputRules);
+                        setEnableGuardrails(flag);
                     })
                     .catch(err => console.error("Error fetching guardrails:", err));
 
@@ -284,8 +288,10 @@ export function CreateAgentDialog({
                 connectionId: selectedConnection,
                 userId: userId,
                 sub_agents: selectedSubAgents,
+                guardrails_enabled: enableGuardrails,
                 tools: [...formattedTools, ...formattedMcpTools],
-                ui_design_id: selectedUiDesign // Add to payload
+                ui_design_id: selectedUiDesign
+                // Add to payload
             };
 
             let response;

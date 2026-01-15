@@ -142,7 +142,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
             {/* Output Handles - Dynamic based on branches */}
             {(() => {
                 const branches = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
-                return branches.map((branch: string, i: number) => {
+                return branches.map((i: number) => {
                     // Mapper expects numeric indices for multi-branch logic
                     const handleId = String(i);
                     
