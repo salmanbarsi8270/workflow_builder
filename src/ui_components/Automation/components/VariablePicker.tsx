@@ -292,6 +292,12 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
 
 
+                        // Specific properties for logic pieces
+                        if (node.type === 'condition') {
+                          finalSchema.push({ name: 'result', type: 'boolean' });
+                          finalSchema.push({ name: 'branch', type: 'string' });
+                        }
+
                         return finalSchema;
                       };
 

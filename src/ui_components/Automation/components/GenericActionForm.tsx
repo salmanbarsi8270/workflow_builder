@@ -32,19 +32,13 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
 
     const [items, setItems] = useState<string[]>(parseValue(value));
 
-    // Helper to recount and re-label "Else If" branches correctly
+    // Helper to recount and re-label "Branch" paths correctly
     const rebalanceConditionLabels = (newItems: string[]) => {
         if (nodeType !== 'condition') return newItems;
 
-        // Count how many "Else If" (or "else if") branches we have
-        let elseIfCount = 0;
         return newItems.map((_item, index) => {
-            if (index === 0) return 'If';
-            if (index === newItems.length - 1) return 'Else';
-
-            // It's an internal branch
-            elseIfCount++;
-            return `Else If ${elseIfCount}`;
+            if (index === newItems.length - 1 && newItems.length > 1) return 'Otherwise';
+            return `Branch ${index + 1}`;
         });
     };
 
@@ -134,7 +128,7 @@ const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, 
                 disabled={disabled}
             >
                 <Plus className="h-3 w-3" />
-                {isBranches ? (nodeType === 'parallel' ? 'Add Branch' : 'Add Else If') : 'Add Item'}
+                {isBranches ? 'Add Branch' : 'Add Item'}
             </Button>
             <p className="text-[10px] text-muted-foreground italic mt-1">
                 {placeholder}

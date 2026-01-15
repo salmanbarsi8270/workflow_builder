@@ -155,9 +155,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
                 let expectedHandleId = 'parallel-output';
                 if (sourceNode.type === 'condition') {
-                    expectedHandleId = label.toLowerCase();
-                    if (expectedHandleId === 'if') expectedHandleId = 'true';
-                    if (expectedHandleId === 'else') expectedHandleId = 'false';
+                    // NEW: Use numeric indices for multi-branch conditions
+                    const branchIndex = branches.findIndex((b: string) => b.toLowerCase() === label.toLowerCase());
+                    expectedHandleId = branchIndex !== -1 ? String(branchIndex) : label.toLowerCase();
                 }
 
                 if (edge.sourceHandle !== expectedHandleId) {
@@ -722,7 +722,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const { nextNodes: reconciledNodes, nextEdges: reconciledEdges, mergeNodeId: recoveredMergeId, normalizedBranches } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
             
-            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches)) {
+            if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || (normalizedBranches && JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches))) {
                 currentNodes = reconciledNodes;
                 currentEdges = reconciledEdges;
                 structureChanged = true;
@@ -1215,7 +1215,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (branches.length > 0) {
                         const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches }:any = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
                         
-                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()))) {
+                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || (normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase())))) {
                              nextEdges = rEdges;
                              nextNodes = rNodes.map((n:any) => {
                                  if (n.id === node.id) {
