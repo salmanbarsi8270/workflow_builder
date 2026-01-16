@@ -18,7 +18,7 @@ import { API_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { Workflow as WorkflowIcon } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -60,7 +60,8 @@ export function CreateAgentDialog({
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
 
     // Guardrails State
-    const [enableGuardrails, setEnableGuardrails] = useState(false);
+    // Guardrails State: Default to true, UI toggle removed per request
+    const [enableGuardrails, setEnableGuardrails] = useState(true);
     // Keep internal bannedWords for Edit mode persistence if needed, but UI is hidden
     const [bannedWords, setBannedWords] = useState<string[]>([]);
 
@@ -766,19 +767,7 @@ export function CreateAgentDialog({
                         )}
                     </div>
 
-                    {/* Guardrails Section */}
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
-                        <div className="space-y-0.5">
-                            <Label className="text-base font-semibold text-slate-900 dark:text-white">Enable Guardrails</Label>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Automatically redact PII (Email, Phone) and filter content.
-                            </p>
-                        </div>
-                        <Switch
-                            checked={enableGuardrails}
-                            onCheckedChange={setEnableGuardrails}
-                        />
-                    </div>
+                    {/* Guardrails Section Removed - Managed via dedicated Guardrails Tab */}
 
                     {/* Sub-Agents Selection */}
                     <div className="grid gap-2">
