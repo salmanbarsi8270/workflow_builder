@@ -10,11 +10,13 @@ import axios from 'axios';
 
 export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { login, user } = useUser();
+    const { login, register, user } = useUser();
 
     useEffect(() => {
         // Redirect if user is already logged in
@@ -29,17 +31,21 @@ export default function LoginPage() {
         window.location.href = `${API_URL}/auth/login`;
     };
 
-    const handleEmailLogin = async (e: React.FormEvent) => {
+    const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
 
         try {
-            await login(email, password);
+            if (isSignUp) {
+                await register(email, password, name);
+            } else {
+                await login(email, password);
+            }
             navigate('/');
         } catch (err) {
             if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.error || 'Invalid email or password');
+                setError(err.response?.data?.error || `Invalid ${isSignUp ? 'registration' : 'credentials'}`);
             } else {
                 setError('An unexpected error occurred');
             }
@@ -66,14 +72,30 @@ export default function LoginPage() {
                         </svg>
                     </div>
                     <CardTitle className="text-3xl font-bold tracking-tight bg-linear-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                        Welcome Back
+                        {isSignUp ? "Create Account" : "Welcome Back"}
                     </CardTitle>
                     <CardDescription className="text-muted-foreground text-sm">
-                        Sign in to your account to continue building workflows
+                        {isSignUp 
+                            ? "Join us to start building your workflows" 
+                            : "Sign in to your account to continue building workflows"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <form onSubmit={handleEmailLogin} className="space-y-4">
+                    <form onSubmit={handleEmailAuth} className="space-y-4">
+                        {isSignUp && (
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    placeholder="John Doe"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                    className="h-11 px-4 focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -113,16 +135,29 @@ export default function LoginPage() {
                             {isLoading ? (
                                 <span className="flex items-center gap-2">
                                     <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                    Signing in...
+                                    {isSignUp ? "Creating account..." : "Signing in..."}
                                 </span>
                             ) : (
-                                "Sign In"
+                                isSignUp ? "Sign Up" : "Sign In"
                             )}
                         </Button>
-                        <div className="pt-1 text-center">
-                            <p className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">Development Credentials</p>
-                            <p className="text-xs text-muted-foreground italic">test@example.com / Admin@1234</p>
+
+                        <div className="text-center text-sm">
+                            <button
+                                type="button"
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                className="text-primary hover:underline font-medium"
+                            >
+                                {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+                            </button>
                         </div>
+
+                        {!isSignUp && (
+                            <div className="pt-1 text-center">
+                                <p className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">Development Credentials</p>
+                                <p className="text-xs text-muted-foreground italic">test@example.com / Admin@1234</p>
+                            </div>
+                        )}
                     </form>
 
                     <div className="relative">

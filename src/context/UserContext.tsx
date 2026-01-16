@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser, loginUser } from '../ui_components/api/auth';
+import { getCurrentUser, loginUser, registerUser } from '../ui_components/api/auth';
 
 export interface User {
   id: string;
@@ -13,6 +13,7 @@ interface UserContextType {
   isLoading: boolean;
   refreshUser: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -68,6 +69,19 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const register = async (email: string, password: string, name?: string) => {
+    try {
+      const data = await registerUser(email, password, name);
+      if (data.token) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('authToken', data.token);
+        setUser(data.user);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('authToken');
@@ -93,7 +107,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, isLoading, refreshUser, login, logout }}>
+    <UserContext.Provider value={{ user, isLoading, refreshUser, login, register, logout }}>
       {children}
     </UserContext.Provider>
   );
