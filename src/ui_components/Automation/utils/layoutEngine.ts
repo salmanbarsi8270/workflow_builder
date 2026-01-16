@@ -400,7 +400,7 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
              const branches = (node.data.params as any)?.branches || (node.data.branches as string[]) || [];
              if (branches.length > 0) {
                  const branchTargets: (string|null)[] = [];
-                 branches.forEach((branchName: string) => {
+                 branches.forEach((branchName: string, index: number) => {
                      const lowerName = branchName.toLowerCase();
                      const edge = outgoing.find(e => {
                          const label = (e.data as any)?.label?.toLowerCase();
@@ -409,6 +409,7 @@ export const calculateLayout = (nodes: Node[], edges: Edge[]): Node[] => {
                          if (label === lowerName) return true;
                          if (lowerName === 'if' && handle === 'true') return true;
                          if (lowerName === 'else' && handle === 'false') return true;
+                         if (handle === String(index)) return true;
                          return false;
                      });
                      branchTargets.push(edge ? edge.target : null);

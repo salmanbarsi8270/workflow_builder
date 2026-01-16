@@ -630,11 +630,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 }
                 
                 // Ensure correct handle
-                let expectedHandleId = 'parallel-output';
-                if (isCondition) {
-                    // Use branch index as handle ID for multi-branch conditions
-                    expectedHandleId = String(i);
-                }
+                let expectedHandleId = String(i);
 
                 if (edge.sourceHandle !== expectedHandleId || edge.data?.label !== branchName) {
                     nextEdges = nextEdges.map(e => {
@@ -673,11 +669,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 nextNodes.push(placeholder);
 
                 // Determine Source Handle ID based on node type and branch index
-                let handleId = 'parallel-output';
-                if (isCondition) {
-                    // Use branch index as handle ID for multi-branch conditions
-                    handleId = String(i);
-                }
+                let handleId = String(i);
 
                 // Edge: Source -> Placeholder
                 nextEdges.push({
@@ -873,7 +865,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         source: inEdge.source,
                         target: outEdge.target,
                         sourceHandle: inEdge.sourceHandle,
-                        type: 'custom'
+                        type: 'custom',
+                        data: inEdge.data // Persist the label (Branch Name)!
                     });
                 });
             });
@@ -902,7 +895,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             type: 'custom',
                             data: {
                                 label: 'Add Step',
-                                subLabel: sourceNode?.type === 'condition' ? (inEdge.sourceHandle === 'true' ? 'True Path' : 'False Path') : 'Branch Step',
+                                subLabel: inEdge.data?.label || (sourceNode?.type === 'condition' ? (inEdge.sourceHandle === 'true' ? 'True Path' : 'False Path') : 'Branch Step'),
                                 isPlaceholder: true,
                                 isBranchPlaceholder: true,
                             },
@@ -913,7 +906,14 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         // Replace the bridge with Placeholder chain
                         nextEdges = nextEdges.filter(e => e.id !== currentEdgesForBranch[0].id);
                         nextEdges.push(
-                            { id: `e-${inEdge.source}-${placeholderId}`, source: inEdge.source, target: placeholderId, sourceHandle: inEdge.sourceHandle, type: 'custom' },
+                            { 
+                                id: `e-${inEdge.source}-${placeholderId}`, 
+                                source: inEdge.source, 
+                                target: placeholderId, 
+                                sourceHandle: inEdge.sourceHandle, 
+                                type: 'custom',
+                                data: inEdge.data // Persist the label!
+                            },
                             { id: `e-${placeholderId}-${targetId}`, source: placeholderId, target: targetId, type: 'custom' }
                         );
                     }
@@ -1116,13 +1116,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 branchPlaceholders.push(placeholder);
 
                 // Determine Handle ID
-                let handleId = 'parallel-output';
-                if (isCondition) {
-                    const lowerBranch = branchName.toLowerCase();
-                    if (lowerBranch === 'if') handleId = 'true';
-                    else if (lowerBranch === 'else') handleId = 'false';
-                    else handleId = branchName.toLowerCase();
-                }
+                let handleId = String(index);
 
                 newEdges.push(
                     { id: `e-${newNodeId}-${placeholderId}`, source: newNodeId, target: placeholderId, sourceHandle: handleId, data: { label: branchName }, type: 'custom' },
@@ -1213,9 +1207,15 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 if (isLogic) {
                     const branches = safeParseBranches((node.data.params as any)?.branches || node.data.branches || (node.type === 'condition' ? ['If', 'Else'] : []));
                     if (branches.length > 0) {
-                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches }:any = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
-                        
-                        if (JSON.stringify(nextEdges) !== JSON.stringify(rEdges) || (recoveredId && !node.data.mergeNodeId) || (normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase())))) {
+                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches }: any = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
+
+                        const edgesToCompare = (eds: Edge[]) => eds.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, label: (e.data as any)?.label })).sort((a,b) => a.id.localeCompare(b.id));
+
+                        const edgesDiffer = JSON.stringify(edgesToCompare(nextEdges)) !== JSON.stringify(edgesToCompare(rEdges));
+                        const mergeNodeFixed = recoveredId && node.data.mergeNodeId !== recoveredId;
+                        const branchesDiffer = normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()));
+
+                        if (edgesDiffer || mergeNodeFixed || branchesDiffer) {
                              nextEdges = rEdges;
                              nextNodes = rNodes.map((n:any) => {
                                  if (n.id === node.id) {

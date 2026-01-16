@@ -119,16 +119,23 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
             </Card>
 
             {/* Branch Label Helpers */}
-            <div className="absolute -bottom-10 left-0 right-0 flex justify-between px-6 pointer-events-none">
+            <div className="absolute -bottom-10 left-0 right-0 h-10 pointer-events-none">
                 {(() => {
-                    const branchesArr = (data.branches as string[]) || ['If', 'Else'];
-                    return branchesArr.map((b, i) => {
+                    const branchesArr = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
+                    return branchesArr.map((b: string, i: number) => {
                         const isElse = i === branchesArr.length - 1 && branchesArr.length > 1;
                         const labelText = isElse ? 'Otherwise' : (branchesArr.length > 2 ? `Branch ${i + 1}` : b);
                         return (
-                            <div key={i} className="flex flex-col items-center">
+                            <div 
+                                key={i} 
+                                className="absolute flex flex-col items-center"
+                                style={{ 
+                                    left: `${((i + 1) / (branchesArr.length + 1)) * 100}%`,
+                                    transform: 'translateX(-50%)'
+                                }}
+                            >
                                 <div className={cn(
-                                    "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shadow-xs transition-all duration-300",
+                                    "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shadow-xs transition-all duration-300 whitespace-nowrap",
                                     isElse ? "bg-muted text-muted-foreground border-border" : "bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
                                 )}>
                                     {labelText}
@@ -139,7 +146,6 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                 })()}
             </div>
 
-            {/* Output Handles - Dynamic based on branches */}
             {(() => {
                 const branchesArr = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
                 return branchesArr.map((_: any, i: number) => {
@@ -159,7 +165,7 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                                 transform: 'translateX(-50%)',
                                 border: '1px solid white',
                                 zIndex: 50,
-                                opacity: 0.1
+                                opacity: 0.8 // Increased opacity for visibility
                             }}
                         />
                     );
