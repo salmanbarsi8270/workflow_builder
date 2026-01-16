@@ -107,6 +107,16 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                     delete newConfigs[prevBranches.length - 2]; 
                 }
             }
+
+            // MIGRATION: If we have string keys (old format), convert them to indices
+            Object.keys(newConfigs).forEach(key => {
+                const idx = currentBranches.indexOf(key);
+                if (idx !== -1 && isNaN(Number(key))) {
+                    newConfigs[idx] = newConfigs[key];
+                    delete newConfigs[key];
+                }
+            });
+
             isInternalChangeRef.current = true;
             setConfigs(newConfigs);
             setPrevBranches(currentBranches);
@@ -114,13 +124,21 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
 
         // Also sync if 'value' came from prop (e.g. external save/load)
         if (value && JSON.stringify(value) !== JSON.stringify(lastValueRef.current)) {
-            const valStr = JSON.stringify(value);
-            const configsStr = JSON.stringify(configs);
-            
-            if (valStr !== configsStr) {
+            let processedValue = { ...value };
+            // Migration for value from props too
+            const currentBranches = Array.isArray(branches) ? branches : [];
+            Object.keys(processedValue).forEach(key => {
+                const idx = currentBranches.indexOf(key);
+                if (idx !== -1 && isNaN(Number(key))) {
+                    processedValue[idx] = processedValue[key];
+                    delete processedValue[key];
+                }
+            });
+
+            if (JSON.stringify(processedValue) !== JSON.stringify(configs)) {
                 lastValueRef.current = value;
                 isInternalChangeRef.current = false;
-                setConfigs(value);
+                setConfigs(processedValue);
             }
         }
     }, [branches, value, prevBranches]); // Removed configs as dependency to avoid re-triggering on local state change
@@ -164,7 +182,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
             </div>
 
             <div className="space-y-3">
-                {conditionalBranches.map((index:any) => {
+                {conditionalBranches.map((branchName, index) => {
                     const branchConfig = configs[index] || createDefaultGroup();
                     const isExpanded = expandedBranches.has(index);
 
@@ -179,7 +197,7 @@ export const ConditionBuilder = ({ value, onChange, nodes, edges, nodeId, disabl
                             >
                                 <div className="flex items-center gap-2">
                                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                    <span className="text-xs font-semibold">Branch {index + 1}</span>
+                                    <span className="text-xs font-semibold">{branchName || `Branch ${index + 1}`}</span>
                                 </div>
                                 {!isExpanded && (
                                      <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">

@@ -141,11 +141,9 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
 
             {/* Output Handles - Dynamic based on branches */}
             {(() => {
-                const branches = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
-                return branches.map((i: number) => {
-                    // Mapper expects numeric indices for multi-branch logic
+                const branchesArr = (data.params as any)?.branches || (data.branches as string[]) || ['If', 'Else'];
+                return branchesArr.map((_: any, i: number) => {
                     const handleId = String(i);
-                    
                     return (
                         <Handle
                             key={i}
@@ -153,15 +151,15 @@ const ConditionNode = ({ data, selected }: NodeProps) => {
                             position={Position.Bottom}
                             id={handleId}
                             style={{
-                                background: i === 0 ? '#22c55e' : (i === branches.length - 1 ? '#ef4444' : '#6366f1'),
+                                background: i === 0 ? '#22c55e' : (i === branchesArr.length - 1 ? '#ef4444' : '#6366f1'),
                                 width: 8,
                                 height: 8,
                                 bottom: -4,
-                                left: `${((i + 1) / (branches.length + 1)) * 100}%`, // Distribute handles
+                                left: `${((i + 1) / (branchesArr.length + 1)) * 100}%`,
                                 transform: 'translateX(-50%)',
                                 border: '1px solid white',
                                 zIndex: 50,
-                                opacity: 0.1 // Slight hint for builder
+                                opacity: 0.1
                             }}
                         />
                     );
