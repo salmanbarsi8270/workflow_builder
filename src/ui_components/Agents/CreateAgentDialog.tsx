@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette, Search, Check } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -19,6 +19,7 @@ import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { OpenRouterModel } from '../Utility/openroutermodel';
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -67,6 +68,55 @@ export function CreateAgentDialog({
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
     const [selectedUiDesign, setSelectedUiDesign] = useState<string>('');
+
+    const [showAddModelDialog, setShowAddModelDialog] = useState(false);
+    const [modelOpen, setModelOpen] = useState(false);
+    const [allModels, setAllModels] = useState<{ id: string; name: string }[]>([]);
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+    const curatedModels = [
+        { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)' },
+        { id: 'google/gemini-flash-1.5', name: 'Gemini 1.5 Flash' },
+        { id: 'google/gemini-pro-1.5', name: 'Gemini 1.5 Pro' },
+        { id: 'openai/gpt-4o', name: 'GPT-4o' },
+        { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
+        { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+        { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku' },
+        { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' },
+        { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B (Free)' },
+        { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B (Free)' },
+        { id: 'microsoft/phi-3-mini-128k-instruct:free', name: 'Phi-3 Mini (Free)' },
+    ];
+
+    // Fetch models from OpenRouter
+    useEffect(() => {
+        if (open) {
+            const fetchModels = async () => {
+                setIsLoadingModels(true);
+                try {
+                    const url = 'https://openrouter.ai/api/v1/models';
+                    const options:any = {
+                        method: 'GET',
+                        headers: api_key ? { Authorization: `Bearer ${api_key}` } : {}
+                    };
+                    const response = await fetch(url, options);
+                    const data = await response.json();
+                    if (data && data.data) {
+                        const models = data.data.map((m: any) => ({
+                            id: m.id,
+                            name: m.name || m.id
+                        }));
+                        setAllModels(models);
+                    }
+                } catch (error) {
+                    console.error("Error fetching OpenRouter models:", error);
+                } finally {
+                    setIsLoadingModels(false);
+                }
+            };
+            fetchModels();
+        }
+    }, [open, api_key]);
 
     // Fetch UI Designs
     useEffect(() => {
@@ -406,7 +456,8 @@ export function CreateAgentDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
                 <DialogHeader className="p-0 mb-4 shrink-0">
@@ -444,13 +495,130 @@ export function CreateAgentDialog({
 
                     <div className="grid gap-2">
                         <Label htmlFor="model" className="text-slate-700 dark:text-white font-medium">Model ID <span className="text-red-500">*</span></Label>
-                        <Input
-                            id="model"
-                            placeholder="e.g. openai/gpt-4-turbo"
-                            value={model}
-                            onChange={(e) => setModel(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 text-xs font-mono"
-                        />
+                        <Popover open={modelOpen} onOpenChange={setModelOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={modelOpen}
+                                    className="justify-between bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 text-xs font-mono h-9"
+                                >
+                                    {model || "Select model..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0" align="start">
+                                <Command className="bg-white dark:bg-slate-950 border dark:border-white/5 shadow-2xl">
+                                    <CommandInput placeholder="Search models..." className="h-9 border-none focus:ring-0" />
+                                    <CommandList className="max-h-[300px]">
+                                        <CommandEmpty className="p-4 text-xs text-center text-slate-500">
+                                            {isLoadingModels ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    <span>Loading models...</span>
+                                                </div>
+                                            ) : "No model found. Type below to use custom ID."}
+                                        </CommandEmpty>
+                                        
+                                        <CommandGroup heading="Popular Models" className="px-2">
+                                            {curatedModels.map((m) => {
+                                                const isSelected = model === m.id;
+                                                return (
+                                                    <CommandItem
+                                                        key={m.id}
+                                                        value={m.id}
+                                                        className="flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                        onSelect={(currentValue) => {
+                                                            setModel(currentValue);
+                                                            setModelOpen(false);
+                                                        }}
+                                                    >
+                                                        <div className={`
+                                                            w-4 h-4 rounded border flex items-center justify-center transition-all
+                                                            ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                        `}>
+                                                            {isSelected && <Check className="h-3 w-3" />}
+                                                        </div>
+                                                        <div className="flex flex-col gap-0.5 min-w-0">
+                                                            <span className="text-sm font-medium truncate">{m.name}</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono truncate">{m.id}</span>
+                                                        </div>
+                                                    </CommandItem>
+                                                );
+                                            })}
+                                        </CommandGroup>
+
+                                        {allModels.length > 0 && (
+                                            <CommandGroup heading="All Available Models" className="px-2 border-t dark:border-white/5 mt-2 pt-2">
+                                                {allModels
+                                                    .filter(m => !curatedModels.some(cm => cm.id === m.id))
+                                                    .map((m) => {
+                                                        const isSelected = model === m.id;
+                                                        return (
+                                                            <CommandItem
+                                                                key={m.id}
+                                                                value={m.id}
+                                                                className="flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                                onSelect={(currentValue) => {
+                                                                    setModel(currentValue);
+                                                                    setModelOpen(false);
+                                                                }}
+                                                            >
+                                                                <div className={`
+                                                                    w-4 h-4 rounded border flex items-center justify-center transition-all
+                                                                    ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
+                                                                `}>
+                                                                    {isSelected && <Check className="h-3 w-3" />}
+                                                                </div>
+                                                                <div className="flex flex-col gap-0.5 min-w-0">
+                                                                    <span className="text-sm font-medium truncate">{m.name}</span>
+                                                                    <span className="text-[10px] text-slate-500 font-mono truncate">{m.id}</span>
+                                                                </div>
+                                                            </CommandItem>
+                                                        );
+                                                    })}
+                                            </CommandGroup>
+                                        )}
+                                        <div className="p-3 border-t dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50">
+                                            <Label className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 px-1 mb-2 block tracking-wider">Custom Model ID</Label>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-slate-400" />
+                                                    <Input 
+                                                        placeholder="e.g. google/gemini-2.0-flash-exp:free" 
+                                                        className="h-8 pl-8 text-[11px] font-mono bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10"
+                                                        value={model.startsWith('custom:') ? model.replace('custom:', '') : ''}
+                                                        onChange={(e) => setModel(`custom:${e.target.value}`)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                const finalModel = model.replace('custom:', '');
+                                                                if (finalModel.trim()) {
+                                                                    setModel(finalModel);
+                                                                    setModelOpen(false);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                                <Button 
+                                                    size="sm" 
+                                                    className="h-8 px-3 text-[10px] bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                                                    onClick={() => {
+                                                        const finalModel = model.replace('custom:', '');
+                                                        if (finalModel.trim()) {
+                                                            setModel(finalModel);
+                                                            setModelOpen(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    Apply
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <div className="grid gap-2">
@@ -549,7 +717,17 @@ export function CreateAgentDialog({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection (OpenRouter) <span className="text-red-500">*</span></Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection (OpenRouter) <span className="text-red-500">*</span></Label>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowAddModelDialog(true)}
+                                className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                            >
+                                <Plus className="h-3 w-3 mr-1" /> New Connection
+                            </Button>
+                        </div>
                         <Select value={selectedConnection} onValueChange={setSelectedConnection}>
                             <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500">
                                 <SelectValue placeholder="Select Connection" />
@@ -981,5 +1159,13 @@ export function CreateAgentDialog({
                 </DialogFooter>
             </DialogContent >
         </Dialog >
+            <OpenRouterModel 
+                open={showAddModelDialog} 
+                onOpenChange={setShowAddModelDialog} 
+                onSuccess={() => {
+                    toast.success("AI Provider added. Please refresh to see it in the list if it doesn't appear.");
+                }} 
+            />
+        </>
     );
 }
