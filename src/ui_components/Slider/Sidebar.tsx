@@ -123,14 +123,14 @@ export function SidebarIconExample() {
   return (
     <SidebarProvider className="h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       <Sidebar collapsible="icon" className="border-r border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
-        <SidebarHeader className='p-4 mt-2'>
+        <SidebarHeader className='p-2 mt-2'>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
                 <Link to="/" className="flex items-center gap-3">
                   <div className="relative group">
                     <div className="absolute inset-0 bg-blue-500/20 blur-lg rounded-xl group-hover:bg-blue-500/30 transition-all" />
-                    <div className="relative h-10 w-10 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                    <div className="relative p-2 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                       <LayoutDashboard size={22} className="group-hover:scale-110 transition-transform" />
                     </div>
                   </div>
@@ -143,7 +143,7 @@ export function SidebarIconExample() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent className="px-2">
+        <SidebarContent className="pt-1">
           <SidebarGroup>
             <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">Main Menu</SidebarGroupLabel>
             <SidebarMenu className="gap-1">
@@ -180,7 +180,7 @@ export function SidebarIconExample() {
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-slate-200 dark:border-white/5">
+        <SidebarFooter className="border-t border-slate-200 dark:border-white/5">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -190,7 +190,7 @@ export function SidebarIconExample() {
                     className="rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all p-2 h-14"
                   >
                     <div className="relative">
-                      <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm">
+                      <Avatar className="border-2 border-white dark:border-slate-800 shadow-sm">
                         <AvatarImage src={user?.picture} alt={user?.name || 'User'} />
                         <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
                       </Avatar>

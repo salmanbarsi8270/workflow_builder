@@ -52,6 +52,10 @@ export interface Agent {
     font_family?: string;
     show_branding?: boolean;
   };
+  ui_design_id?: string;
+  is_published?: boolean;
+  public_url_slug?: string;
+  visibility?: 'public' | 'private';
 }
 
 export interface ConnectionOption {
