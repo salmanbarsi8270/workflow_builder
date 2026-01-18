@@ -284,6 +284,7 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                                 status === 'running' && "border-blue-400/50 shadow-blue-500/10"
                             )}
                             onClick={() => status !== 'skipped' && toggleStep(node.id)}
+                            role="button"
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
                                 <span className={cn("font-medium text-sm truncate", status === 'skipped' && "line-through text-muted-foreground")}>

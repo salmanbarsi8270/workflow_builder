@@ -642,6 +642,47 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                         const actionDefFound = appDefFound?.actions.find(a => a.id === actionId);
                                         const schema = actionDefFound?.outputSchema;
 
+                                        // Helper to generate sample data based on schema
+                                        const generateSampleOutput = (schema: any[]) => {
+                                            const sample: any = {};
+                                            schema.forEach(prop => {
+                                                if (prop.type === 'file') {
+                                                    sample[prop.name] = {
+                                                        name: "example.csv",
+                                                        fileName: "example.csv",
+                                                        contentType: "text/csv",
+                                                        size: 10245,
+                                                        $file_ref: "uuid-ref-1234",
+                                                        _offloaded: true
+                                                    };
+                                                } else if (prop.type === 'array_file') {
+                                                    sample[prop.name] = [{
+                                                        name: "example.pdf",
+                                                        fileName: "example.pdf",
+                                                        contentType: "application/pdf",
+                                                        size: 20480,
+                                                        $file_ref: "uuid-ref-5678",
+                                                        _offloaded: true
+                                                    }];
+                                                } else if (prop.type === 'object') {
+                                                    if (prop.properties) {
+                                                        sample[prop.name] = generateSampleOutput(prop.properties);
+                                                    } else {
+                                                        sample[prop.name] = { key: "value" };
+                                                    }
+                                                } else if (prop.type === 'array') {
+                                                     sample[prop.name] = ["item1", "item2"];
+                                                } else if (prop.type === 'number') {
+                                                     sample[prop.name] = 123;
+                                                } else if (prop.type === 'boolean') {
+                                                     sample[prop.name] = true;
+                                                } else {
+                                                     sample[prop.name] = "string_value";
+                                                }
+                                            });
+                                            return sample;
+                                        };
+
                                         if (metadataLoading) {
                                             return <div className="p-4 text-center text-sm text-muted-foreground animate-pulse">Loading schema...</div>;
                                         }
@@ -660,74 +701,105 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                             );
                                         }
 
-                                        return (
-                                            <div className="rounded-lg border bg-card overflow-hidden">
-                                                <div className="bg-muted/30 px-4 py-2 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                                    Available Properties
-                                                </div>
-                                                <div className="divide-y">
-                                                    {schema.map((prop: any) => {
-                                                        const variablePath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}}}`;
+                                        const sampleOutput = generateSampleOutput(schema);
 
-                                                        return (
-                                                            <div key={prop.name} className="p-4 hover:bg-muted/10 transition-colors group">
-                                                                <div className="flex items-start justify-between mb-1">
-                                                                    <div className="flex flex-col gap-1">
-                                                                        <code className="text-xs font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded w-fit">
-                                                                            {prop.name}
-                                                                        </code>
-                                                                        <Badge variant="outline" className="text-[10px] h-4 px-1 uppercase w-fit">
-                                                                            {prop.type}
-                                                                        </Badge>
+                                        return (
+                                            <div className="space-y-6">
+                                                <div className="rounded-lg border bg-card overflow-hidden">
+                                                    <div className="bg-muted/30 px-4 py-2 border-b flex justify-between items-center">
+                                                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sample JSON Output</span>
+                                                        <button 
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(JSON.stringify(sampleOutput, null, 2));
+                                                                sonner.success("Sample JSON copied!");
+                                                            }}
+                                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                                        >
+                                                            <Copy className="h-3 w-3" /> Copy
+                                                        </button>
+                                                    </div>
+                                                    <div className="p-4 bg-muted/5 font-mono text-xs overflow-x-auto max-h-[200px]">
+                                                        <pre>{JSON.stringify(sampleOutput, null, 2)}</pre>
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-lg border bg-card overflow-hidden">
+                                                    <div className="bg-muted/30 px-4 py-2 border-b text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                        Available Properties
+                                                    </div>
+                                                    <div className="divide-y">
+                                                        {schema.map((prop: any) => {
+                                                            const variablePath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}}}`;
+
+                                                            return (
+                                                                <div key={prop.name} className="p-4 hover:bg-muted/10 transition-colors group">
+                                                                    <div className="flex items-start justify-between mb-1">
+                                                                        <div className="flex flex-col gap-1">
+                                                                            <code className="text-xs font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded w-fit">
+                                                                                {prop.name}
+                                                                            </code>
+                                                                            <Badge variant="outline" className="text-[10px] h-4 px-1 uppercase w-fit">
+                                                                                {prop.type}
+                                                                            </Badge>
+                                                                        </div>
+                                                                        <button
+                                                                            className="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(variablePath);
+                                                                                sonner.success("Variable path copied!");
+                                                                            }}
+                                                                        >
+                                                                            <Copy className="h-3 w-3" /> Copy Path
+                                                                        </button>
                                                                     </div>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="outline"
-                                                                                size="icon"
-                                                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                                onClick={() => {
-                                                                                    navigator.clipboard.writeText(variablePath);
-                                                                                    sonner.success("Variable path copied!");
-                                                                                }}
-                                                                            >
-                                                                                <Copy className="h-3 w-3" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>Copy {variablePath}</TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
-                                                                {prop.description && (
-                                                                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                                                        {prop.description}
-                                                                    </p>
-                                                                )}
-                                                                {prop.properties && prop.properties.length > 0 && (
-                                                                    <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
-                                                                        {prop.properties.map((subProp: any) => (
-                                                                            <div key={subProp.name} className="text-[11px] flex items-center justify-between group/sub">
-                                                                                <div>
-                                                                                    <span className="font-semibold text-muted-foreground">{subProp.name}</span>
-                                                                                    <span className="mx-1 text-muted-foreground/50">·</span>
-                                                                                    <span className="text-muted-foreground/70">{subProp.type}</span>
+                                                                    
+                                                                    {/* Variable Path Display */}
+                                                                    <div className="text-[10px] text-muted-foreground/50 font-mono mb-2 truncate">
+                                                                        {variablePath}
+                                                                    </div>
+
+                                                                    {prop.description && (
+                                                                        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                                                                            {prop.description}
+                                                                        </p>
+                                                                    )}
+                                                                    {prop.properties && prop.properties.length > 0 && (
+                                                                        <div className="mt-2 pl-4 border-l-2 border-muted space-y-2">
+                                                                            {prop.properties.map((subProp: any) => (
+                                                                                <div key={subProp.name} className="text-[11px] flex items-center justify-between group/sub">
+                                                                                    <div>
+                                                                                        <span className="font-semibold text-muted-foreground">{subProp.name}</span>
+                                                                                        <span className="mx-1 text-muted-foreground/50">·</span>
+                                                                                        <span className="text-muted-foreground/70">{subProp.type}</span>
+                                                                                    </div>
+                                                                                    <button
+                                                                                        className="text-[10px] text-primary hover:underline opacity-0 group-hover/sub:opacity-100"
+                                                                                        onClick={() => {
+                                                                                            const subPath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}.${subProp.name}}}`;
+                                                                                            navigator.clipboard.writeText(subPath);
+                                                                                            sonner.success("Sub-property copied!");
+                                                                                        }}
+                                                                                    >
+                                                                                        Copy
+                                                                                    </button>
                                                                                 </div>
-                                                                                <button
-                                                                                    className="text-[10px] text-primary hover:underline opacity-0 group-hover/sub:opacity-100"
-                                                                                    onClick={() => {
-                                                                                        const subPath = `{{steps.${selectedNode.id === '1' ? 'trigger' : selectedNode.id}.data.${prop.name}.${subProp.name}}}`;
-                                                                                        navigator.clipboard.writeText(subPath);
-                                                                                        sonner.success("Sub-property copied!");
-                                                                                    }}
-                                                                                >
-                                                                                    Copy
-                                                                                </button>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 flex gap-3">
+                                                    <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                                    <p className="text-xs text-blue-600/80 leading-normal">
+                                                        Use these properties in later steps using the syntax: <br />
+                                                        <code className="font-mono bg-blue-500/10 px-1 rounded text-blue-700">
+                                                            {"{{"}steps.{selectedNode.id}.data.property_name{"}}"}
+                                                        </code>
+                                                    </p>
                                                 </div>
                                             </div>
                                         );
