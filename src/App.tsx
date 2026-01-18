@@ -16,6 +16,7 @@ import Agents from './ui_components/Agents';
 import Guardrails from './ui_components/Guardrails';
 import LiveEvals from './ui_components/Evals';
 import UIDesigner from './ui_components/UIDesigner';
+import FileManager from './ui_components/Files/FileManager';
 import { PublicChat } from './ui_components/PublicChat/PublicChat';
 
 function UIDesignerWrapper() {
@@ -45,6 +46,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 import { PieceProvider } from './context/PieceContext';
 
+import { Toaster } from 'sonner';
+
 export function App() {
     return (
         <UserProvider>
@@ -65,6 +68,7 @@ export function App() {
                             <Route path="/guardrails" element={<Guardrails />} />
                             <Route path="/evals" element={<LiveEvals />} />
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
+                            <Route path="/files" element={<FileManager />} />
                         </Route>
 
                         <Route path="/chat/:slug" element={<PublicChat />} />
@@ -72,6 +76,7 @@ export function App() {
                         <Route path="*" element={<ErrorPage />} />
                     </Routes>
                 </BrowserRouter>
+                <Toaster />
             </PieceProvider>
         </UserProvider>
     );
