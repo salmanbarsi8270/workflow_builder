@@ -59,8 +59,6 @@ export function SidebarIconExample() {
         return "Template Gallery";
       case "/agents":
         return "Agent Workspace";
-      case "/guardrails":
-        return "Guardrails";
       case "/evals":
         return "Live Evaluations";
       case "/ui-designer":
@@ -102,11 +100,6 @@ export function SidebarIconExample() {
       title: "AI Agents",
       url: "/agents",
       icon: <Bot size={20} />,
-    },
-    {
-      title: "Guardrails",
-      url: "/guardrails",
-      icon: <Shield size={20} />,
     },
     {
       title: "Live Evals",
@@ -175,7 +168,7 @@ export function SidebarIconExample() {
                           )}>
                             {item.icon}
                           </div>
-                          <span>{item.title}</span>
+                          <span className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </motion.div>

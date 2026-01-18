@@ -324,7 +324,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                                      alt={app} 
                                      className={cn(
                                          "h-full w-full object-contain",
-                                         ['wait', 'delay', 'utility'].some(k => app.toLowerCase().includes(k)) && "invert dark:invert-0"
+                                         ['wait', 'delay', 'utility', 'agent'].some(k => app.toLowerCase().includes(k)) && "invert dark:invert-0"
                                      )} 
                                  />
                                </div>

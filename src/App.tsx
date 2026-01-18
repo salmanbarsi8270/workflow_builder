@@ -13,7 +13,6 @@ import Automation from './ui_components/Automation';
 import Connections from './ui_components/Connections';
 import Templates from './ui_components/Templates';
 import Agents from './ui_components/Agents';
-import Guardrails from './ui_components/Guardrails';
 import LiveEvals from './ui_components/Evals';
 import UIDesigner from './ui_components/UIDesigner';
 import FileManager from './ui_components/Files/FileManager';
@@ -65,7 +64,6 @@ export function App() {
                             <Route path="/automation" element={<Automation />} />
                             <Route path="/automation/:id" element={<Automation />} />
                             <Route path="/agents" element={<Agents />} />
-                            <Route path="/guardrails" element={<Guardrails />} />
                             <Route path="/evals" element={<LiveEvals />} />
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />

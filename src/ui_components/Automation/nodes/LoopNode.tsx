@@ -41,7 +41,14 @@ const LoopNode = ({ data, selected }: NodeProps) => {
                     {/* Icon Container */}
                     <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110">
                         {logoUrl ? (
-                            <img src={logoUrl} alt={iconKey} className="h-6 w-6 object-contain" />
+                            <img 
+                                src={logoUrl} 
+                                alt={iconKey} 
+                                className={cn(
+                                    "h-6 w-6 object-contain",
+                                    ['wait', 'delay', 'utility', 'agent'].includes(iconKey) && "invert dark:invert-0"
+                                )} 
+                            />
                         ) : (
                             <Repeat className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                         )}
