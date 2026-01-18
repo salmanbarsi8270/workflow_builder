@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette, Search, Check } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -17,10 +17,8 @@ import { McpToolConfig } from './McpToolConfig';
 import { API_URL, AI_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
-import { Workflow as WorkflowIcon } from 'lucide-react';
-
-import { Switch } from '@/components/ui/switch';
 import { OpenRouterModel } from '../Utility/openroutermodel';
+import { Switch } from "@/components/ui/switch";
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -32,6 +30,11 @@ interface CreateAgentDialogProps {
     onSuccess: (agent: Agent, isEdit: boolean) => void;
     availableAgents: Agent[];
     availableWorkflows?: AutomationItem[];
+}
+
+interface GuardrailItem {
+    type: 'email' | 'phone' | 'sensitive' | 'profanity' | 'maxlength';
+    config: Record<string, any>;
 }
 
 export function CreateAgentDialog({
@@ -62,10 +65,13 @@ export function CreateAgentDialog({
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
 
     // Guardrails State
-    // Guardrails State: Default to true, UI toggle removed per request
     const [enableGuardrails, setEnableGuardrails] = useState(true);
-    // Keep internal bannedWords for Edit mode persistence if needed, but UI is hidden
     const [bannedWords, setBannedWords] = useState<string[]>([]);
+    const [newWord, setNewWord] = useState('');
+    const [outputGuardrails, setOutputGuardrails] = useState<GuardrailItem[]>([]);
+    const [inputGuardrails, setInputGuardrails] = useState<GuardrailItem[]>([]);
+    const [selectedType, setSelectedType] = useState<string>('');
+    const [selectedInputType, setSelectedInputType] = useState<string>('');
     const [ragEnabled, setRagEnabled] = useState(true);
 
     // UI Design State
@@ -187,13 +193,20 @@ export function CreateAgentDialog({
                     .catch(err => console.error("Error fetching knowledge:", err));
 
                 // Fetch Guardrails
-                // Fetch Guardrails
-                fetch(`${API_URL}/api/guardrails?agentId=${initialAgent.id}`)
+                fetch(`${API_URL}/api/guardrails?agentId=${initialAgent.id}&userId=${userId}`)
                     .then(res => res.json())
                     .then(data => {
                         const hasBannedWords = data.inputGuardrails?.bannedWords?.length > 0;
-                        const hasOutputRules = data.outputGuardrails?.list?.length > 0 || data.outputGuardrails?.emailRedaction;
+                        const list = data.outputGuardrails?.list || [];
+                        if (data.outputGuardrails?.emailRedaction && !list.find((i: any) => i.type === 'email')) {
+                            list.push({ type: 'email', config: { replacement: '[hidden-email]' } });
+                        }
+                        const hasOutputRules = list.length > 0;
+
                         setBannedWords(data.inputGuardrails?.bannedWords || []);
+                        setOutputGuardrails(list);
+                        setInputGuardrails(data.inputGuardrails?.list || []);
+
                         // Use explicit flag if available, otherwise fallback to inference
                         const flag = initialAgent.guardrails_enabled !== undefined
                             ? initialAgent.guardrails_enabled
@@ -208,7 +221,7 @@ export function CreateAgentDialog({
                 resetForm();
             }
         }
-    }, [open, initialAgent]);
+    }, [open, initialAgent, userId]);
 
     const resetForm = () => {
         setName('');
@@ -226,6 +239,11 @@ export function CreateAgentDialog({
         setExistingFiles([]);
         setExistingFiles([]);
         setBannedWords([]);
+        setNewWord('');
+        setOutputGuardrails([]);
+        setInputGuardrails([]);
+        setSelectedType('');
+        setSelectedInputType('');
         setRagEnabled(true);
         setSelectedUiDesign('');
     };
@@ -375,22 +393,18 @@ export function CreateAgentDialog({
                 // Handle Guardrails Save
                 // Handle Guardrails Save
                 try {
-                    const defaultOutputConfig = enableGuardrails ? {
-                        list: [{ type: 'email', config: { replacement: '[hidden-email]' } }],
-                        emailRedaction: true
-                    } : { list: [], emailRedaction: false };
-
-                    const defaultInputConfig = enableGuardrails ? {
-                        bannedWords: bannedWords
-                    } : { bannedWords: [] };
 
                     await fetch(`${API_URL}/api/guardrails`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             agentId: savedAgent.id,
-                            inputGuardrails: defaultInputConfig,
-                            outputGuardrails: defaultOutputConfig
+                            userId: userId,
+                            inputGuardrails: {
+                                bannedWords: bannedWords,
+                                list: inputGuardrails
+                            },
+                            outputGuardrails: { list: outputGuardrails, emailRedaction: false }
                         })
                     });
                 } catch (grError) {
@@ -461,6 +475,82 @@ export function CreateAgentDialog({
 
     const removeMcpTool = (index: number) => {
         setMcpTools(mcpTools.filter((_, i) => i !== index));
+    };
+
+    // Guardrails Helpers
+    const addBannedWord = () => {
+        if (newWord.trim() && !bannedWords.includes(newWord.trim())) {
+            setBannedWords([...bannedWords, newWord.trim()]);
+            setNewWord('');
+        }
+    };
+
+    const removeBannedWord = (word: string) => {
+        setBannedWords(bannedWords.filter(w => w !== word));
+    };
+
+    const addOutputGuardrail = () => {
+        if (!selectedType) return;
+        if (outputGuardrails.find(i => i.type === selectedType)) {
+            toast.error("Group already added");
+            return;
+        }
+
+        const defaults: Record<string, any> = {
+            email: { replacement: '[hidden-email]' },
+            phone: { replacement: '[hidden-phone]' },
+            sensitive: { replacement: '[hidden-number]' },
+            profanity: { replacement: '[hidden-profanity]' },
+            maxlength: { max: 1000 }
+        };
+
+        setOutputGuardrails([...outputGuardrails, {
+            type: selectedType as any,
+            config: defaults[selectedType] || {}
+        }]);
+        setSelectedType('');
+    };
+
+    const addInputGuardrail = () => {
+        if (!selectedInputType) return;
+        if (inputGuardrails.find(i => i.type === selectedInputType)) {
+            toast.error("Rule already added");
+            return;
+        }
+
+        const defaults: Record<string, any> = {
+            email: { replacement: '[hidden-email]' },
+            phone: { replacement: '[hidden-phone]' },
+            sensitive: { replacement: '[hidden-number]' },
+            profanity: { replacement: '[hidden-profanity]' },
+            maxlength: { max: 500 }
+        };
+
+        setInputGuardrails([...inputGuardrails, {
+            type: selectedInputType as any,
+            config: defaults[selectedInputType] || {}
+        }]);
+        setSelectedInputType('');
+    };
+
+    const removeOutputGuardrail = (type: string) => {
+        setOutputGuardrails(outputGuardrails.filter(i => i.type !== type));
+    };
+
+    const removeInputGuardrail = (type: string) => {
+        setInputGuardrails(inputGuardrails.filter(i => i.type !== type));
+    };
+
+    const updateGuardrailConfig = (type: string, key: string, value: any) => {
+        setOutputGuardrails(outputGuardrails.map(i =>
+            i.type === type ? { ...i, config: { ...i.config, [key]: value } } : i
+        ));
+    };
+
+    const updateInputGuardrailConfig = (type: string, key: string, value: any) => {
+        setInputGuardrails(inputGuardrails.map(i =>
+            i.type === type ? { ...i, config: { ...i.config, [key]: value } } : i
+        ));
     };
 
     return (
@@ -1108,7 +1198,246 @@ export function CreateAgentDialog({
                             )}
                         </div>
 
-                        {/* Guardrails Section Removed - Managed via dedicated Guardrails Tab */}
+                        {/* Guardrails Section */}
+                        <div className="space-y-4 pt-2 border-t dark:border-white/5">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-slate-700 dark:text-white font-bold flex items-center gap-2">
+                                    <Shield className="h-4 w-4 text-emerald-500" />
+                                    Agent Guardrails
+                                </Label>
+                                <div className="flex items-center space-x-2">
+                                    <Label htmlFor="guardrails-enabled" className="text-xs font-medium cursor-pointer">Enable Security</Label>
+                                    <Switch id="guardrails-enabled" checked={enableGuardrails} onCheckedChange={setEnableGuardrails} />
+                                </div>
+                            </div>
+
+                            {enableGuardrails && (
+                                <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                                    {/* Input Guardrails */}
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Input Filters (Banned Words)</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="Add banned word..."
+                                                value={newWord}
+                                                onChange={(e) => setNewWord(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        addBannedWord();
+                                                    }
+                                                }}
+                                                className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10"
+                                            />
+                                            <Button type="button" onClick={addBannedWord} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {bannedWords.map(word => (
+                                                <Badge key={word} variant="secondary" className="pl-3 pr-1 py-1 gap-1 bg-slate-100 dark:bg-slate-800 border dark:border-white/5">
+                                                    {word}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-4 w-4 p-0 hover:bg-transparent text-slate-400 hover:text-red-500"
+                                                        onClick={() => removeBannedWord(word)}
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Output Guardrails */}
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Output Content Rules</Label>
+                                        <div className="flex gap-2">
+                                            <Select value={selectedType} onValueChange={setSelectedType}>
+                                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10">
+                                                    <SelectValue placeholder="Add New Rule..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="email">Email Redaction</SelectItem>
+                                                    <SelectItem value="phone">Phone Number Redaction</SelectItem>
+                                                    <SelectItem value="sensitive">Sensitive Number Redaction</SelectItem>
+                                                    <SelectItem value="profanity">Profanity Check</SelectItem>
+                                                    <SelectItem value="maxlength">Max Length Limit</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Button
+                                                type="button"
+                                                onClick={addOutputGuardrail}
+                                                disabled={!selectedType}
+                                                size="sm"
+                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {outputGuardrails.map((item, idx) => (
+                                                <div key={idx} className="p-3 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 relative group">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`p-1.5 rounded-md ${item.type === 'email' ? 'bg-blue-500/10 text-blue-500' :
+                                                                item.type === 'phone' ? 'bg-green-500/10 text-green-500' :
+                                                                    item.type === 'sensitive' ? 'bg-yellow-500/10 text-yellow-500' :
+                                                                        item.type === 'profanity' ? 'bg-red-500/10 text-red-500' :
+                                                                            'bg-purple-500/10 text-purple-500'
+                                                                }`}>
+                                                                {item.type === 'email' && <Mail className="h-3 w-3" />}
+                                                                {item.type === 'phone' && <Phone className="h-3 w-3" />}
+                                                                {item.type === 'sensitive' && <AlertTriangle className="h-3 w-3" />}
+                                                                {item.type === 'profanity' && <MessageSquare className="h-3 w-3" />}
+                                                                {item.type === 'maxlength' && <MoreHorizontal className="h-3 w-3" />}
+                                                            </div>
+                                                            <span className="text-xs font-bold capitalize text-slate-700 dark:text-slate-200">
+                                                                {item.type === 'maxlength' ? 'Max Length' : item.type + ' Redaction'}
+                                                            </span>
+                                                        </div>
+                                                        <Button variant="ghost" size="icon" onClick={() => removeOutputGuardrail(item.type)} className="h-6 w-6 text-slate-400 hover:text-red-500">
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {['email', 'phone', 'sensitive', 'profanity'].includes(item.type) && (
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px] text-slate-500 uppercase">Replacement</Label>
+                                                                <Input
+                                                                    value={item.config.replacement || ''}
+                                                                    onChange={(e) => updateGuardrailConfig(item.type, 'replacement', e.target.value)}
+                                                                    className="h-7 text-[10px] bg-white dark:bg-slate-900"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {item.type === 'sensitive' && (
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px] text-slate-500 uppercase">Min Digits</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={item.config.minimumDigits || 6}
+                                                                    onChange={(e) => updateGuardrailConfig(item.type, 'minimumDigits', parseInt(e.target.value))}
+                                                                    className="h-7 text-[10px] bg-white dark:bg-slate-900"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {item.type === 'maxlength' && (
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px] text-slate-500 uppercase">Limit</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={item.config.maxCharacters || 1000}
+                                                                    onChange={(e) => updateGuardrailConfig(item.type, 'maxCharacters', parseInt(e.target.value))}
+                                                                    className="h-7 text-[10px] bg-white dark:bg-slate-900"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {outputGuardrails.length === 0 && (
+                                                <div className="text-center py-4 border border-dashed rounded-lg text-[10px] text-slate-400">
+                                                    No output rules configured.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Input Redaction Rules (NEW) */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Input Redaction Rules</Label>
+                                            <Badge variant="outline" className="text-[9px] uppercase font-bold border-purple-200 text-purple-600 bg-purple-50">Experimental</Badge>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Select value={selectedInputType} onValueChange={setSelectedInputType}>
+                                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10">
+                                                    <SelectValue placeholder="Add Input Rule..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="email">Email Masking</SelectItem>
+                                                    <SelectItem value="phone">Phone Masking</SelectItem>
+                                                    <SelectItem value="sensitive">Sensitive Masking</SelectItem>
+                                                    <SelectItem value="profanity">Profanity Masking</SelectItem>
+                                                    <SelectItem value="maxlength">Input Length Limit</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Button
+                                                type="button"
+                                                onClick={addInputGuardrail}
+                                                disabled={!selectedInputType}
+                                                size="sm"
+                                                className="bg-purple-600 hover:bg-purple-700"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {inputGuardrails.map((item, idx) => (
+                                                <div key={idx} className="p-3 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 relative group">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`p-1.5 rounded-md ${item.type === 'email' ? 'bg-blue-500/10 text-blue-500' :
+                                                                item.type === 'phone' ? 'bg-green-500/10 text-green-500' :
+                                                                    item.type === 'sensitive' ? 'bg-yellow-500/10 text-yellow-500' :
+                                                                        item.type === 'profanity' ? 'bg-red-500/10 text-red-500' :
+                                                                            'bg-purple-500/10 text-purple-500'
+                                                                }`}>
+                                                                {item.type === 'email' && <Mail className="h-3 w-3" />}
+                                                                {item.type === 'phone' && <Phone className="h-3 w-3" />}
+                                                                {item.type === 'sensitive' && <AlertTriangle className="h-3 w-3" />}
+                                                                {item.type === 'profanity' && <MessageSquare className="h-3 w-3" />}
+                                                                {item.type === 'maxlength' && <MoreHorizontal className="h-3 w-3" />}
+                                                            </div>
+                                                            <span className="text-xs font-bold capitalize text-slate-700 dark:text-slate-200">
+                                                                {item.type === 'maxlength' ? 'Max Input' : item.type + ' Masking'}
+                                                            </span>
+                                                        </div>
+                                                        <Button variant="ghost" size="icon" onClick={() => removeInputGuardrail(item.type)} className="h-6 w-6 text-slate-400 hover:text-red-500">
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {['email', 'phone', 'sensitive', 'profanity'].includes(item.type) && (
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px] text-slate-500 uppercase">Replacement</Label>
+                                                                <Input
+                                                                    value={item.config.replacement || ''}
+                                                                    onChange={(e) => updateInputGuardrailConfig(item.type, 'replacement', e.target.value)}
+                                                                    className="h-7 text-[10px] bg-white dark:bg-slate-900"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {item.type === 'maxlength' && (
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px] text-slate-500 uppercase">Limit</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={item.config.max || 500}
+                                                                    onChange={(e) => updateInputGuardrailConfig(item.type, 'max', parseInt(e.target.value))}
+                                                                    className="h-7 text-[10px] bg-white dark:bg-slate-900"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {inputGuardrails.length === 0 && (
+                                                <div className="text-center py-4 border border-dashed rounded-lg text-[11px] text-slate-400">
+                                                    No input redaction configured.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Sub-Agents Selection */}
                         <div className="grid gap-2">

@@ -218,7 +218,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
           <Card className="border-0 shadow-none">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-end">
-                <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full">
+                <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full cursor-pointer" role="button" aria-label="Close">
                   <X className="h-4 w-4 text-red-500" />
                 </button>
               </div>

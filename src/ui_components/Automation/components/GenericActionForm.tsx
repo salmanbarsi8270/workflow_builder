@@ -13,11 +13,14 @@ import { API_URL } from "@/ui_components/api/apiurl";
 
 
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Pencil, List, Loader2, Database, Box } from "lucide-react";
+import { Plus, Trash2, Pencil, List, Loader2, Database, Box, Upload, File as FileIcon, Paperclip, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { ConditionBuilder } from "@/ui_components/Automation/components/ConditionBuilder";
+
+import { FilePicker } from "./FilePicker";
 
 
 // Robust String Array Input
@@ -692,6 +695,7 @@ const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disa
     );
 };
 
+
 export default function GenericActionForm({ data, params = {}, onChange, parameters, disabled, nodes, edges = [], errors = {}, nodeId, nodeType }: GenericActionFormProps) {
     const { user } = useUser();
     const userId = user?.id || '';
@@ -829,6 +833,18 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 />
                             )}
                         </div>
+
+                        {param.type === 'file' && (
+                            <FilePicker
+                                value={params[param.name]}
+                                onChange={(val) => handleChange(param.name, val)}
+                                disabled={disabled}
+                                nodes={nodes}
+                                edges={edges}
+                                nodeId={nodeId}
+                                placeholder={param.description}
+                            />
+                        )}
 
                         {param.type === 'connection' && (
                             <ConnectionSelector

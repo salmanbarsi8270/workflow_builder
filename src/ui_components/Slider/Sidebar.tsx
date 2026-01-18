@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Shield, Activity, Palette } from 'lucide-react'
+import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -59,8 +59,6 @@ export function SidebarIconExample() {
         return "Template Gallery";
       case "/agents":
         return "Agent Workspace";
-      case "/guardrails":
-        return "Guardrails";
       case "/evals":
         return "Live Evaluations";
       case "/ui-designer":
@@ -102,11 +100,6 @@ export function SidebarIconExample() {
       title: "AI Agents",
       url: "/agents",
       icon: <Bot size={20} />,
-    },
-    {
-      title: "Guardrails",
-      url: "/guardrails",
-      icon: <Shield size={20} />,
     },
     {
       title: "Live Evals",
@@ -170,7 +163,7 @@ export function SidebarIconExample() {
                           )}>
                             {item.icon}
                           </div>
-                          <span>{item.title}</span>
+                          <span className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </motion.div>
