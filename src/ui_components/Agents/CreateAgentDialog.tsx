@@ -19,6 +19,7 @@ import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import { OpenRouterModel } from '../Utility/openroutermodel';
+import { Switch } from "@/components/ui/switch";
 
 interface CreateAgentDialogProps {
     open: boolean;
