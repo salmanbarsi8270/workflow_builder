@@ -53,13 +53,64 @@ const ParallelNode = ({ data, selected }: NodeProps) => {
             </div>
 
 
+            {/* Branch Label Helpers */}
+            <div className="absolute -bottom-10 left-0 right-0 h-10 pointer-events-none">
+                {(() => {
+                    const branchesArr = (data.params as any)?.branches || (data.branches as string[]) || ['Branch 1', 'Branch 2'];
+                    return branchesArr.map((b: string, i: number) => {
+                        return (
+                            <div 
+                                key={i} 
+                                className="absolute flex flex-col items-center"
+                                style={{ 
+                                    left: `${((i + 1) / (branchesArr.length + 1)) * 100}%`,
+                                    transform: 'translateX(-50%)'
+                                }}
+                            >
+                                <div className={cn(
+                                    "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shadow-xs transition-all duration-300 whitespace-nowrap bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                                )}>
+                                    {b}
+                                </div>
+                            </div>
+                        );
+                    });
+                })()}
+            </div>
+
             {/* Output Handles - Dynamic based on branches */}
-            {/* Single Shared Output Handle */}
+            {(() => {
+                const branchesArr = (data.params as any)?.branches || (data.branches as string[]) || ['Branch 1', 'Branch 2'];
+                return branchesArr.map((_: any, i: number) => {
+                    const handleId = String(i);
+                    return (
+                        <Handle
+                            key={i}
+                            type="source"
+                            position={Position.Bottom}
+                            id={handleId}
+                            style={{
+                                background: '#f59e0b',
+                                width: 8,
+                                height: 8,
+                                bottom: -4,
+                                left: `${((i + 1) / (branchesArr.length + 1)) * 100}%`,
+                                transform: 'translateX(-50%)',
+                                border: '1px solid white',
+                                zIndex: 50,
+                                opacity: 0.8
+                            }}
+                        />
+                    );
+                });
+            })()}
+
+            {/* Legacy Compatibility Handle (Invisible) */}
             <Handle
                 type="source"
                 position={Position.Bottom}
                 id="parallel-output"
-                className="!w-3 !h-3 !-bottom-[6px] !border-2 !border-background !bg-muted-foreground/30 z-50"
+                style={{ opacity: 0, pointerEvents: 'none', left: '50%' }}
             />
         </div>
     );

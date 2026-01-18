@@ -1,4 +1,5 @@
 import { type Edge, type Node } from "@xyflow/react"; // Updated import
+import { findMergeNodeForBlock, getNodesInBlock } from "../utils/layoutEngine";
 import { usePiecesMetadata } from "../hooks/usePiecesMetadata";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Database, Search, ChevronRight, ChevronDown, Zap, Code, Variable, Copy, Hash, List, Type, Calendar, Clock, Mail, User, FileText, Image, DollarSign, Globe, CheckCircle2, X, BoxSelect } from "lucide-react"; // Added BoxSelect
@@ -258,44 +259,75 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
                       const getDiscoveredSchema = () => {
                         let finalSchema = [...schema];
+
+                        const discoverFromParams = (params: any, schemaObj: any[]) => {
+                          // Extract from properties (buildObject)
+                          if (params.properties) {
+                            try {
+                              const props = typeof params.properties === 'string' ? JSON.parse(params.properties) : params.properties;
+                              Object.keys(props).forEach(key => {
+                                const exists = schemaObj.find(s => s.name === key || s.name === `object.${key}` || s.name === `updatedObject.${key}`);
+                                if (!exists) {
+                                  const rawType = typeof props[key];
+                                  const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                  schemaObj.push({ name: key, type });
+                                }
+                              });
+                            } catch (e) { }
+                          }
+
+                          // Extract from updates (updateObject)
+                          if (params.updates) {
+                            try {
+                              const upds = typeof params.updates === 'string' ? JSON.parse(params.updates) : params.updates;
+                              Object.keys(upds).forEach(key => {
+                                const exists = schemaObj.find(s => s.name === key);
+                                if (!exists) {
+                                  const rawType = typeof upds[key];
+                                  const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                  schemaObj.push({ name: key, type });
+                                }
+                              });
+                            } catch (e) { }
+                          }
+                        };
+
+                        // Aggregate internal schemas for logic blocks
+                        if (node.type === 'parallel' || node.type === 'loop' || node.type === 'condition') {
+                          const mergeId = findMergeNodeForBlock(nodes, edges, node.id);
+                          if (mergeId) {
+                            const internalIds = getNodesInBlock(nodes, edges, node.id, mergeId, false);
+                            internalIds.forEach(id => {
+                              if (id === node.id) return;
+                              const internalNode = nodes.find(n => n.id === id);
+                              if (internalNode && !internalNode.data?.isPlaceholder) {
+                                const internalIcon = internalNode.data.icon as string;
+                                const internalActionId = internalNode.data.actionId as string;
+                                const internalPiece = pieces[internalIcon];
+                                const internalSchema = internalPiece?.metadata?.actions?.[internalActionId]?.outputSchema || [];
+
+                                internalSchema.forEach(prop => {
+                                  if (!finalSchema.some(s => s.name === prop.name)) {
+                                    finalSchema.push(prop);
+                                  }
+                                });
+                                discoverFromParams(internalNode.data?.params || {}, finalSchema);
+                              }
+                            });
+                          }
+                        }
+
                         const nodeParams = (node.data?.params as any) || {};
-
-                        // Extract from properties (buildObject)
-                        if (nodeParams.properties) {
-                          try {
-                            const props = typeof nodeParams.properties === 'string' ? JSON.parse(nodeParams.properties) : nodeParams.properties;
-                            Object.keys(props).forEach(key => {
-                              const exists = finalSchema.find(s => s.name === key || s.name === `object.${key}` || s.name === `updatedObject.${key}`);
-                              if (!exists) {
-                                const rawType = typeof props[key];
-                                const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
-                                finalSchema.push({ name: key, type });
-                              }
-                            });
-                          } catch (e) { }
-                        }
-
-                        // Extract from updates (updateObject)
-                        if (nodeParams.updates) {
-                          try {
-                            const upds = typeof nodeParams.updates === 'string' ? JSON.parse(nodeParams.updates) : nodeParams.updates;
-                            Object.keys(upds).forEach(key => {
-                              const exists = finalSchema.find(s => s.name === key);
-                              if (!exists) {
-                                const rawType = typeof upds[key];
-                                const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
-                                finalSchema.push({ name: key, type });
-                              }
-                            });
-                          } catch (e) { }
-                        }
-
-
+                        discoverFromParams(nodeParams, finalSchema);
 
                         // Specific properties for logic pieces
                         if (node.type === 'condition') {
                           finalSchema.push({ name: 'result', type: 'boolean' });
                           finalSchema.push({ name: 'branch', type: 'string' });
+                        }
+                        if (node.type === 'loop') {
+                          finalSchema.push({ name: 'iterations', type: 'number' });
+                          finalSchema.push({ name: 'results', type: 'array' });
                         }
 
                         return finalSchema;

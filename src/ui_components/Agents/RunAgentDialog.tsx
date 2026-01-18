@@ -39,21 +39,15 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
         setResponse(''); // Clear previous response
 
         try {
-            // Direct AI_URL call to VoltAgent Core API
-            const res = await fetch(`${AI_URL}/agents/${agent.id}/stream`, {
+            // Use custom API endpoint that handles guardrails properly
+            const res = await fetch(`${AI_URL}/api/v1/agents/${agent.id}/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     input: input,
-                    options: {
-                        userId: userId,
-                        conversationId: agent.id,
-                        temperature: 0.7,
-                        contextLimit: 10,
-                        context: {
-                            userId: userId,
-                        }
-                    }
+                    userId: userId,
+                    stream: true,
+                    conversationId: agent.id
                 })
             });
 
@@ -67,15 +61,20 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 return;
             }
 
-            // Check if response is JSON
+            // Check if response is JSON (error case)
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
                 const data = await res.json();
-                // Extract text from response
-                const reply = data.text || data.output || data._output || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-                setResponse(reply);
+                // Handle error response
+                if (data.error) {
+                    setResponse(`Error: ${data.error}`);
+                } else {
+                    // Extract text from success response
+                    const reply = data.text || data.output || data._output || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+                    setResponse(reply);
+                }
             } else {
-                // Handle SSE streaming response
+                // Handle plain text streaming response
                 if (!res.body) {
                     setResponse("Error: No response body received.");
                     return;
@@ -84,60 +83,14 @@ export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDi
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = '';
-                let buffer = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     const chunk = decoder.decode(value, { stream: true });
-                    buffer += chunk;
-
-                    // Parse SSE format: "data: {...}\n\n"
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const jsonStr = line.slice(6); // Remove "data: " prefix
-                                const data = JSON.parse(jsonStr);
-                                
-                                // Extract text from text-delta events
-                                if (data.type === 'text-delta' && data.text) {
-                                    fullText += data.text;
-                                    setResponse(fullText);
-                                }
-                                
-                                // Handle tool calls
-                                if (data.type === 'tool-call-start' && data.toolName) {
-                                    fullText += `\n\n🔧 Executing tool: ${data.toolName}...\n`;
-                                    setResponse(fullText);
-                                }
-                                
-                                if (data.type === 'tool-call' && data.toolName) {
-                                    fullText += `\n✅ Tool executed: ${data.toolName}\n`;
-                                    if (data.result) {
-                                        fullText += `Result: ${typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)}\n`;
-                                    }
-                                    setResponse(fullText);
-                                }
-                                
-                                if (data.type === 'tool-call-delta' && data.text) {
-                                    fullText += data.text;
-                                    setResponse(fullText);
-                                }
-                                
-                                // Handle errors
-                                if (data.error) {
-                                    setResponse(`Error: ${data.error}`);
-                                    return;
-                                }
-                            } catch (e) {
-                                // Skip invalid JSON or non-JSON lines
-                            }
-                        }
-                    }
+                    fullText += chunk;
+                    setResponse(fullText);
                 }
             }
 
