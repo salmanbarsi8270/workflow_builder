@@ -35,13 +35,13 @@ export function DashboardHeader({ onRefresh, onNewWorkflow }: DashboardHeaderPro
                     variant="outline" 
                     size="icon" 
                     onClick={onRefresh}
-                    className="h-11 w-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 shadow-sm"
+                    className="h-11 w-11 cursor-pointer rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 shadow-sm"
                 >
                     <HugeiconsIcon icon={Refresh01Icon} className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </Button>
                 <Button 
                     onClick={onNewWorkflow} 
-                    className="h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] transition-all duration-300"
+                    className="h-11 px-6 cursor-pointer rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] transition-all duration-300"
                 >
                     <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
                     New Workflow

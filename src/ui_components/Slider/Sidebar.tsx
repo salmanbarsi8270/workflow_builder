@@ -163,7 +163,7 @@ export function SidebarIconExample() {
                           )}>
                             {item.icon}
                           </div>
-                          <span>{item.title}</span>
+                          <span className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </motion.div>

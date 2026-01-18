@@ -192,7 +192,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
           <Card className="border-0 shadow-none">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-end">
-                <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full">
+                <button onClick={() => setOpen(false)} className="bg-red-500/20 p-1 rounded-full cursor-pointer" role="button" aria-label="Close">
                   <X className="h-4 w-4 text-red-500" />
                 </button>
               </div>
@@ -347,7 +347,7 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
                       return (
                         <motion.div key={node.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-2 border rounded-lg overflow-hidden bg-linear-to-br from-card to-card/50 hover:from-accent/5 hover:to-accent/5 transition-all duration-200">
-                          <div className="px-3 py-2.5 hover:bg-accent/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle(node.id)}>
+                          <div className="px-3 py-2.5 hover:bg-accent/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle(node.id)} role="button">
                             <div className="flex items-center gap-3">
                               <div className={cn("p-1.5 rounded-md", isTrigger ? "bg-linear-to-br from-amber-500/10 to-amber-500/5" : "bg-linear-to-br from-primary/10 to-primary/5")}>
                                 {getNodeIcon(icon)}
