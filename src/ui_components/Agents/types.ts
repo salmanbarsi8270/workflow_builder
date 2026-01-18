@@ -26,6 +26,7 @@ export interface Agent {
   model: string;
   created_at?: string;
   guardrails_enabled?: boolean;
+  rag_enabled?: boolean;
   api_key?: string;
   connectionId?: string;
   connection_id?: string;

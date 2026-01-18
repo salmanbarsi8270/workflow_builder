@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
 import { McpToolConfig } from './McpToolConfig';
-import { API_URL } from '../api/apiurl';
+import { API_URL, AI_URL } from '../api/apiurl';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { Workflow as WorkflowIcon } from 'lucide-react';
@@ -63,6 +63,7 @@ export function CreateAgentDialog({
     const [enableGuardrails, setEnableGuardrails] = useState(false);
     // Keep internal bannedWords for Edit mode persistence if needed, but UI is hidden
     const [bannedWords, setBannedWords] = useState<string[]>([]);
+    const [ragEnabled, setRagEnabled] = useState(true);
 
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
@@ -124,7 +125,7 @@ export function CreateAgentDialog({
                 setMcpTools(existingMcpTools);
 
                 // Fetch existing files
-                fetch(`${API_URL}/api/v1/agents/${initialAgent.id}/knowledge?userId=${userId || initialAgent.userId || 'anonymous'}`)
+                fetch(`${AI_URL}/knowledge/list?agentId=${initialAgent.id}&userId=${userId || initialAgent.userId || 'anonymous'}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.documents) {
@@ -146,6 +147,7 @@ export function CreateAgentDialog({
                             ? initialAgent.guardrails_enabled
                             : (hasBannedWords || hasOutputRules);
                         setEnableGuardrails(flag);
+                        setRagEnabled(initialAgent.rag_enabled !== false);
                     })
                     .catch(err => console.error("Error fetching guardrails:", err));
 
@@ -170,7 +172,9 @@ export function CreateAgentDialog({
         setMcpTools([]);
         setFiles([]);
         setExistingFiles([]);
+        setExistingFiles([]);
         setBannedWords([]);
+        setRagEnabled(true);
         setSelectedUiDesign('');
     };
 
@@ -199,10 +203,11 @@ export function CreateAgentDialog({
         const toastId = toast.loading("Deleting file...");
 
         try {
-            const response = await fetch(`${API_URL}/api/v1/agents/${initialAgent.id}/knowledge`, {
+            const response = await fetch(`${AI_URL}/knowledge/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    agentId: initialAgent.id,
                     userId: userId || initialAgent.userId,
                     filename
                 })
@@ -290,7 +295,8 @@ export function CreateAgentDialog({
                 sub_agents: selectedSubAgents,
                 guardrails_enabled: enableGuardrails,
                 tools: [...formattedTools, ...formattedMcpTools],
-                ui_design_id: selectedUiDesign
+                ui_design_id: selectedUiDesign,
+                rag_enabled: ragEnabled
                 // Add to payload
             };
 
@@ -350,7 +356,7 @@ export function CreateAgentDialog({
                             formData.append('userId', userId || savedAgent.userId || 'anonymous');
                             formData.append('file', file);
 
-                            const res = await fetch(`${API_URL}/api/v1/agents/${savedAgent.id}/knowledge`, {
+                            const res = await fetch(`${AI_URL}/knowledge/upload`, {
                                 method: 'POST',
                                 body: formData
                             });
@@ -476,76 +482,85 @@ export function CreateAgentDialog({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="knowledge" className="text-slate-700 dark:text-white font-medium flex items-center justify-between">
-                            <span>Knowledge Base (RAG)</span>
-                            <Badge variant="outline" className="text-[10px] font-normal">PDF, Images, Text</Badge>
-                        </Label>
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    id="knowledge"
-                                    type="file"
-                                    multiple
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        if (e.target.files) {
-                                            setFiles([...files, ...Array.from(e.target.files)]);
-                                        }
-                                    }}
-                                />
-                                <Label htmlFor="knowledge" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full border-dashed border-slate-300 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400">
-                                    <Upload className="mr-2 h-4 w-4" /> Choose Files
-                                </Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="knowledge" className="text-slate-700 dark:text-white font-medium flex items-center gap-2">
+                                <span>Knowledge Base (RAG)</span>
+                                <Badge variant="outline" className="text-[10px] font-normal">PDF, Images, Text</Badge>
+                            </Label>
+                            <div className="flex items-center space-x-2">
+                                <Label htmlFor="rag-mode" className="text-xs font-medium cursor-pointer">Enable</Label>
+                                <Switch id="rag-mode" checked={ragEnabled} onCheckedChange={setRagEnabled} />
                             </div>
-
-                            {/* Existing Files */}
-                            {existingFiles.length > 0 && (
-                                <div className="flex flex-col gap-2">
-                                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1">Current Files</Label>
-                                    {existingFiles.map((file, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 text-sm">
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                                                <span className="truncate max-w-[200px]">{file.filename}</span>
-                                                <span className="text-xs text-muted-foreground">({file.count} chunks)</span>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
-                                                onClick={() => handleDeleteFile(file.filename)}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* New Files */}
-                            {files.length > 0 && (
-                                <div className="flex flex-col gap-2">
-                                    <Label className="text-[10px] uppercase tracking-wider text-green-500 font-bold px-1">New Files to Upload</Label>
-                                    {files.map((file, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-sm">
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <FileText className="h-4 w-4 text-green-500 shrink-0" />
-                                                <span className="truncate max-w-[200px]">{file.name}</span>
-                                                <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(0)} KB)</span>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-400 hover:text-red-500"
-                                                onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
                         </div>
+
+                        {ragEnabled && (
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="knowledge"
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            if (e.target.files) {
+                                                setFiles([...files, ...Array.from(e.target.files)]);
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor="knowledge" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full border-dashed border-slate-300 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400">
+                                        <Upload className="mr-2 h-4 w-4" /> Choose Files
+                                    </Label>
+                                </div>
+
+                                {/* Existing Files */}
+                                {existingFiles.length > 0 && (
+                                    <div className="flex flex-col gap-2">
+                                        <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1">Current Files</Label>
+                                        {existingFiles.map((file, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 text-sm">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                                                    <span className="truncate max-w-[200px]">{file.filename}</span>
+                                                    <span className="text-xs text-muted-foreground">({file.count} chunks)</span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-slate-400 hover:text-red-500"
+                                                    onClick={() => handleDeleteFile(file.filename)}
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* New Files */}
+                                {files.length > 0 && (
+                                    <div className="flex flex-col gap-2">
+                                        <Label className="text-[10px] uppercase tracking-wider text-green-500 font-bold px-1">New Files to Upload</Label>
+                                        {files.map((file, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-sm">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <FileText className="h-4 w-4 text-green-500 shrink-0" />
+                                                    <span className="truncate max-w-[200px]">{file.name}</span>
+                                                    <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(0)} KB)</span>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-slate-400 hover:text-red-500"
+                                                    onClick={() => setFiles(files.filter((_, i) => i !== idx))}
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid gap-2">

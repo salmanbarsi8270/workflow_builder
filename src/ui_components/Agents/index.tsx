@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
 import { getServices } from '../api/connectionlist';
-import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2, } from "lucide-react";
+import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, ChevronRight, Star, RefreshCw, Loader2, Globe } from "lucide-react";
 import { CustomPagination } from "../Shared/CustomPagination"
 import { Toaster, toast } from 'sonner';
 import { cn } from "@/lib/utils";
@@ -22,13 +22,14 @@ interface AgentTreeNodeProps {
   onCardClick: (agent: Agent) => void;
   onRunClick: (agent: Agent, e: React.MouseEvent) => void;
   onEditClick: (agent: Agent, e: React.MouseEvent) => void;
+  onPublishClick: (agent: Agent, e: React.MouseEvent) => void;
   onDeleteClick: (agentId: string, e: React.MouseEvent) => void;
   isDeleting?: boolean;
   isOpeningRun?: boolean;
   level?: number;
 }
 
-function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDeleteClick, isDeleting, isOpeningRun, level = 0 }: AgentTreeNodeProps) {
+function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPublishClick, onDeleteClick, isDeleting, isOpeningRun, level = 0 }: AgentTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubagents = (agent.subagents && agent.subagents.length > 0) || (agent.sub_agents && agent.sub_agents.length > 0);
   const subagentsList = agent.subagents || agent.sub_agents || [];
@@ -111,6 +112,13 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
               <Settings2 className="h-4 w-4" />
             </button>
             <button
+              onClick={(e) => onPublishClick(agent, e)}
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg transition-all duration-300 hover:border-blue-500/30 text-blue-600 dark:text-blue-400"
+              title="Publish Settings"
+            >
+              <Globe className="h-4 w-4" />
+            </button>
+            <button
               onClick={(e) => onDeleteClick(agent.id, e)}
               disabled={isDeleting}
               className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -132,6 +140,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onDel
               onCardClick={onCardClick}
               onRunClick={onRunClick}
               onEditClick={onEditClick}
+              onPublishClick={onPublishClick}
               onDeleteClick={onDeleteClick}
               isDeleting={isDeleting}
             />
@@ -160,6 +169,7 @@ export default function Agents() {
   const [selectedRunAgent, setSelectedRunAgent] = useState<Agent | null>(null);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
+  const [infoSheetTab, setInfoSheetTab] = useState<'details' | 'publish'>('details');
   const [isOpeningRun, setIsOpeningRun] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -287,6 +297,32 @@ export default function Agents() {
     }
   };
 
+  const handleUpdateAgent = async (updates: Partial<Agent>) => {
+    if (!selectedInfoAgent) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/v1/agents/${selectedInfoAgent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, userId: user?.id })
+      });
+
+      if (response.ok) {
+        const updatedAgent = await response.json();
+        // Update local state
+        setAgents(agents.map(a => a.id === updatedAgent.id ? updatedAgent : a));
+        setSelectedInfoAgent(updatedAgent);
+        toast.success("Agent updated");
+      } else {
+        const err = await response.json();
+        toast.error(err.error || "Failed to update agent");
+      }
+    } catch (error) {
+      console.error("Error updating agent:", error);
+      toast.error("Failed to update agent");
+    }
+  };
+
   const handleRunClick = (agent: Agent, e: React.MouseEvent) => {
     e.stopPropagation();
     setIsOpeningRun(agent.id);
@@ -336,6 +372,14 @@ export default function Agents() {
 
   const handleCardClick = (agent: Agent) => {
     setSelectedInfoAgent(agent);
+    setInfoSheetTab('details');
+    setIsInfoSheetOpen(true);
+  };
+
+  const handlePublishClick = (agent: Agent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedInfoAgent(agent);
+    setInfoSheetTab('publish');
     setIsInfoSheetOpen(true);
   };
 
@@ -478,6 +522,7 @@ export default function Agents() {
               onCardClick={handleCardClick}
               onRunClick={handleRunClick}
               onEditClick={handleEditClick}
+              onPublishClick={handlePublishClick}
               onDeleteClick={handleDeleteAgent}
               isDeleting={deletingId === agent.id}
               isOpeningRun={isOpeningRun === agent.id}
@@ -542,11 +587,13 @@ export default function Agents() {
         agent={selectedInfoAgent}
         open={isInfoSheetOpen}
         onOpenChange={setIsInfoSheetOpen}
+        initialTab={infoSheetTab}
         connections={allConnections}
         onRun={(a) => {
           setSelectedRunAgent(a);
           setIsRunModalOpen(true);
         }}
+        onUpdate={handleUpdateAgent}
       />
 
       {/* Pagination Footer */}

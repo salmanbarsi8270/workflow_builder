@@ -52,7 +52,7 @@ export function DynamicChatInterface({ agent }: DynamicChatInterfaceProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     input: userMessage,
-                    userId: 'public-user', // Or generate a session ID
+                    userId: agent.user_id || 'public-user', // Use owner ID if available (as requested)
                     stream: false
                 })
             });
@@ -119,14 +119,18 @@ export function DynamicChatInterface({ agent }: DynamicChatInterfaceProps) {
                         )}
                         <div
                             className={`max-w-[70%] px-4 py-3 rounded-2xl shadow-sm ${message.role === 'user'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white text-slate-800'
+                                ? 'text-white'
+                                : 'bg-white text-slate-800'
                                 }`}
+                            style={message.role === 'user' ? { backgroundColor: themeColor } : {}}
                         >
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                         </div>
                         {message.role === 'user' && (
-                            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                            <div
+                                className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white"
+                                style={{ backgroundColor: themeColor }}
+                            >
                                 <User className="h-5 w-5" />
                             </div>
                         )}
@@ -160,7 +164,7 @@ export function DynamicChatInterface({ agent }: DynamicChatInterfaceProps) {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder={inputPlaceholder}
-                        className="flex-1"
+                        className="flex-1 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200"
                         disabled={loading}
                     />
                     <Button
