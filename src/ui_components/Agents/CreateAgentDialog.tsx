@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -60,7 +60,7 @@ export function CreateAgentDialog({
     const [selectedSubAgents, setSelectedSubAgents] = useState<string[]>([]);
     const [api_key, setApiKey] = useState<string>('');
     const [mcpTools, setMcpTools] = useState<MCPConfig[]>([]);
-    const [files, setFiles] = useState<File[]>([]);
+
     // ... previous code ...
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
 
@@ -72,7 +72,7 @@ export function CreateAgentDialog({
     const [inputGuardrails, setInputGuardrails] = useState<GuardrailItem[]>([]);
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedInputType, setSelectedInputType] = useState<string>('');
-    const [ragEnabled, setRagEnabled] = useState(true);
+    const [ragEnabled, setRagEnabled] = useState(false);
 
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
@@ -138,6 +138,23 @@ export function CreateAgentDialog({
                     }
                 })
                 .catch(err => console.error("Error fetching UI designs:", err));
+        }
+    }, [open, userId]);
+
+    // RAG: Fetch Available Files from File Manager
+    const [availableFiles, setAvailableFiles] = useState<any[]>([]);
+    const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (open && userId) {
+            fetch(`${API_URL}/api/v1/files?userId=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setAvailableFiles(data);
+                    }
+                })
+                .catch(err => console.error("Error fetching available files:", err));
         }
     }, [open, userId]);
 
@@ -231,12 +248,6 @@ export function CreateAgentDialog({
         setSelectedTools([]);
         setSelectedSubAgents([]);
         setMcpTools([]);
-        setFiles([]);
-        setExistingFiles([]);
-        setSelectedSubAgents([]);
-        setMcpTools([]);
-        setFiles([]);
-        setExistingFiles([]);
         setExistingFiles([]);
         setBannedWords([]);
         setNewWord('');
@@ -244,8 +255,9 @@ export function CreateAgentDialog({
         setInputGuardrails([]);
         setSelectedType('');
         setSelectedInputType('');
-        setRagEnabled(true);
+        setRagEnabled(false);
         setSelectedUiDesign('');
+        setSelectedFileIds([]);
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -366,8 +378,8 @@ export function CreateAgentDialog({
                 guardrails_enabled: enableGuardrails,
                 tools: [...formattedTools, ...formattedMcpTools],
                 ui_design_id: selectedUiDesign,
-                rag_enabled: ragEnabled
-                // Add to payload
+                rag_enabled: ragEnabled,
+                rag_file_ids: selectedFileIds // Send selected file IDs to backend
             };
 
             let response;
@@ -391,7 +403,6 @@ export function CreateAgentDialog({
                 const savedAgent = await response.json();
 
                 // Handle Guardrails Save
-                // Handle Guardrails Save
                 try {
 
                     await fetch(`${API_URL}/api/guardrails`, {
@@ -412,33 +423,7 @@ export function CreateAgentDialog({
                     toast.error("Agent saved, but Failed to save Guardrails");
                 }
 
-                // Handle File Uploads (Knowledge Base)
-                if (files.length > 0) {
-                    const uploader = toast.loading("Uploading knowledge base files...");
-                    try {
-                        const chunks = files.map(async (file) => {
-                            const formData = new FormData();
-                            formData.append('agentId', savedAgent.id);
-                            formData.append('userId', userId || savedAgent.userId || 'anonymous');
-                            formData.append('file', file);
-
-                            const res = await fetch(`${AI_URL}/knowledge/upload`, {
-                                method: 'POST',
-                                body: formData
-                            });
-                            if (!res.ok) throw new Error('Upload failed');
-                            return res;
-                        });
-
-                        await Promise.all(chunks);
-                        toast.dismiss(uploader);
-                        toast.success("Knowledge uploaded successfully");
-                    } catch (error) {
-                        console.error("Error uploading knowledge:", error);
-                        toast.dismiss(uploader);
-                        toast.error("Failed to upload knowledge files");
-                    }
-                }
+                // NOTE: Direct File Upload Removed in favor of Backend Ingestion via rag_file_ids
 
                 toast.success(initialAgent ? "Agent updated successfully" : "Agent created successfully");
                 onSuccess(savedAgent, !!initialAgent);
@@ -760,21 +745,63 @@ export function CreateAgentDialog({
 
                             {ragEnabled && (
                                 <div className="flex flex-col gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            id="knowledge"
-                                            type="file"
-                                            multiple
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                if (e.target.files) {
-                                                    setFiles([...files, ...Array.from(e.target.files)]);
-                                                }
-                                            }}
-                                        />
-                                        <Label htmlFor="knowledge" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full border-dashed border-slate-300 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400">
-                                            <Upload className="mr-2 h-4 w-4" /> Choose Files
-                                        </Label>
+                                    <Label className="text-xs text-slate-500">Select files from your Library to add to this agent's knowledge.</Label>
+
+                                    <div className="border border-slate-200 dark:border-white/10 rounded-md max-h-[200px] overflow-y-auto bg-slate-50 dark:bg-slate-900/50 p-2 space-y-1">
+                                        {availableFiles.length === 0 ? (
+                                            <div className="p-4 text-center text-xs text-slate-400 italic">
+                                                No files found in File Manager. Upload files there first.
+                                            </div>
+                                        ) : (
+                                            availableFiles.map((file) => {
+                                                const isSelected = selectedFileIds.includes(file.id);
+                                                // Check if it's already "Existing" (by name match, as a heuristic since existingFiles lacks ID)
+                                                const isAlreadyIngested = existingFiles.some(ef => ef.filename === file.original_name);
+
+                                                return (
+                                                    <div
+                                                        key={file.id}
+                                                        className={`
+                                                            flex items-center gap-3 p-2 rounded-md cursor-pointer text-sm transition-colors
+                                                            ${isSelected
+                                                                ? 'bg-blue-100 dark:bg-blue-600/20 border-blue-200 dark:border-blue-500/30 border'
+                                                                : 'hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'}
+                                                            ${isAlreadyIngested ? 'opacity-50' : ''}
+                                                        `}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedFileIds(current => current.filter(id => id !== file.id));
+                                                            } else {
+                                                                setSelectedFileIds(current => [...current, file.id]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div className={`
+                                                            w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                                                            ${isSelected
+                                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950'}
+                                                        `}>
+                                                            {isSelected && <Check className="h-3 w-3" />}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                            <FileText className={`h-4 w-4 shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
+                                                            <div className="flex flex-col truncate">
+                                                                <span className="truncate font-medium text-slate-700 dark:text-slate-200">{file.original_name}</span>
+                                                                <span className="text-[10px] text-slate-400">
+                                                                    {(file.size / 1024).toFixed(1)} KB • {new Date(file.created_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {isAlreadyIngested && (
+                                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
+                                                                Added
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
 
                                     {/* Existing Files */}
@@ -793,30 +820,6 @@ export function CreateAgentDialog({
                                                         size="icon"
                                                         className="h-6 w-6 text-slate-400 hover:text-red-500"
                                                         onClick={() => handleDeleteFile(file.filename)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* New Files */}
-                                    {files.length > 0 && (
-                                        <div className="flex flex-col gap-2">
-                                            <Label className="text-[10px] uppercase tracking-wider text-green-500 font-bold px-1">New Files to Upload</Label>
-                                            {files.map((file, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-sm">
-                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                        <FileText className="h-4 w-4 text-green-500 shrink-0" />
-                                                        <span className="truncate max-w-[200px]">{file.name}</span>
-                                                        <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(0)} KB)</span>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-6 w-6 text-slate-400 hover:text-red-500"
-                                                        onClick={() => setFiles(files.filter((_, i) => i !== idx))}
                                                     >
                                                         <X className="h-3 w-3" />
                                                     </Button>
@@ -1461,7 +1464,7 @@ export function CreateAgentDialog({
                             )}
                         </div>
 
-                    </div>
+                    </div >
                     <DialogFooter className="mt-4 gap-2 shrink-0">
                         <Button variant="ghost" disabled={isSubmitting} onClick={resetForm} className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500">
                             Reset
@@ -1496,8 +1499,8 @@ export function CreateAgentDialog({
                             {initialAgent ? "Save Changes" : "Create Agent"}
                         </Button>
                     </DialogFooter>
-                </DialogContent >
-            </Dialog >
+                </DialogContent>
+            </Dialog>
             <OpenRouterModel
                 open={showAddModelDialog}
                 onOpenChange={setShowAddModelDialog}

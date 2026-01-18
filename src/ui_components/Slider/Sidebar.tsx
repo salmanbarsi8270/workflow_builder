@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Shield, Activity, Palette, FolderOpen } from 'lucide-react'
+import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
