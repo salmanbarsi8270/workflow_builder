@@ -136,6 +136,32 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
 
   }, [nodes, edges, normalizedCurrentNodeId]);
 
+  const variables = useMemo(() => {
+    if (!availableNodes) return [];
+
+    const vars = new Set<string>();
+    availableNodes.forEach(n => {
+      // 1. Explicit Store (store.put)
+      if (n.data?.piece === 'store' && n.data?.actionId === 'put') {
+        const params = n.data.params as any;
+        if (params?.key) {
+          vars.add(params.key);
+        }
+      }
+
+      // 2. Data Piece Variables (buildObject / updateObject)
+      // These actions have a 'variableName' param that creates a global variable
+      if (['buildObject', 'updateObject'].includes(n.data?.actionId as string)) {
+        const params = n.data?.params as any;
+        if (params?.variableName) {
+          const v = String(params.variableName).trim();
+          if (v) vars.add(v);
+        }
+      }
+    });
+    return Array.from(vars).sort();
+  }, [availableNodes]);
+
   const handleSelect = (val: string) => {
     onSelect(val);
     setOpen(false);
@@ -243,228 +269,283 @@ export const VariablePicker = ({ onSelect, nodes, edges, currentNodeId }: Variab
                       </div>
                     </motion.div>
                   ) : (
-                    availableNodes.map((node) => {
-                      const icon = node.data.icon as string;
-                      const actionId = node.data.actionId as string;
-                      const isTrigger = checkIsTrigger(node);
-                      const pathNodeId = isTrigger ? 'trigger' : node.id;
-
-                      const piece = pieces[icon];
-                      const actionType = isTrigger ? 'triggers' : 'actions';
-                      const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema || [];
-
-                      const nodeLabel = (node.data.label as string) || node.id;
-                      const lowerSearch = search.toLowerCase();
-                      const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
-
-                      const getDiscoveredSchema = () => {
-                        let finalSchema = [...schema];
-
-                        const discoverFromParams = (params: any, schemaObj: any[]) => {
-                          // Extract from properties (buildObject)
-                          if (params.properties) {
-                            try {
-                              const props = typeof params.properties === 'string' ? JSON.parse(params.properties) : params.properties;
-                              Object.keys(props).forEach(key => {
-                                const exists = schemaObj.find(s => s.name === key || s.name === `object.${key}` || s.name === `updatedObject.${key}`);
-                                if (!exists) {
-                                  const rawType = typeof props[key];
-                                  const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
-                                  schemaObj.push({ name: key, type });
-                                }
-                              });
-                            } catch (e) { }
-                          }
-
-                          // Extract from updates (updateObject)
-                          if (params.updates) {
-                            try {
-                              const upds = typeof params.updates === 'string' ? JSON.parse(params.updates) : params.updates;
-                              Object.keys(upds).forEach(key => {
-                                const exists = schemaObj.find(s => s.name === key);
-                                if (!exists) {
-                                  const rawType = typeof upds[key];
-                                  const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
-                                  schemaObj.push({ name: key, type });
-                                }
-                              });
-                            } catch (e) { }
-                          }
-                        };
-
-                        // Aggregate internal schemas for logic blocks
-                        if (node.type === 'parallel' || node.type === 'loop' || node.type === 'condition') {
-                          const mergeId = findMergeNodeForBlock(nodes, edges, node.id);
-                          if (mergeId) {
-                            const internalIds = getNodesInBlock(nodes, edges, node.id, mergeId, false);
-                            internalIds.forEach(id => {
-                              if (id === node.id) return;
-                              const internalNode = nodes.find(n => n.id === id);
-                              if (internalNode && !internalNode.data?.isPlaceholder) {
-                                const internalIcon = internalNode.data.icon as string;
-                                const internalActionId = internalNode.data.actionId as string;
-                                const internalPiece = pieces[internalIcon];
-                                const internalSchema = internalPiece?.metadata?.actions?.[internalActionId]?.outputSchema || [];
-
-                                internalSchema.forEach(prop => {
-                                  if (!finalSchema.some(s => s.name === prop.name)) {
-                                    finalSchema.push(prop);
-                                  }
-                                });
-                                discoverFromParams(internalNode.data?.params || {}, finalSchema);
-                              }
-                            });
-                          }
-                        }
-
-                        const nodeParams = (node.data?.params as any) || {};
-                        discoverFromParams(nodeParams, finalSchema);
-
-                        // Specific properties for logic pieces
-                        if (node.type === 'condition') {
-                          finalSchema.push({ name: 'result', type: 'boolean' });
-                          finalSchema.push({ name: 'branch', type: 'string' });
-                        }
-                        if (node.type === 'loop') {
-                          finalSchema.push({ name: 'iterations', type: 'number' });
-                          finalSchema.push({ name: 'results', type: 'array' });
-                        }
-
-                        return finalSchema;
-                      };
-
-                      const discoveredSchema = getDiscoveredSchema();
-                      const filteredSchema = discoveredSchema.filter((prop: any) => {
-                        if (!search) return true;
-                        return matchesNodeLabel ||
-                          prop.name.toLowerCase().includes(lowerSearch) ||
-                          prop.type.toLowerCase().includes(lowerSearch);
-                      });
-
-                      if (!matchesNodeLabel && filteredSchema.length === 0 && search) return null;
-
-                      const isExpanded = expanded.has(node.id) || (!!search && filteredSchema.length > 0);
-
-                      return (
-                        <motion.div key={node.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-2 border rounded-lg overflow-hidden bg-linear-to-br from-card to-card/50 hover:from-accent/5 hover:to-accent/5 transition-all duration-200">
-                          <div className="px-3 py-2.5 hover:bg-accent/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle(node.id)}>
+                    <>
+                      {/* Global Variables Section */}
+                      {variables.length > 0 && (
+                        <div className="mb-2 border rounded-lg overflow-hidden bg-linear-to-br from-purple-500/10 to-purple-500/5">
+                          <div className="px-3 py-2.5 hover:bg-purple-500/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle('global_vars')}>
                             <div className="flex items-center gap-3">
-                              <div className={cn("p-1.5 rounded-md", isTrigger ? "bg-linear-to-br from-amber-500/10 to-amber-500/5" : "bg-linear-to-br from-primary/10 to-primary/5")}>
-                                {getNodeIcon(icon)}
+                              <div className="p-1.5 rounded-md bg-purple-500/20 text-purple-600">
+                                <Variable className="h-3.5 w-3.5" />
                               </div>
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium truncate max-w-[120px]">
-                                    {nodeLabel}
-                                  </span>
-                                  {isTrigger && (
-                                    <Badge variant="outline" className="text-[8px] h-4 px-1.5 bg-amber-500/10 text-amber-600 border-amber-200">
-                                      Trigger
-                                    </Badge>
-                                  )}
+                                  <span className="text-xs font-bold text-purple-700">Global Variables</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                  <span className="flex items-center gap-0.5">
-                                    <Code className="h-2.5 w-2.5" />
-                                    {discoveredSchema.length} props
-                                  </span>
-                                  <span>•</span>
-                                  <span>ID: {node.id}</span>
-                                </div>
+                                <div className="text-[10px] text-muted-foreground">{variables.length} stored variables</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-[8px] h-5 px-1.5 font-medium bg-primary/10 text-primary">
-                                {filteredSchema.length || discoveredSchema.length} vars
-                              </Badge>
-                              {isExpanded ? (
-                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                              )}
+                              {expanded.has('global_vars') ? <ChevronDown className="h-3.5 w-3.5 text-purple-500" /> : <ChevronRight className="h-3.5 w-3.5 text-purple-500" />}
                             </div>
                           </div>
-
                           <AnimatePresence>
-                            {isExpanded && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t bg-linear-to-b from-background/50 to-background/20">
-                                <div className="p-1.5">
-                                  <div className="mb-2 px-2">
-                                    {(node as any).isLoopScope && (
-                                      <div className="mb-2 pb-2 border-b border-border/50">
-                                        <span className="text-[10px] font-medium text-amber-600 mb-1.5 block flex items-center gap-1">
-                                          <BoxSelect className="h-3 w-3" /> LOOP CONTEXT
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="w-full justify-start h-8 text-xs hover:bg-amber-500/10 text-amber-700 font-medium"
-                                          onClick={() => handleSelect(`{{loop_item}}`)}
-                                        >
-                                          <Zap className="h-3 w-3 mr-2" />
-                                          Current Item
-                                          <Badge variant="outline" className="ml-auto text-[9px] border-amber-200 bg-amber-50 text-amber-700">Object</Badge>
-                                        </Button>
+                            {(expanded.has('global_vars') || !!search) && (
+                              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} className="border-t bg-background/50">
+                                <div className="p-2 space-y-1">
+                                  {variables.filter(v => !search || v.toLowerCase().includes(search.toLowerCase())).map(v => (
+                                    <Button key={v} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-purple-500/10 group" onClick={() => handleSelect(`{{var.${v}}}`)}>
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <Hash className="h-3 w-3 text-purple-500" />
+                                        <span className="font-medium">{v}</span>
                                       </div>
-                                    )}
-
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                                        Available Properties
-                                      </span>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
-                                            <Copy className="h-2.5 w-2.5" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="left">
-                                          <p className="text-xs">Copy full object</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                  </div>
-
-                                  {filteredSchema.length === 0 ? (
-                                    <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
-                                      <Database className="h-3 w-3 mr-2" />
-                                      Insert Full Data Object
-                                      <Badge variant="outline" className="ml-auto text-[10px]">any</Badge>
+                                      <Badge variant="outline" className="text-[9px] border-purple-200 bg-purple-50 text-purple-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Variable
+                                      </Badge>
                                     </Button>
-                                  ) : (
-                                    filteredSchema.map((prop: any, idx: number) => {
-                                      // Determine mapping path
-                                      let mappingPath = prop.name;
-
-                                      // Handle cases where outputSchema has 'object.xxx' but we want to map directly or via 'data.object.xxx'
-                                      // If it's buildObject, we usually want steps.ID.data.object.key OR steps.ID.data.key (due to my spread fix)
-                                      // VariablePicker usually maps steps.ID.data.PROP
-
-                                      const mapping = `{{steps.${pathNodeId}.data.${mappingPath}}}`;
-
-                                      return (
-                                        <Button key={`${prop.name}-${idx}`} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10 group mb-0.5 last:mb-0" onClick={() => handleSelect(mapping)}>
-                                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <div className="p-1 rounded bg-primary/5 group-hover:bg-primary/10">
-                                              {getTypeIcon(prop.type)}
-                                            </div>
-                                            <span className="truncate font-medium">{prop.name}</span>
-                                          </div>
-                                          <div className="flex items-center gap-2 ml-auto">
-                                            <Badge variant="outline" className="text-[10px] capitalize font-normal opacity-70 group-hover:opacity-100">{prop.type}</Badge>
-                                            <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </div>
-                                        </Button>
-                                      );
-                                    })
-                                  )}
+                                  ))}
                                 </div>
                               </motion.div>
                             )}
                           </AnimatePresence>
-                        </motion.div>
-                      );
-                    })
+                        </div>
+                      )}
+
+                      {availableNodes.map((node) => {
+                        const icon = node.data.icon as string;
+                        const actionId = node.data.actionId as string;
+                        const isTrigger = checkIsTrigger(node);
+                        const pathNodeId = isTrigger ? 'trigger' : node.id;
+
+                        const piece = pieces[icon];
+                        const actionType = isTrigger ? 'triggers' : 'actions';
+                        const schema = piece?.metadata?.[actionType]?.[actionId]?.outputSchema || [];
+
+                        const nodeLabel = (node.data.label as string) || node.id;
+                        const lowerSearch = search.toLowerCase();
+                        const matchesNodeLabel = nodeLabel.toLowerCase().includes(lowerSearch);
+
+                        const getDiscoveredSchema = () => {
+                          let finalSchema = [...schema];
+
+                          const discoverFromParams = (params: any, schemaObj: any[]) => {
+                            // Extract from properties (buildObject)
+                            if (params.properties) {
+                              try {
+                                const props = typeof params.properties === 'string' ? JSON.parse(params.properties) : params.properties;
+                                Object.keys(props).forEach(key => {
+                                  const exists = schemaObj.find(s => s.name === key || s.name === `object.${key}` || s.name === `updatedObject.${key}`);
+                                  if (!exists) {
+                                    const rawType = typeof props[key];
+                                    const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                    schemaObj.push({ name: key, type });
+                                  }
+                                });
+                              } catch (e) { }
+                            }
+
+                            // Extract from updates (updateObject)
+                            if (params.updates) {
+                              try {
+                                const upds = typeof params.updates === 'string' ? JSON.parse(params.updates) : params.updates;
+                                Object.keys(upds).forEach(key => {
+                                  const exists = schemaObj.find(s => s.name === key);
+                                  if (!exists) {
+                                    const rawType = typeof upds[key];
+                                    const type = (['string', 'number', 'boolean', 'object'].includes(rawType) ? rawType : 'string') as any;
+                                    schemaObj.push({ name: key, type });
+                                  }
+                                });
+                              } catch (e) { }
+                            }
+                          };
+
+                          // Aggregate internal schemas for logic blocks
+                          if (node.type === 'parallel' || node.type === 'loop' || node.type === 'condition') {
+                            const mergeId = findMergeNodeForBlock(nodes, edges, node.id);
+                            if (mergeId) {
+                              const internalIds = getNodesInBlock(nodes, edges, node.id, mergeId, false);
+                              internalIds.forEach(id => {
+                                if (id === node.id) return;
+                                const internalNode = nodes.find(n => n.id === id);
+                                if (internalNode && !internalNode.data?.isPlaceholder) {
+                                  const internalIcon = internalNode.data.icon as string;
+                                  const internalActionId = internalNode.data.actionId as string;
+                                  const internalPiece = pieces[internalIcon];
+                                  const internalSchema = internalPiece?.metadata?.actions?.[internalActionId]?.outputSchema || [];
+
+                                  internalSchema.forEach(prop => {
+                                    if (!finalSchema.some(s => s.name === prop.name)) {
+                                      finalSchema.push(prop);
+                                    }
+                                  });
+                                  discoverFromParams(internalNode.data?.params || {}, finalSchema);
+                                }
+                              });
+                            }
+                          }
+
+                          const nodeParams = (node.data?.params as any) || {};
+                          discoverFromParams(nodeParams, finalSchema);
+
+                          // Specific properties for logic pieces
+                          if (node.type === 'condition') {
+                            finalSchema.push({ name: 'result', type: 'boolean' });
+                            finalSchema.push({ name: 'branch', type: 'string' });
+                          }
+                          if (node.type === 'loop') {
+                            finalSchema.push({ name: 'iterations', type: 'number' });
+                            finalSchema.push({ name: 'results', type: 'array' });
+                          }
+
+                          return finalSchema;
+                        };
+
+                        const discoveredSchema = getDiscoveredSchema();
+
+                        // Remove duplicates based on property name
+                        const uniqueSchema = discoveredSchema.reduce((acc: any[], current: any) => {
+                          const x = acc.find(item => item.name === current.name);
+                          if (!x) {
+                            return acc.concat([current]);
+                          } else {
+                            return acc;
+                          }
+                        }, []);
+
+                        const filteredSchema = uniqueSchema.filter((prop: any) => {
+                          if (!search) return true;
+                          return matchesNodeLabel ||
+                            prop.name.toLowerCase().includes(lowerSearch) ||
+                            prop.type.toLowerCase().includes(lowerSearch);
+                        });
+
+                        if (!matchesNodeLabel && filteredSchema.length === 0 && search) return null;
+
+                        const isExpanded = expanded.has(node.id) || (!!search && filteredSchema.length > 0);
+
+                        return (
+                          <motion.div key={node.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mb-2 border rounded-lg overflow-hidden bg-linear-to-br from-card to-card/50 hover:from-accent/5 hover:to-accent/5 transition-all duration-200">
+                            <div className="px-3 py-2.5 hover:bg-accent/20 cursor-pointer flex items-center justify-between transition-all" onClick={() => toggle(node.id)}>
+                              <div className="flex items-center gap-3">
+                                <div className={cn("p-1.5 rounded-md", isTrigger ? "bg-linear-to-br from-amber-500/10 to-amber-500/5" : "bg-linear-to-br from-primary/10 to-primary/5")}>
+                                  {getNodeIcon(icon)}
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium truncate max-w-[120px]">
+                                      {nodeLabel}
+                                    </span>
+                                    {isTrigger && (
+                                      <Badge variant="outline" className="text-[8px] h-4 px-1.5 bg-amber-500/10 text-amber-600 border-amber-200">
+                                        Trigger
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                    <span className="flex items-center gap-0.5">
+                                      <Code className="h-2.5 w-2.5" />
+                                      {discoveredSchema.length} props
+                                    </span>
+                                    <span>•</span>
+                                    <span>ID: {node.id}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-[8px] h-5 px-1.5 font-medium bg-primary/10 text-primary">
+                                  {filteredSchema.length || discoveredSchema.length} vars
+                                </Badge>
+                                {isExpanded ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t bg-linear-to-b from-background/50 to-background/20">
+                                  <div className="p-1.5">
+                                    <div className="mb-2 px-2">
+                                      {(node as any).isLoopScope && (
+                                        <div className="mb-2 pb-2 border-b border-border/50">
+                                          <span className="text-[10px] font-medium text-amber-600 mb-1.5 block flex items-center gap-1">
+                                            <BoxSelect className="h-3 w-3" /> LOOP CONTEXT
+                                          </span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-full justify-start h-8 text-xs hover:bg-amber-500/10 text-amber-700 font-medium"
+                                            onClick={() => handleSelect(`{{loop_item}}`)}
+                                          >
+                                            <Zap className="h-3 w-3 mr-2" />
+                                            Current Item
+                                            <Badge variant="outline" className="ml-auto text-[9px] border-amber-200 bg-amber-50 text-amber-700">Object</Badge>
+                                          </Button>
+                                        </div>
+                                      )}
+
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                          Available Properties
+                                        </span>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
+                                              <Copy className="h-2.5 w-2.5" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="left">
+                                            <p className="text-xs">Copy full object</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    </div>
+
+                                    {filteredSchema.length === 0 ? (
+                                      <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10" onClick={() => handleSelect(`{{steps.${pathNodeId}.data}}`)}>
+                                        <Database className="h-3 w-3 mr-2" />
+                                        Insert Full Data Object
+                                        <Badge variant="outline" className="ml-auto text-[10px]">any</Badge>
+                                      </Button>
+                                    ) : (
+                                      filteredSchema.map((prop: any, idx: number) => {
+                                        // Determine mapping path
+                                        let mappingPath = prop.name;
+
+                                        // Handle cases where outputSchema has 'object.xxx' but we want to map directly or via 'data.object.xxx'
+                                        // If it's buildObject, we usually want steps.ID.data.object.key OR steps.ID.data.key (due to my spread fix)
+                                        // VariablePicker usually maps steps.ID.data.PROP
+
+                                        const mapping = `{{steps.${pathNodeId}.data.${mappingPath}}}`;
+
+                                        return (
+                                          <Button key={`${prop.name}-${idx}`} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs hover:bg-primary/10 group mb-0.5 last:mb-0" onClick={() => handleSelect(mapping)}>
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                              <div className="p-1 rounded bg-primary/5 group-hover:bg-primary/10">
+                                                {getTypeIcon(prop.type)}
+                                              </div>
+                                              <span className="truncate font-medium">{prop.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 ml-auto">
+                                              <Badge variant="outline" className="text-[10px] capitalize font-normal opacity-70 group-hover:opacity-100">{prop.type}</Badge>
+                                              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                          </Button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        );
+                      })
+                      }
+                    </>
                   )}
                 </AnimatePresence>
               </div>

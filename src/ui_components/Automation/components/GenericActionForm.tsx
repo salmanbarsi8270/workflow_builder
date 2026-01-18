@@ -13,8 +13,9 @@ import { API_URL } from "@/ui_components/api/apiurl";
 
 
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Pencil, List, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, List, Loader2, Database, Box } from "lucide-react";
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { ConditionBuilder } from "@/ui_components/Automation/components/ConditionBuilder";
 
@@ -246,7 +247,7 @@ const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes, edges,
                                     />
                                     <VariablePicker
                                         nodes={nodes}
-                                        edges={edges}
+                                        edges={edges || []}
                                         onSelect={(v) => handleVariableSelect(index, v)}
                                         currentNodeId={nodeId}
                                     />
@@ -554,53 +555,125 @@ const AgentSelector = ({
     );
 };
 
-const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disabled }: {
+const StepSelector = ({ value, onChange, nodes, currentNodeId, placeholder, disabled, edges }: {
     value: string,
     onChange: (val: string) => void,
     nodes: Node[],
     currentNodeId?: string,
     placeholder?: string,
-    disabled?: boolean
+    disabled?: boolean,
+    edges?: Edge[]
 }) => {
-    // Extract step ID from value like {{steps.ID.data...}}
-    const getStepId = (val: string) => {
-        const match = val?.match(/\{\{steps\.(.+?)\.data/);
-        return match ? match[1] : '';
+    // Helper to find all upstream nodes (ancestors)
+    const getUpstreamNodeIds = (startNodeId: string, edges: Edge[] = []) => {
+        const upstreamIds = new Set<string>();
+        const queue = [startNodeId];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+
+            // Find incoming edges to the current node
+            const incomingEdges = edges.filter(e => e.target === currentId);
+            incomingEdges.forEach(e => {
+                upstreamIds.add(e.source);
+                queue.push(e.source);
+            });
+        }
+        return upstreamIds;
     };
 
-    const currentStepId = getStepId(value);
+    // Extract step ID from value like {{steps.ID.data...}} or check for variable
+    const getSelection = (val: string) => {
+        const stepMatch = val?.match(/\{\{steps\.(.+?)\.data/);
+        if (stepMatch) return { type: 'step', id: stepMatch[1] };
 
-    // Filter available nodes (Build Object or Update Object)
+        const varMatch = val?.match(/\{\{var\.(.+?)\}\}/);
+        if (varMatch) return { type: 'var', id: varMatch[1] };
+
+        return null;
+    };
+
+    const currentSelection = getSelection(value);
+
+    // Filter available nodes (Build Object or Update Object) based on upstream availability
     const availableNodes = nodes.filter(n =>
         n.id !== currentNodeId &&
         n.type !== 'end' &&
-        (n.data?.actionId === 'buildObject' || n.data?.actionId === 'updateObject')
+        (n.data?.actionId === 'buildObject' || n.data?.actionId === 'updateObject') &&
+        // Only include nodes that are strictly upstream of the current node
+        (currentNodeId ? getUpstreamNodeIds(currentNodeId, edges).has(n.id) : true)
     );
 
-    const handleSelect = (stepId: string) => {
-        // Construct the variable reference.
-        // We default to the root data object for maximum compatibility with the 'data' piece spreading.
-        const ref = `{{steps.${stepId}.data}}`;
-        onChange(ref);
+    // Identify Global Variables from Build/Update steps
+    const globalVariables = Array.from(new Set(
+        availableNodes
+            .map(n => (n.data?.params as any)?.variableName)
+            .map(v => typeof v === 'string' ? v.trim() : v)
+            .filter(Boolean)
+    ));
+
+    const handleSelect = (val: string) => {
+        // Check if selecting a variable (prefixed with var:) or a step ID
+        if (val.startsWith('var:')) {
+            const varName = val.replace('var:', '');
+            onChange(`{{var.${varName}}}`);
+        } else {
+            // Default to step data
+            onChange(`{{steps.${val}.data}}`);
+        }
     };
+
+    const currentValue = currentSelection
+        ? (currentSelection.type === 'var' ? `var:${currentSelection.id}` : currentSelection.id)
+        : '';
 
     return (
         <Select
-            value={currentStepId}
+            value={currentValue}
             onValueChange={handleSelect}
             disabled={disabled}
         >
             <SelectTrigger className="w-full">
                 <SelectValue placeholder={placeholder || "Select an Object step"}>
-                    {currentStepId ? (
-                        (() => {
-                            const n = nodes.find(node => node.id === currentStepId);
-                            return n ? `${n.data.label || n.id}` : currentStepId;
+                    {currentSelection ? (
+                        currentSelection.type === 'var' ? (
+                            <span className="flex items-center gap-2">
+                                <Database className="h-3 w-3 text-purple-500" />
+                                <span className="font-medium">{currentSelection.id}</span>
+                                <Badge variant="outline" className="text-[10px] h-4 px-1 text-purple-600 border-purple-200">Global Var</Badge>
+                            </span>
+                        ) : (() => {
+                            const n = nodes.find(node => node.id === currentSelection.id);
+                            return n ? `${n.data.label || n.id}` : currentSelection.id;
                         })()
                     ) : (placeholder || "Select an Object step")}
                 </SelectValue>
             </SelectTrigger>
             <SelectContent>
+                {/* Global Variables Section */}
+                {globalVariables.length > 0 && (
+                    <div className="mb-2">
+                        <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Database className="h-3 w-3" /> Global Variables
+                        </div>
+                        {globalVariables.map((v: any) => (
+                            <SelectItem key={`var:${v}`} value={`var:${v}`}>
+                                <div className="flex items-center justify-between w-full gap-4">
+                                    <span className="font-medium text-purple-700">{v}</span>
+                                    <span className="text-[10px] text-muted-foreground italic">Auto-updating</span>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </div>
+                )}
+
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1 border-t mt-1 pt-2">
+                    <Box className="h-3 w-3" /> Workflow Steps
+                </div>
+
                 {availableNodes.length === 0 && (
                     <div className="p-2 text-center text-xs text-muted-foreground italic">
                         No 'Build Object' steps found.
@@ -626,10 +699,29 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
     // Auto-fill logic for updateObject
     useEffect(() => {
         if (data.actionId === 'updateObject' && params.sourceObject) {
-            // Extract node ID and optionally sub-path from {{steps.NODE_ID.data...}}
-            const match = params.sourceObject.match(/\{\{steps\.(.+?)\.data(?:\.(.+?))?\}\}/);
-            const sourceNodeId = match ? match[1] : null;
-            const subPath = match ? match[2] : null; // 'object' or 'updatedObject'
+            // 1. Check for Step ID match: {{steps.NODE_ID.data...}}
+            const stepMatch = params.sourceObject.match(/\{\{steps\.(.+?)\.data(?:\.(.+?))?\}\}/);
+            let sourceNodeId = stepMatch ? stepMatch[1] : null;
+            const subPath = stepMatch ? stepMatch[2] : null;
+
+            // 2. Check for Global Variable match: {{var.NAME}}
+            const varMatch = params.sourceObject.match(/\{\{var\.(.+?)\}\}/);
+            if (varMatch) {
+                const varName = varMatch[1];
+
+                // AUTO-FILL variableName if it's empty
+                if (!params.variableName) {
+                    handleChange('variableName', varName);
+                }
+
+                // Find the node that created this variable (Build Object or Update Object)
+                // We prefer the *last* node before this one, but for schema inference, any node defining it works.
+                // Ideally, we find the 'Build Object' node.
+                const creatorNode = nodes.find(n => (n.data?.params as any)?.variableName === varName);
+                if (creatorNode) {
+                    sourceNodeId = creatorNode.id;
+                }
+            }
 
             if (sourceNodeId) {
                 // Find node by ID (1 is trigger)
@@ -866,6 +958,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                                 currentNodeId={nodeId}
                                 placeholder={param.description}
                                 disabled={disabled}
+                                edges={edges}
                             />
                         )}
 
