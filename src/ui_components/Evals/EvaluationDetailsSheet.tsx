@@ -201,7 +201,7 @@ export function EvaluationDetailsSheet({ evaluation, open, onOpenChange }: Evalu
                              </button>
                           </div>
                           <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                             <p className="text-sm font-mono text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{output}</p>
+                             <pre className="text-[10px] bg-slate-50 dark:bg-slate-900 p-3 rounded-lg font-mono overflow-x-auto max-w-full break-words whitespace-pre-wrap">{JSON.stringify(output, null, 2)}</pre>
                           </div>
                        </div>
                     </div>
@@ -213,9 +213,9 @@ export function EvaluationDetailsSheet({ evaluation, open, onOpenChange }: Evalu
                           <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-3 flex items-center gap-2 relative z-10">
                              <Sparkles className="w-4 h-4" /> Evaluation Analysis
                           </h4>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed relative z-10">
+                          <pre className="text-[10px] dark:bg-slate-900 p-3 rounded-lg font-mono overflow-x-auto max-w-full break-words whitespace-pre-wrap">
                              {reason}
-                          </p>
+                          </pre>
                        </div>
                     )}
                  </TabsContent>
