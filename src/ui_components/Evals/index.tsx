@@ -66,6 +66,8 @@ export default function Evals() {
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState<string>('all');
 
+  const [loadingRetry, setLoadingRetry] = useState(false);
+
   const fetchEvaluations = async () => {
     try {
       setLoadingEvals(true);
@@ -172,13 +174,15 @@ export default function Evals() {
 
   const retryEvaluation = async (evaluation: Evaluation, newInput: string) => {
     try {
+      setLoadingRetry(true);
+
       const newRunId = `run_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
       const res = await fetch(`${AI_URL}/api/v1/agents/eval/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentId: evaluation.agent_id || "", 
+          agentId: evaluation.agent_id || "",
           input: newInput,
           name: evaluation.name + " (Retry)",
           description: evaluation.description,
@@ -191,12 +195,18 @@ export default function Evals() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Retry failed");
 
-      toast.success("Retry evaluation completed!");
+      toast.success("Retry evaluation started!");
+
       await Promise.all([fetchEvaluations(), fetchStats()]);
-      
+
+      // ✅ CLOSE MODAL AFTER SUCCESS
+      setShowRetryModal(false);
+
     } catch (err) {
       console.error(err);
       toast.error("Retry failed");
+    } finally {
+      setLoadingRetry(false);
     }
   };
 
@@ -687,7 +697,7 @@ export default function Evals() {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
                 New Input Prompt
               </label>
-              <textarea 
+              <textarea disabled={loadingRetry}
                 value={retryInput}
                 onChange={(e) => setRetryInput(e.target.value)}
                 className="w-full p-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none text-sm transition-all"
@@ -699,13 +709,13 @@ export default function Evals() {
             </div>
             
             <div className="flex gap-3">
-              <button 
+              <button disabled={loadingRetry}
                 onClick={() => setShowRetryModal(false)}
                 className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button disabled={loadingRetry}
                 onClick={async () => {
                   if(retryEvaluationData) {
                     await retryEvaluation(retryEvaluationData, retryInput);
@@ -714,9 +724,14 @@ export default function Evals() {
                 }}
                 className="flex-1 py-2.5 font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-500/25 flex justify-center items-center gap-2 transition-colors"
               >
-                {false ? <Loader2 className="w-4 h-4 animate-spin" /> : "Run Retry"}
+                {loadingRetry ? <Loader2 className="w-4 h-4 animate-spin" /> : "Run Retry"}
               </button>
             </div>
+            {loadingRetry && (
+              <div className="mt-4">
+                <LoadingCard title="Retrying Evaluation..." message="Running new tests with updated input. Please wait few minutes." />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -778,3 +793,42 @@ export function EvaluationSkeleton({ count = 5 }: { count?: number }) {
     </div>
   );
 }
+
+
+export const LoadingCard = ({
+  title = "Processing your request...",
+  message = "This may take a few minutes. Please wait while we score your agent. ⏳",
+  barColor = "bg-blue-500",
+  className = "",
+}) => {
+  return (
+    <div
+      className={cn(
+        "w-full max-w-md mx-auto rounded-xl border p-6 text-center shadow-sm transition-colors",
+        // Light mode
+        "bg-blue-50 border-blue-200",
+        // Dark mode
+        "dark:bg-blue-950/30 dark:border-blue-500/30",
+        className
+      )}
+    >
+      <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+        {title}
+      </h3>
+
+      <p className="mt-2 text-sm text-blue-500 dark:text-blue-300/80">
+        {message}
+      </p>
+
+      {/* Progress Bar */}
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/40">
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 w-1/3 rounded-full animate-indeterminate",
+            barColor
+          )}
+        />
+      </div>
+    </div>
+  );
+};

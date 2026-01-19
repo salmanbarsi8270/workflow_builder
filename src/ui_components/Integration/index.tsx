@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, } from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, SortAscIcon, } from "lucide-react"
 import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
 import { useUser } from '@/context/UserContext';
@@ -329,10 +329,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
           <div className="flex flex-wrap items-center gap-3">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-10 w-[140px] rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
+              <SelectTrigger className="h-10 w-[140px] rounded-lg bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200 dark:border-white/10">
+              <SelectContent className="rounded-lg border-slate-200 dark:border-white/10">
                 <SelectItem value="all">All Categories</SelectItem>
                 {uniqueCategories.map((category: any) => (
                   <SelectItem key={category} value={category}>
@@ -343,10 +343,13 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             </Select>
 
             <Select value={sortBy} onValueChange={(value: 'popular' | 'name' | 'recent') => setSortBy(value)}>
-              <SelectTrigger className="h-10 w-[140px] rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
-                <SelectValue placeholder="Sort by" />
+              <SelectTrigger className="h-10 w-[180px] rounded-lg bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-2">
+                  <SortAscIcon className="h-4 w-4 text-blue-500" />
+                  <SelectValue placeholder="Sort by" />
+                </div>
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200 dark:border-white/10">
+              <SelectContent className="rounded-lg border-slate-200 dark:border-white/10">
                 <SelectItem value="popular">Most Popular</SelectItem>
                 <SelectItem value="name">Name (A-Z)</SelectItem>
                 <SelectItem value="recent">Recently Added</SelectItem>
