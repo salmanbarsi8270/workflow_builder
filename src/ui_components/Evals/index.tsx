@@ -403,10 +403,7 @@ export default function Evals() {
               {/* Results List - Improved cards */}
               <div className="space-y-3">
                 {loadingEvals ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-                    <p className="text-slate-500 text-sm">Loading evaluations...</p>
-                  </div>
+                  <EvaluationSkeleton count={5} />
                 ) : filteredEvaluations.length === 0 ? (
                   <div className="text-center py-16 bg-white/50 dark:bg-white/5 rounded-xl border border-dashed border-slate-300 dark:border-white/10">
                     <BarChart3 className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
@@ -741,6 +738,43 @@ export default function Evals() {
       />
       
       <Toaster position="bottom-right" />
+    </div>
+  );
+}
+
+export function EvaluationSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-sm"
+        >
+          {/* Status bar */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-4 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2 mb-6">
+            <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-5/6 rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+
+          {/* Footer row */}
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-3 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+            </div>
+
+            {/* Score */}
+            <div className="h-8 w-12 rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

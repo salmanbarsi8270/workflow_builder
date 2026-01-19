@@ -247,7 +247,7 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[950px] border-slate-200 dark:border-white/10 shadow-2xl p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[950px] border-slate-200 dark:border-white/10 shadow-2xl p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 min-h-[90vh] max-h-[90vh] flex flex-col">
         <DialogHeader className="p-6 pb-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-slate-200 dark:border-white/10 relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-white/[0.02] bg-[size:20px_20px]" />
           <div className="relative z-10">
