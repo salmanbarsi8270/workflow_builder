@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { VariablePicker } from "./VariablePicker";
 
 // Robust String Array Input
-export const StringArrayInput = ({ value, onChange, placeholder, disabled, isBranches, nodeType }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, isBranches?: boolean, nodeType?: string }) => {
+export const StringArrayInput:any = ({ value, onChange, placeholder, disabled, isBranches, nodeType }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, isBranches?: boolean, nodeType?: string }) => {
     // Parse value into array of strings
     const parseValue = (val: any): string[] => {
         if (Array.isArray(val)) return val;
@@ -28,6 +28,10 @@ export const StringArrayInput = ({ value, onChange, placeholder, disabled, isBra
             return `Branch ${index + 1}`;
         });
     };
+
+
+// Robust String Array Input
+
 
     // Sync from parent props
     useEffect(() => {
@@ -126,7 +130,7 @@ export const StringArrayInput = ({ value, onChange, placeholder, disabled, isBra
     );
 };
 
-export const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes, edges, nodeId }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, nodes: Node[], edges: any[], nodeId?: string }) => {
+export const DictionaryInput:any = ({ value, onChange, placeholder, disabled, nodes, edges, nodeId }: { value: any, onChange: (val: any) => void, placeholder?: string, disabled?: boolean, nodes: Node[], edges: any[], nodeId?: string }) => {
     // Parse value into array of {key, value}
     const parseValue = (val: any): { key: string, value: string }[] => {
         try {
@@ -140,6 +144,7 @@ export const DictionaryInput = ({ value, onChange, placeholder, disabled, nodes,
         } catch { }
         return [];
     };
+ 
 
     const [items, setItems] = useState<{ key: string, value: string }[]>(parseValue(value));
     const containerRef = useRef<HTMLDivElement>(null);
