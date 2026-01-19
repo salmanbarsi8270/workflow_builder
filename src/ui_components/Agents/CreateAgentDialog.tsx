@@ -8,12 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-<<<<<<< HEAD
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, Upload, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
-=======
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
->>>>>>> 47cf1e5894bbdb45bf731496919e0ee8257fff7c
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -69,7 +64,7 @@ export function CreateAgentDialog({
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
 
     // Guardrails State
-    const [enableGuardrails, setEnableGuardrails] = useState(true);
+    const [enableGuardrails, setEnableGuardrails] = useState(false);
     const [bannedWords, setBannedWords] = useState<string[]>([]);
     const [newWord, setNewWord] = useState('');
     const [outputGuardrails, setOutputGuardrails] = useState<GuardrailItem[]>([]);
@@ -86,6 +81,7 @@ export function CreateAgentDialog({
     const [modelOpen, setModelOpen] = useState(false);
     const [isLoadingModels, setIsLoadingModels] = useState(false);
     const [activeToolTab, setActiveToolTab] = useState<'connectors' | 'mcp' | 'subagents' | 'workflows'>('connectors');
+    const [availableModels, setAvailableModels] = useState<any[]>([]);
 
     const curatedModels = [
         { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)' },
@@ -115,10 +111,15 @@ export function CreateAgentDialog({
                     const response = await fetch(url, options);
                     const data = await response.json();
                     if (data && data.data) {
-                        // Use curated models list instead
+                        const allModels = data.data.map((m: any) => ({
+                            id: m.id,
+                            name: m.name || m.id
+                        }));
+                        setAvailableModels(allModels);
                     }
                 } catch (error) {
                     console.error("Error fetching OpenRouter models:", error);
+                    // Fallback is handled by showing curatedModels in UI if availableModels is empty
                 } finally {
                     setIsLoadingModels(false);
                 }
@@ -246,10 +247,6 @@ export function CreateAgentDialog({
         setSelectedTools([]);
         setSelectedSubAgents([]);
         setMcpTools([]);
-<<<<<<< HEAD
-        setFiles([]);
-=======
->>>>>>> 47cf1e5894bbdb45bf731496919e0ee8257fff7c
         setExistingFiles([]);
         setBannedWords([]);
         setNewWord('');
@@ -260,6 +257,7 @@ export function CreateAgentDialog({
         setRagEnabled(false);
         setSelectedUiDesign('');
         setSelectedFileIds([]);
+        setEnableGuardrails(false);
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -567,24 +565,6 @@ export function CreateAgentDialog({
                                 className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-medium h-10"
                             />
                         </div>
-<<<<<<< HEAD
-=======
-                        <div className="grid gap-2">
-                            <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
-                            <Textarea
-                                id="instructions"
-                                placeholder="You are a helpful assistant..."
-                                className="h-32 resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-mono text-sm leading-relaxed"
-                                value={instructions}
-                                onChange={(e) => setInstructions(e.target.value)}
-                            />
-                        </div>
-
-
-
-
-
->>>>>>> 47cf1e5894bbdb45bf731496919e0ee8257fff7c
 
                         <div className="grid gap-2">
                             <Label htmlFor="model" className="text-slate-700 dark:text-white font-medium">Model ID <span className="text-red-500">*</span></Label>
@@ -615,8 +595,8 @@ export function CreateAgentDialog({
                                                     </div>
                                                 ) : "No model found."}
                                             </CommandEmpty>
-                                            <CommandGroup heading="Popular Models" className="px-2">
-                                                {curatedModels.map((m) => {
+                                            <CommandGroup heading={availableModels.length > 0 ? "All Models" : "Popular Models"} className="px-2">
+                                                {(availableModels.length > 0 ? availableModels : curatedModels).map((m) => {
                                                     const isSelected = model === m.id;
                                                     return (
                                                         <CommandItem
@@ -667,6 +647,34 @@ export function CreateAgentDialog({
                         </div>
 
                         <div className="grid gap-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection <span className="text-red-500">*</span></Label>
+                                <Button variant="ghost" size="sm" onClick={() => setShowAddModelDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
+                                    <Plus className="h-2.5 w-2.5 mr-1" /> New
+                                </Button>
+                            </div>
+                            <Select value={selectedConnection} onValueChange={setSelectedConnection}>
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 h-10">
+                                    <SelectValue placeholder="Select Connection" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {connections.length === 0 ? (
+                                        <div className="p-2 text-sm text-muted-foreground text-center">No connections found</div>
+                                    ) : (
+                                        connections.map(conn => (
+                                            <SelectItem key={conn.id} value={conn.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <Key className="h-3.5 w-3.5 text-blue-500" />
+                                                    <span className="truncate">{conn.name}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid gap-2">
                             <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
                             <Textarea
                                 id="instructions"
@@ -699,9 +707,8 @@ export function CreateAgentDialog({
                             </Select>
                         </div>
 
+
                         <div className="grid gap-2">
-<<<<<<< HEAD
-=======
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="knowledge" className="text-slate-700 dark:text-white font-medium flex items-center gap-2">
                                     <span>Knowledge Base (RAG)</span>
@@ -725,7 +732,6 @@ export function CreateAgentDialog({
                                         ) : (
                                             availableFiles.map((file) => {
                                                 const isSelected = selectedFileIds.includes(file.id);
-                                                // Check if it's already "Existing" (by name match, as a heuristic since existingFiles lacks ID)
                                                 const isAlreadyIngested = existingFiles.some(ef => ef.filename === file.original_name);
 
                                                 return (
@@ -800,97 +806,6 @@ export function CreateAgentDialog({
                                 </div>
                             )}
                         </div>
-
-                        <div className="grid gap-2">
->>>>>>> 47cf1e5894bbdb45bf731496919e0ee8257fff7c
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection <span className="text-red-500">*</span></Label>
-                                <Button variant="ghost" size="sm" onClick={() => setShowAddModelDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
-                                    <Plus className="h-2.5 w-2.5 mr-1" /> New
-                                </Button>
-                            </div>
-                            <Select value={selectedConnection} onValueChange={setSelectedConnection}>
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 h-10">
-                                    <SelectValue placeholder="Select Connection" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {connections.length === 0 ? (
-                                        <div className="p-2 text-sm text-muted-foreground text-center">No connections found</div>
-                                    ) : (
-                                        connections.map(conn => (
-                                            <SelectItem key={conn.id} value={conn.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <Key className="h-3.5 w-3.5 text-blue-500" />
-                                                    <span className="truncate">{conn.name}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200 dark:border-white/5 mx-1">
-                            <div className="flex flex-col gap-0.5">
-                                <Label className="text-sm font-bold dark:text-white flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-blue-500" />
-                                    Knowledge Base (RAG)
-                                </Label>
-                                <p className="text-[11px] text-slate-500">Enable local documents for grounded responses</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 p-1.5 px-3 rounded-full border dark:border-white/10 shadow-sm">
-                                    <Label htmlFor="rag-mode" className="text-xs font-bold cursor-pointer">Capability</Label>
-                                    <Switch id="rag-mode" checked={ragEnabled} onCheckedChange={setRagEnabled} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {ragEnabled && (
-                            <div className="space-y-4 px-4 py-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="flex items-center gap-2">
-                                    <Input id="knowledge" type="file" multiple className="hidden" onChange={(e) => e.target.files && setFiles([...files, ...Array.from(e.target.files)])} />
-                                    <Label htmlFor="knowledge" className="cursor-pointer inline-flex items-center justify-center rounded-xl text-sm font-bold border-dashed border-slate-300 dark:border-white/20 hover:border-blue-500 dark:hover:border-blue-400 h-12 px-6 w-full border bg-background group transition-all">
-                                        <Upload className="mr-2 h-5 w-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                        <span>Click or drag files to grounding</span>
-                                    </Label>
-                                </div>
-                                {(existingFiles.length > 0 || files.length > 0) && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            {existingFiles.length > 0 && (
-                                                <>
-                                                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1 flex items-center gap-1"><Check className="h-3 w-3 text-blue-500" /> Active Docs</Label>
-                                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
-                                                        {existingFiles.map((file, idx) => (
-                                                            <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100/50 dark:border-blue-500/10 text-[11px]">
-                                                                <span className="truncate max-w-[120px] font-medium">{file.filename}</span>
-                                                                <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400" onClick={() => handleDeleteFile(file.filename)}><X className="h-3 w-3" /></Button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            {files.length > 0 && (
-                                                <>
-                                                    <Label className="text-[10px] uppercase tracking-wider text-emerald-500 font-bold px-1 flex items-center gap-1"><Upload className="h-3 w-3" /> Pending</Label>
-                                                    <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
-                                                        {files.map((file, idx) => (
-                                                            <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/30 dark:bg-emerald-500/5 border border-emerald-100/50 dark:border-emerald-500/10 text-[11px]">
-                                                                <span className="truncate max-w-[120px] font-medium">{file.name}</span>
-                                                                <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400" onClick={() => setFiles(files.filter((_, i) => i !== idx))}><X className="h-3 w-3" /></Button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
 
                         {/* Unified Capabilities & Tools Section */}
@@ -1558,7 +1473,6 @@ export function CreateAgentDialog({
                                 </div>
                             )}
                         </div>
-<<<<<<< HEAD
                     </div>
                     <DialogFooter className="px-6 py-4 border-t dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/20 flex items-center justify-end gap-3 shrink-0">
                         <Button
@@ -1567,127 +1481,6 @@ export function CreateAgentDialog({
                             onClick={resetForm}
                             className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                         >
-=======
-
-                        {/* Sub-Agents Selection */}
-                        <div className="grid gap-2">
-                            <Label className="text-slate-700 dark:text-white font-medium">Sub-Agents</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="justify-between w-full font-normal bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5">
-                                        {selectedSubAgents.length > 0 ? (
-                                            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-300">
-                                                <Bot className="h-4 w-4" />
-                                                <span className="font-semibold">{selectedSubAgents.length} sub-agents selected</span>
-                                            </div>
-                                        ) : (
-                                            "Select sub-agents..."
-                                        )}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[450px] p-0" align="start">
-                                    <Command className="border rounded-lg shadow-xl">
-                                        <CommandInput placeholder="Search agents..." />
-                                        <CommandList className="max-h-[300px]">
-                                            <CommandEmpty>No agents found.</CommandEmpty>
-                                            <CommandGroup heading="Available Agents">
-                                                {(() => {
-                                                    const renderAgentOptions = (list: Agent[], level = 0) => {
-                                                        if (!list || !Array.isArray(list)) return null;
-                                                        return list.map((agent: any) => {
-                                                            if (agent.id === initialAgent?.id) return null; // Prevent self-selection
-                                                            const isSelected = selectedSubAgents.includes(agent.id);
-                                                            const subagentsList = agent.sub_agents || agent.subagents || [];
-
-                                                            return (
-                                                                <div key={agent.id}>
-                                                                    <CommandItem
-                                                                        value={agent.name}
-                                                                        onSelect={() => {
-                                                                            if (isSelected) {
-                                                                                setSelectedSubAgents(selectedSubAgents.filter(id => id !== agent.id));
-                                                                            } else {
-                                                                                setSelectedSubAgents([...selectedSubAgents, agent.id]);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex items-center gap-2 flex-1">
-                                                                            {level > 0 && (
-                                                                                <div className="flex items-center">
-                                                                                    {[...Array(level)].map((_, i) => (
-                                                                                        <div key={i} className="w-4 h-px bg-muted-foreground/30 mr-1" />
-                                                                                    ))}
-                                                                                </div>
-                                                                            )}
-                                                                            <div className={`
-                                                                            w-4 h-4 rounded border flex items-center justify-center transition-colors
-                                                                            ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600'}
-                                                                        `}>
-                                                                                {isSelected && <X className="h-3 w-3 rotate-45" />}
-                                                                            </div>
-                                                                            <span className={level > 0 ? "text-slate-500" : "font-medium"}>{agent.name}</span>
-                                                                            <span className="ml-auto text-xs text-muted-foreground">{agent.model}</span>
-                                                                        </div>
-                                                                    </CommandItem>
-                                                                    {subagentsList.length > 0 && renderAgentOptions(subagentsList, level + 1)}
-                                                                </div>
-                                                            );
-                                                        });
-                                                    };
-                                                    return renderAgentOptions(allAvailableAgents);
-                                                })()}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-
-                            {/* Selected Sub-Agents List */}
-                            {selectedSubAgents.length > 0 && (
-                                <div className="flex flex-col gap-2 mt-2 max-h-[150px] overflow-y-auto">
-                                    {selectedSubAgents.map(agentId => {
-                                        // Search in tree recursively
-                                        const findInTree = (list: Agent[]): Agent | undefined => {
-                                            for (const a of list) {
-                                                if (a.id === agentId) return a;
-                                                const sub = a.sub_agents || a.subagents;
-                                                if (sub) {
-                                                    const found = findInTree(sub);
-                                                    if (found) return found;
-                                                }
-                                            }
-                                            return undefined;
-                                        };
-                                        const agent = findInTree(allAvailableAgents);
-                                        if (!agent) return null;
-                                        return (
-                                            <div key={agent.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 group hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <Badge variant="secondary" className="bg-blue-100/50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20">
-                                                        Agent
-                                                    </Badge>
-                                                    <span className="font-medium text-slate-700 dark:text-slate-200">{agent.name}</span>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full shrink-0"
-                                                    onClick={() => setSelectedSubAgents(selectedSubAgents.filter(id => id !== agent.id))}
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-
-                    </div >
-                    <DialogFooter className="mt-4 gap-2 shrink-0">
-                        <Button variant="ghost" disabled={isSubmitting} onClick={resetForm} className="hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500">
->>>>>>> 47cf1e5894bbdb45bf731496919e0ee8257fff7c
                             Reset
                         </Button>
                         <Button
