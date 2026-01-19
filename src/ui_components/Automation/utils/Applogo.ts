@@ -42,5 +42,6 @@ export const AppLogoMap: Record<string, string> = {
   'calendar': '/google_calendar.png',
   'email-utils': email_utils,
   'data': data_icon,
+  'store': data_icon,
 };
 
