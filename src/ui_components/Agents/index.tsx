@@ -212,7 +212,7 @@ export default function Agents() {
       const response = await fetch(`${API_URL}/api/v1/workflows/tools?userId=${user?.id}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("raw workflows data", data);
+        // console.log("raw workflows data", data);
         const fetchedWorkflows = Array.isArray(data) ? data : data.workflows || [];
         // Normalize status field if it's coming as is_active from backend
         const normalized = fetchedWorkflows.map((wf: any) => ({
@@ -274,7 +274,7 @@ export default function Agents() {
 
     setDeletingId(agentId);
     try {
-      const response = await fetch(`${API_URL}/api/v1/agents/${agentId}`, {
+      const response = await fetch(`${API_URL}/api/v1/agents/${agentId}?userId=${user?.id}`, {
         method: 'DELETE',
         body: JSON.stringify({ userId: user?.id }),
         headers: {

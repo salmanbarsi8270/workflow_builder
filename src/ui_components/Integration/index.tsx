@@ -446,7 +446,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                       <p className="max-w-md mx-auto text-slate-500 dark:text-blue-200/70 font-medium mb-8">
                         Try different keywords or clear your filters to see more results
                       </p>
-                      <Button variant="outline" className="h-12 px-8 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 font-bold hover:bg-slate-50 transition-all font-bold" onClick={handleClearFilters}>
+                      <Button variant="outline" className="h-12 px-8 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-slate-50 transition-all font-bold" onClick={handleClearFilters}>
                         Clear Filters
                       </Button>
                     </motion.div>
