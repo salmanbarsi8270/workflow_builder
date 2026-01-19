@@ -646,24 +646,58 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                         const generateSampleOutput = (schema: any[]) => {
                                             const sample: any = {};
                                             schema.forEach(prop => {
-                                                if (prop.type === 'file') {
+                                                const isFile = prop.type === 'file' || prop.name === 'file';
+                                                const isFiles = prop.type === 'array_file' || prop.type === 'files' || prop.name === 'files';
+
+                                                if (isFile) {
                                                     sample[prop.name] = {
-                                                        name: "example.csv",
-                                                        fileName: "example.csv",
+                                                        name: "flows.csv",
+                                                        fileName: "flows.csv",
                                                         contentType: "text/csv",
-                                                        size: 10245,
-                                                        $file_ref: "uuid-ref-1234",
+                                                        size: 1385493,
+                                                        $file_ref: "0f40098f-4169-48c7-a0d7-ffe69d564e8a",
                                                         _offloaded: true
                                                     };
-                                                } else if (prop.type === 'array_file') {
+                                                } else if (isFiles) {
                                                     sample[prop.name] = [{
-                                                        name: "example.pdf",
-                                                        fileName: "example.pdf",
-                                                        contentType: "application/pdf",
-                                                        size: 20480,
-                                                        $file_ref: "uuid-ref-5678",
+                                                        name: "flows.csv",
+                                                        fileName: "flows.csv",
+                                                        contentType: "text/csv",
+                                                        size: 1385493,
+                                                        $file_ref: "14c6e510-234c-4451-856b-ecf6a16e4e06",
                                                         _offloaded: true
                                                     }];
+                                                } else if (prop.name === 'body') {
+                                                    // Rich body sample for webhooks/requests
+                                                    sample[prop.name] = {
+                                                        message: "hiiii",
+                                                        files: [{
+                                                            name: "flows.csv",
+                                                            fileName: "flows.csv",
+                                                            contentType: "text/csv",
+                                                            size: 1385493,
+                                                            $file_ref: "0d471483-0558-41ab-88b4-08909a30640a",
+                                                            _offloaded: true
+                                                        }],
+                                                        file: {
+                                                            name: "flows.csv",
+                                                            fileName: "flows.csv",
+                                                            contentType: "text/csv",
+                                                            size: 1385493,
+                                                            $file_ref: "0f40098f-4169-48c7-a0d7-ffe69d564e8a",
+                                                            _offloaded: true
+                                                        }
+                                                    };
+                                                } else if (prop.name === 'headers') {
+                                                     sample[prop.name] = {
+                                                        "content-type": "multipart/form-data; boundary=--------------------------650629261464808965531974",
+                                                        "user-agent": "PostmanRuntime/7.51.0",
+                                                        "accept": "*/*",
+                                                        "host": "localhost:3000",
+                                                        "content-length": "1385809"
+                                                     };
+                                                } else if (prop.name === 'query') {
+                                                     sample[prop.name] = { "worker": "false" };
                                                 } else if (prop.type === 'object') {
                                                     if (prop.properties) {
                                                         sample[prop.name] = generateSampleOutput(prop.properties);
@@ -677,7 +711,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                                 } else if (prop.type === 'boolean') {
                                                      sample[prop.name] = true;
                                                 } else {
-                                                     sample[prop.name] = "string_value";
+                                                     sample[prop.name] = prop.name === 'method' ? 'POST' : "string_value";
                                                 }
                                             });
                                             return sample;
