@@ -136,7 +136,8 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     ] as const).filter(tab => tab.id !== 'agent' || mode !== 'trigger');
 
     return (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[850px] h-[600px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 shadow-2xl rounded-3xl z-50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="absolute inset-0 bg-black/5 dark:bg-white/5 z-[100] flex justify-center items-start pt-20" onClick={onClose}>
+            <div className="relative w-[850px] h-[600px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 shadow-2xl rounded-3xl z-50 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
                 <div className="relative w-full max-w-md">
@@ -285,6 +286,7 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
                 <div className="text-[10px] font-medium text-slate-400">
                     Press <kbd className="px-1.5 py-0.5 rounded-md bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 font-mono shadow-sm">Esc</kbd> to close
                 </div>
+            </div>
             </div>
         </div>
     );
