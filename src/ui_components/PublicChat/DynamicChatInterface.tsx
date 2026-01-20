@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Bot, User, Paperclip } from "lucide-react";
+import { API_URL } from '../api/apiurl';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -59,7 +60,7 @@ export function DynamicChatInterface({ agent }: DynamicChatInterfaceProps) {
             formData.append('file', file);
             formData.append('userId', agent.user_id || 'public-user');
 
-            const response = await fetch(`/api/v1/agents/${agent.id}/public-upload`, {
+            const response = await fetch(`${API_URL}/api/v1/agents/${agent.id}/public-upload`, {
                 method: 'POST',
                 body: formData
             });
@@ -94,7 +95,7 @@ export function DynamicChatInterface({ agent }: DynamicChatInterfaceProps) {
         setLoading(true);
 
         try {
-            const response = await fetch(`/api/v1/agents/${agent.id}/run`, {
+            const response = await fetch(`${API_URL}/api/v1/agents/${agent.id}/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
