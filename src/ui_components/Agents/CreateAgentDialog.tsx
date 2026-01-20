@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -29,6 +29,7 @@ interface CreateAgentDialogProps {
     onSuccess: (agent: Agent, isEdit: boolean) => void;
     availableAgents: Agent[];
     availableWorkflows?: AutomationItem[];
+    onRefreshConnections?: () => void;
 }
 
 interface GuardrailItem {
@@ -45,7 +46,8 @@ export function CreateAgentDialog({
     mcpConnections = [],
     onSuccess,
     availableAgents,
-    availableWorkflows
+    availableWorkflows,
+    onRefreshConnections
 }: CreateAgentDialogProps) {
     const { pieces } = usePieces();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -649,9 +651,14 @@ export function CreateAgentDialog({
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="connection" className="text-slate-700 dark:text-white font-medium">AI Service Connection <span className="text-red-500">*</span></Label>
-                                <Button variant="ghost" size="sm" onClick={() => setShowAddModelDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
-                                    <Plus className="h-2.5 w-2.5 mr-1" /> New
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => onRefreshConnections?.()} className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-blue-600" title="Refresh connections">
+                                        <RefreshCw className="h-2.5 w-2.5 mr-1" /> Refresh
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setShowAddModelDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
+                                        <Plus className="h-2.5 w-2.5 mr-1" /> New
+                                    </Button>
+                                </div>
                             </div>
                             <Select value={selectedConnection} onValueChange={setSelectedConnection}>
                                 <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 h-10">
@@ -1513,6 +1520,11 @@ export function CreateAgentDialog({
                 onOpenChange={setShowAddModelDialog}
                 onSuccess={() => {
                     toast.success("AI Provider added. Please refresh to see it in the list if it doesn't appear.");
+                    if (onRefreshConnections) {
+                        setTimeout(() => {
+                            onRefreshConnections();
+                        }, 500);
+                    }
                 }}
             />
         </>

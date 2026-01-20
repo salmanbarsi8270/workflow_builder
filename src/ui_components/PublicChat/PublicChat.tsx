@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DynamicChatInterface } from './DynamicChatInterface.js';
+import { API_URL } from '@/ui_components/api/apiurl';
 
 export function PublicChat() {
     const { slug } = useParams<{ slug: string }>();
@@ -11,7 +12,7 @@ export function PublicChat() {
     useEffect(() => {
         const fetchAgent = async () => {
             try {
-                const response = await fetch(`/api/v1/agents/slug/${slug}`);
+                const response = await fetch(`${API_URL}/api/v1/agents/slug/${slug}`);
 
                 if (!response.ok) {
                     throw new Error('Agent not found or not published');

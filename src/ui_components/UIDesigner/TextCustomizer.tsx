@@ -75,6 +75,45 @@ export default function TextCustomizer({ design, onChange }: TextCustomizerProps
                 </div>
             </div>
 
+            {/* Controls */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Controls
+                </label>
+
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm text-slate-600 dark:text-slate-400">Show Header</label>
+                        <button
+                            onClick={() => onChange({ show_header: !design.show_header })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ring-2 ring-transparent ring-offset-2 ${design.show_header !== false ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${design.show_header !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm text-slate-600 dark:text-slate-400">Show Agent Avatar</label>
+                        <button
+                            onClick={() => onChange({ show_agent_avatar: !design.show_agent_avatar })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ring-2 ring-transparent ring-offset-2 ${design.show_agent_avatar !== false ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${design.show_agent_avatar !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm text-slate-600 dark:text-slate-400">Allow File Uploads</label>
+                        <button
+                            onClick={() => onChange({ allow_file_uploads: !design.allow_file_uploads })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ring-2 ring-transparent ring-offset-2 ${design.allow_file_uploads ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${design.allow_file_uploads ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Typography */}
             <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">

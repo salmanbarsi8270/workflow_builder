@@ -227,7 +227,8 @@ export default function Agents() {
     }
   };
 
-  const loadConnections = async () => {
+  const loadConnections = async (showToast = false) => {
+    if (showToast) toast.success("Refreshing connections...");
     try {
       if (!user?.id) return;
       const data = await getServices(user.id);
@@ -258,6 +259,7 @@ export default function Agents() {
       setAllConnections(allOptions);
     } catch (error) {
       console.error("Error loading connections:", error);
+      toast.error("Failed to load connections");
     }
   };
 
@@ -575,6 +577,7 @@ export default function Agents() {
         onSuccess={handleCreateSuccess}
         availableAgents={agents}
         availableWorkflows={workflows}
+        onRefreshConnections={() => loadConnections(true)}
       />
 
       <RunAgentDialog

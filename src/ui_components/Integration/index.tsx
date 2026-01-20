@@ -538,7 +538,14 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           onItemsPerPageChange={setItemsPerPage}
         />
 
-        <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
+        <OpenRouterModel 
+          open={openroutermodel} 
+          onOpenChange={handleOpenRouterChange} 
+          onSuccess={() => {
+            fetchConnections();
+            toast.success("Provider added successfully");
+          }}
+        />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
         <CreateTriggerDialog open={createTriggerOpen} onOpenChange={setCreateTriggerOpen} />
