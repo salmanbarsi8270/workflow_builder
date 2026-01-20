@@ -15,8 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { FilePicker } from "../Automation/components/FilePicker"
 import { DictionaryInput } from "../Automation/components/SharedInputs"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { HelpCircle, Info, Plus, Trash2, Send, Download, Check, Copy, Globe, Upload } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { HelpCircle, Info, Send, Check, Copy, Globe, Upload } from "lucide-react"
 import { API_URL } from "@/ui_components/api/apiurl"
 import { toast } from "sonner"
 import { Button } from "@/components/button"
@@ -305,7 +304,7 @@ export default function HTTPForm({ data: nodeData, params, onChange, disabled, n
                 </div>
                 <DictionaryInput
                     value={params.queryParams}
-                    onChange={(val) => handleChange('queryParams', val)}
+                    onChange={(val:any) => handleChange('queryParams', val)}
                     nodes={nodes}
                     edges={edges}
                     nodeId={nodeId}
