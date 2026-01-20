@@ -11,14 +11,14 @@ import { StatusIndicator } from './StatusIndicator';
 import { categoryColors } from './constants';
 
 interface IntegrationGridCardProps {
-    app: IntegrationApp;
-    onConnect: (app: IntegrationApp) => void;
-    connectingApp: string | null;
+  app: IntegrationApp;
+  onConnect: (app: IntegrationApp) => void;
+  connectingApp: string | null;
 }
 
 export const IntegrationGridCard = ({ app, onConnect, connectingApp }: IntegrationGridCardProps) => {
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
-  
+
   return (
     <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col">
       <CardHeader className="p-6 pb-4">
@@ -31,9 +31,9 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500
                 bg-white/80 dark:bg-white/10 border border-slate-100 dark:border-white/10
               `}>
-                <img 
-                  src={app.icon} 
-                  alt={app.name} 
+                <img
+                  src={app.icon}
+                  alt={app.name}
                   className="w-10 h-10 object-contain"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -47,13 +47,13 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                 </div>
               )}
             </div>
-            
+
             <div className="min-w-0">
               <h4 className="font-bold text-lg truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase tracking-tight">
                 {app.name}
               </h4>
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`mt-1 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg border-opacity-50 ${colors.bg} ${colors.text} ${colors.border}`}
               >
                 {app.category}
@@ -62,7 +62,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="px-6 pb-6 flex-1 flex flex-col">
         <p className="text-sm font-medium text-slate-500 dark:text-blue-200/70 leading-relaxed mb-6 line-clamp-2">
           {app.description}
@@ -130,12 +130,12 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
           </div>
         )}
       </CardContent>
-      
+
       <CardFooter className="px-6 py-6 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/2 mt-auto">
         <div className="flex flex-col gap-3 w-full">
           {app.connected && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest"
               asChild
             >
@@ -145,13 +145,13 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
               </Link>
             </Button>
           )}
-          
-          <Button 
+
+          <Button
             variant={app.connected ? "outline" : "default"}
             className={`
               h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden
-              ${app.connected 
-                ? 'border-dashed border-blue-400 dark:border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+              ${app.connected
+                ? 'border-dashed border-blue-400 dark:border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400'
                 : 'bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]'}
             `}
             onClick={() => onConnect(app)}

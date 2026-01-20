@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, ArrowUpDown, ListCollapse ,Plus} from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, ArrowUpDown, ListCollapse, Plus } from "lucide-react"
 
 import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
@@ -21,6 +21,8 @@ import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
 import { CreateConnectorDialog } from './CreateConnectorDialog';
+import { CreateTriggerDialog } from './CreateTriggerDialog';
+import { CreateActionDialog } from './CreateActionDialog';
 
 interface IntegrationProps {
   defaultTab?: string;
@@ -46,6 +48,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
   const [mcpModalOpen, setMcpModalOpen] = useState(false);
   const [createConnectorOpen, setCreateConnectorOpen] = useState(false);
+  const [createTriggerOpen, setCreateTriggerOpen] = useState(false);
+  const [createActionOpen, setCreateActionOpen] = useState(false);
 
   useEffect(() => {
     fetchConnections();
@@ -260,6 +264,22 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             >
               <Plus className="h-4 w-4 text-white" />
               Create Connector
+            </Button>
+
+            <Button
+              onClick={() => setCreateTriggerOpen(true)}
+              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Create Trigger
+            </Button>
+
+            <Button
+              onClick={() => setCreateActionOpen(true)}
+              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Create Action
             </Button>
           </div>
         </motion.div>
@@ -521,6 +541,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
+        <CreateTriggerDialog open={createTriggerOpen} onOpenChange={setCreateTriggerOpen} />
+        <CreateActionDialog open={createActionOpen} onOpenChange={setCreateActionOpen} />
       </div>
     </div>
   );
