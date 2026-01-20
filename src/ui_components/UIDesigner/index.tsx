@@ -3,6 +3,7 @@ import { Plus, Search } from 'lucide-react';
 import type { UIDesign } from './types';
 import DesignCard from './DesignCard';
 import CreateDesignDialog from './CreateDesignDialog';
+import { API_URL } from '@/ui_components/api/apiurl';
 
 interface UIDesignerProps {
     userId: string;
@@ -19,7 +20,7 @@ export default function UIDesigner({ userId }: UIDesignerProps) {
     const fetchDesigns = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/v1/ui-designs?userId=${userId}`);
+            const response = await fetch(`${API_URL}/api/v1/ui-designs?userId=${userId}`);
             if (!response.ok) throw new Error('Failed to fetch designs');
             const data = await response.json();
             setDesigns(data);
@@ -39,7 +40,7 @@ export default function UIDesigner({ userId }: UIDesignerProps) {
         if (!confirm('Are you sure you want to delete this design?')) return;
 
         try {
-            const response = await fetch(`/api/v1/ui-designs/${id}`, {
+            const response = await fetch(`${API_URL}/api/v1/ui-designs/${id}`, {
                 method: 'DELETE'
             });
             if (!response.ok) throw new Error('Failed to delete design');
