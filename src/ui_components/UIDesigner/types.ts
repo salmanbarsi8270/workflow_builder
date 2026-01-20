@@ -21,6 +21,9 @@ export interface UIDesign {
 
     // Metadata
     is_public: boolean;
+    allow_file_uploads: boolean;
+    show_header: boolean;
+    show_agent_avatar: boolean;
     preview_image_url?: string;
     created_at: Date;
     updated_at: Date;
@@ -66,13 +69,15 @@ export const TEMPLATES: UITemplate[] = [
                 avatar_style: 'circle',
                 input_style: 'pill',
                 bubble_style: 'rounded',
-                // Default visibility true for standard templates
                 header_visible: true,
                 chat_visible: true,
                 input_visible: true,
                 logo_visible: true,
                 send_button: true
-            }
+            },
+            allow_file_uploads: false,
+            show_header: true,
+            show_agent_avatar: true
         }
     },
     {
@@ -97,7 +102,10 @@ export const TEMPLATES: UITemplate[] = [
                 input_visible: true,
                 logo_visible: true,
                 send_button: true
-            }
+            },
+            allow_file_uploads: false,
+            show_header: true,
+            show_agent_avatar: true
         }
     },
     {
@@ -122,7 +130,10 @@ export const TEMPLATES: UITemplate[] = [
                 input_visible: true,
                 logo_visible: true,
                 send_button: true
-            }
+            },
+            allow_file_uploads: false,
+            show_header: true,
+            show_agent_avatar: true
         }
     },
     {
@@ -148,7 +159,10 @@ export const TEMPLATES: UITemplate[] = [
                 input_visible: false,
                 logo_visible: false,
                 send_button: false
-            }
+            },
+            allow_file_uploads: false,
+            show_header: true,
+            show_agent_avatar: true
         }
     }
 ];

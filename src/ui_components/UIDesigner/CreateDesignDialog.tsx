@@ -27,6 +27,9 @@ const DEFAULT_DESIGN: Partial<UIDesign> = {
     input_placeholder: 'Type your message...',
     font_family: 'Inter, sans-serif',
     is_public: false,
+    allow_file_uploads: false,
+    show_header: true,
+    show_agent_avatar: true,
     component_styles: {
         avatar_style: 'circle',
         input_style: 'pill',
@@ -209,8 +212,32 @@ export default function CreateDesignDialog({
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
-                    {/* Left Sidebar - Customization Tools */}
-                    <div className="w-[400px] border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col">
+                    {/* Right Main Area - Live Preview (Now on Left) */}
+                    <div className="flex-1 bg-slate-100 dark:bg-slate-950 flex flex-col overflow-hidden relative">
+                        <div className="absolute inset-0 opacity-10 pointer-events-none"
+                            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #888 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+                        </div>
+
+                        {/* Centered Preview Container with Scroll Handling */}
+                        <div className="flex-1 overflow-auto relative">
+                            <div className={`min-h-full w-full flex items-center justify-center ${viewport === 'desktop' ? 'p-0' : 'p-8'}`}>
+                                <div
+                                    className={`transition-all duration-300 ease-in-out relative bg-white dark:bg-slate-900 mx-auto
+                                        ${viewport === 'mobile' ? 'w-[375px] h-[700px] shadow-2xl rounded-xl border-4 border-slate-900 dark:border-slate-700 shrink-0' : ''}
+                                        ${viewport === 'tablet' ? 'w-[768px] h-[850px] shadow-2xl rounded-xl border-4 border-slate-900 dark:border-slate-700 shrink-0' : ''}
+                                        ${viewport === 'desktop' ? 'w-[95%] h-[92%] shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800' : ''}
+                                    `}
+                                    style={viewport === 'desktop' ? { height: '92vh', maxHeight: '900px' } : undefined}
+                                >
+                                    <LivePreview design={design} />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Left Sidebar - Customization Tools (Now on Right) */}
+                    <div className="w-[400px] border-l border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col">
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
                             <div className="px-4 pt-4 pb-2 bg-slate-50 dark:bg-slate-900/50 sticky top-0 z-10">
                                 <TabsList className="w-full flex justify-start overflow-x-auto no-scrollbar bg-slate-200 dark:bg-slate-800 p-1 gap-1">
@@ -306,30 +333,6 @@ export default function CreateDesignDialog({
                                 </TabsContent>
                             </div>
                         </Tabs>
-                    </div>
-
-                    {/* Right Main Area - Live Preview */}
-                    <div className="flex-1 bg-slate-100 dark:bg-slate-950 flex flex-col overflow-hidden relative">
-                        <div className="absolute inset-0 opacity-10 pointer-events-none"
-                            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #888 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-                        </div>
-
-                        {/* Centered Preview Container with Scroll Handling */}
-                        <div className="flex-1 overflow-auto relative">
-                            <div className={`min-h-full w-full flex items-center justify-center ${viewport === 'desktop' ? 'p-0' : 'p-8'}`}>
-                                <div
-                                    className={`transition-all duration-300 ease-in-out relative bg-white dark:bg-slate-900 mx-auto
-                                        ${viewport === 'mobile' ? 'w-[375px] h-[700px] shadow-2xl rounded-xl border-4 border-slate-900 dark:border-slate-700 shrink-0' : ''}
-                                        ${viewport === 'tablet' ? 'w-[768px] h-[850px] shadow-2xl rounded-xl border-4 border-slate-900 dark:border-slate-700 shrink-0' : ''}
-                                        ${viewport === 'desktop' ? 'w-[95%] h-[92%] shadow-2xl rounded-xl border border-slate-200 dark:border-slate-800' : ''}
-                                    `}
-                                    style={viewport === 'desktop' ? { height: '92vh', maxHeight: '900px' } : undefined}
-                                >
-                                    <LivePreview design={design} />
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
             </DialogContent>
