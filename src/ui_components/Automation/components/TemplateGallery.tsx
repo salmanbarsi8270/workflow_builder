@@ -265,7 +265,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                   : "flex flex-col gap-3"
               )}
             >
-              {filteredTemplates.map((template, index) => (
+              {filteredTemplates.map((template) => (
                 <motion.div
                   key={template.id}
                   layoutId={template.id}
