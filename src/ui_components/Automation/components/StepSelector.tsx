@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, X, Box, LayoutGrid, Sparkles, Hammer, Compass } from "lucide-react";
+import { Search, ChevronRight, X, Box, Sparkles, Hammer, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePieces } from '@/context/PieceContext';
 import { AppLogoMap } from '../utils/Applogo';

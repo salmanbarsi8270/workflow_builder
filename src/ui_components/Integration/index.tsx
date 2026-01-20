@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, SortAscIcon, } from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, ArrowUpDown, ListCollapse ,Plus} from "lucide-react"
+
 import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
 import { useUser } from '@/context/UserContext';
@@ -19,6 +20,7 @@ import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
+import { CreateConnectorDialog } from './CreateConnectorDialog';
 
 interface IntegrationProps {
   defaultTab?: string;
@@ -43,6 +45,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
   const [mcpModalOpen, setMcpModalOpen] = useState(false);
+  const [createConnectorOpen, setCreateConnectorOpen] = useState(false);
 
   useEffect(() => {
     fetchConnections();
@@ -250,6 +253,14 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="font-semibold">Refresh</span>
             </Button>
+
+            <Button
+              onClick={() => setCreateConnectorOpen(true)}
+              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Create Connector
+            </Button>
           </div>
         </motion.div>
 
@@ -329,7 +340,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
           <div className="flex flex-wrap items-center gap-3">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-10 w-[140px] rounded-lg bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
+              <SelectTrigger className="h-10 w-[200px] rounded-lg bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
+                <ListCollapse className="h-4 w-4" />
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent className="rounded-lg border-slate-200 dark:border-white/10">
@@ -345,7 +357,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             <Select value={sortBy} onValueChange={(value: 'popular' | 'name' | 'recent') => setSortBy(value)}>
               <SelectTrigger className="h-10 w-[180px] rounded-lg bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest">
                 <div className="flex items-center gap-2">
-                  <SortAscIcon className="h-4 w-4 text-blue-500" />
+                  <ArrowUpDown className="h-3.5 w-3.5" />
                   <SelectValue placeholder="Sort by" />
                 </div>
               </SelectTrigger>
@@ -508,6 +520,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
         <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
+        <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
       </div>
     </div>
   );

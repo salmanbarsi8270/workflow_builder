@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, Filter, Sparkles, Zap, Globe, Plus, LayoutGrid, List, SortAscIcon } from "lucide-react"
+import { Trash2, RefreshCw, Search, X, Loader2, Shield, UserCircle, ExternalLink, Calendar, Filter, Sparkles, Zap, Globe, Plus, LayoutGrid, List, ArrowUpDown } from "lucide-react"
 import { getServices, deleteConnection } from "../api/connectionlist"
 import { CustomPagination } from "../Shared/CustomPagination"
 import { useUser } from '@/context/UserContext';
@@ -333,7 +333,7 @@ export default function Connections() {
             <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortType)}>
               <SelectTrigger className="h-11 w-full sm:w-44 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
                 <div className="flex items-center gap-2">
-                  <SortAscIcon className="h-4 w-4 text-blue-500" />
+                  <ArrowUpDown className="h-4 w-4 text-blue-500" />
                   <SelectValue placeholder="Sort by" />
                 </div>
               </SelectTrigger>
