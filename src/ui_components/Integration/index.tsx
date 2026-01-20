@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, } from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, Plus } from "lucide-react"
 import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
 import { useUser } from '@/context/UserContext';
@@ -19,6 +19,7 @@ import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
+import { CreateConnectorDialog } from './CreateConnectorDialog';
 
 interface IntegrationProps {
   defaultTab?: string;
@@ -43,6 +44,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
   const [mcpModalOpen, setMcpModalOpen] = useState(false);
+  const [createConnectorOpen, setCreateConnectorOpen] = useState(false);
 
   useEffect(() => {
     fetchConnections();
@@ -249,6 +251,14 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             >
               <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="font-semibold">Refresh</span>
+            </Button>
+
+            <Button
+              onClick={() => setCreateConnectorOpen(true)}
+              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Create Connector
             </Button>
           </div>
         </motion.div>
@@ -505,6 +515,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
         <OpenRouterModel open={openroutermodel} onOpenChange={handleOpenRouterChange} />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
+        <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
       </div>
     </div>
   );
