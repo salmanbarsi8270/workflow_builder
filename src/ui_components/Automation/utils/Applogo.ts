@@ -16,7 +16,8 @@ import agent from '@/assets/app-logos/agent.png';
 import form from '@/assets/app-logos/form.png';
 import email_utils from '@/assets/app-logos/email-utils.png';
 import data_icon from '@/assets/app-logos/data.png';
-
+import zoho from '@/assets/app-logos/zoho.png';
+import zoho_sheets from '@/assets/app-logos/zohosheets.png';
 
 export const AppLogoMap: Record<string, string> = {
   'gmail': '/gmail.png',
@@ -43,5 +44,7 @@ export const AppLogoMap: Record<string, string> = {
   'email-utils': email_utils,
   'data': data_icon,
   'store': data_icon,
+  'zoho': zoho,
+  'zoho-sheets': zoho_sheets
 };
 

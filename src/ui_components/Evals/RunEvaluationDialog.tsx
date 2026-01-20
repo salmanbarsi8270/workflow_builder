@@ -177,7 +177,7 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
         .map(test => `${test.name} (${test.category}): ${test.detailedDescription}`)
         .join('\n\n');
 
-      const inputMessage = evaluationMessage || "Respond clearly and helpfully to demonstrate your capabilities.";
+      const inputMessage = evaluationMessage || "You are a helpful assistant so read the instructions and respond clearly and helpfully to demonstrate your capabilities.";
 
       const res = await fetch(`${AI_URL}/api/v1/agents/eval/run`, {
         method: "POST",
