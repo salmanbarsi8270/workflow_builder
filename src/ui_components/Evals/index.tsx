@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { RunEvaluationDialog } from './RunEvaluationDialog';
 import { EvaluationDetailsSheet } from './EvaluationDetailsSheet';
 import { CustomPagination } from '../Shared/CustomPagination';
@@ -15,6 +16,16 @@ import { AI_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
 import { Toaster, toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Evaluation {
   eval_id: string;
@@ -59,6 +70,7 @@ export default function Evals() {
   const [showRetryModal, setShowRetryModal] = useState(false);
   const [retryInput, setRetryInput] = useState<any>("");
   const [retryEvaluationData, setRetryEvaluationData] = useState<Evaluation | null>(null);
+  const [deleteEvalId, setDeleteEvalId] = useState<string | null>(null);
   
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -210,14 +222,14 @@ export default function Evals() {
     }
   };
 
-  const deleteEvaluation = async (evalId: string) => {
-    if (!confirm('Are you sure you want to delete this evaluation?')) return;
-
+  const confirmDeleteEvaluation = async () => {
+    if (!deleteEvalId) return;
     try {
+      setLoadingEvals(true);
       const params = new URLSearchParams({
         userId: user?.id || ''
       });
-      const res = await fetch(`${AI_URL}/api/v1/agents/eval/${evalId}?${params}`, {
+      const res = await fetch(`${AI_URL}/api/v1/agents/eval/${deleteEvalId}?${params}`, {
         method: 'DELETE',
       });
 
@@ -230,6 +242,9 @@ export default function Evals() {
     } catch (err) {
       console.error('Error deleting evaluation:', err);
       toast.error('Failed to delete evaluation');
+    } finally {
+      setLoadingEvals(false);
+      setDeleteEvalId(null);
     }
   };
 
@@ -491,7 +506,7 @@ export default function Evals() {
                                 <RefreshCw className="w-4 h-4" />
                               </button>
                               <button 
-                                onClick={() => deleteEvaluation(ev.eval_id)}
+                                onClick={() => setDeleteEvalId(ev.eval_id)}
                                 className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                                 title="Delete evaluation"
                               >
@@ -672,24 +687,24 @@ export default function Evals() {
       </div>
 
       {/* Retry Modal - Improved */}
-      {showRetryModal && retryEvaluationData && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+      {showRetryModal && retryEvaluationData && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex h-full items-center justify-center z-[9999] animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 p-6 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
-                  <RefreshCw className="w-5 h-5 text-blue-500" /> 
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-blue-500" />
                   Retry Evaluation
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Running new test for "{retryEvaluationData.name}"
+                  Running new test for "{retryEvaluationData.name}" (Retry)
                 </p>
               </div>
               <button 
                 onClick={() => setShowRetryModal(false)}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
             
@@ -711,7 +726,7 @@ export default function Evals() {
             <div className="flex gap-3">
               <button disabled={loadingRetry}
                 onClick={() => setShowRetryModal(false)}
-                className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -728,12 +743,13 @@ export default function Evals() {
               </button>
             </div>
             {loadingRetry && (
-              <div className="mt-4">
+              <div className="mt-8 mb-4">
                 <LoadingCard title="Retrying Evaluation..." message="Running new tests with updated input. Please wait few minutes." />
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <RunEvaluationDialog 
@@ -745,6 +761,21 @@ export default function Evals() {
           fetchStats();
         }}
       />
+      
+      <AlertDialog open={!!deleteEvalId} onOpenChange={(open) => !open && setDeleteEvalId(null)}>
+        <AlertDialogContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">Delete Evaluation</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+              Are you sure you want to permanently delete this evaluation? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-none rounded-lg">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEvaluation} className="bg-red-600 hover:bg-red-700 text-white rounded-lg">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EvaluationDetailsSheet 
         evaluation={selectedEvalForDetails} 

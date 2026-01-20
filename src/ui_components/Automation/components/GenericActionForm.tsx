@@ -13,7 +13,7 @@ import { API_URL } from "@/ui_components/api/apiurl";
 
 
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Pencil, List, Loader2, Database, Box, Upload, File as FileIcon, Paperclip, X } from "lucide-react";
+import { Plus, Trash2, Pencil, List, Loader2, Database, Box } from "lucide-react";
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
