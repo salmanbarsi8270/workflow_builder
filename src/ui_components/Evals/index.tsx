@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { RunEvaluationDialog } from './RunEvaluationDialog';
 import { EvaluationDetailsSheet } from './EvaluationDetailsSheet';
 import { CustomPagination } from '../Shared/CustomPagination';
-import { 
-  Play, Trash2, BarChart3, 
-  RefreshCcw, Loader2, 
-  Brain, Zap, Eye, 
+import {
+  Play, Trash2, BarChart3,
+  RefreshCcw, Loader2,
+  Brain, Zap, Eye,
   RefreshCw, ChevronDown, X, Sparkles,
-  Search, Filter, 
+  Search, Filter,
   TrendingUp, Clock,
   User,
+
   AlertCircle
 } from 'lucide-react';
 import { getServices } from '../api/connectionlist';
@@ -60,12 +61,12 @@ export default function Evals() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingEvals, setLoadingEvals] = useState(false);
   const [stats, setStats] = useState<any>(null);
-  
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
   const [selectedEvalForDetails, setSelectedEvalForDetails] = useState<Evaluation | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -73,7 +74,7 @@ export default function Evals() {
   const [retryInput, setRetryInput] = useState<any>("");
   const [retryEvaluationData, setRetryEvaluationData] = useState<Evaluation | null>(null);
   const [deleteEvalId, setDeleteEvalId] = useState<string | null>(null);
-  
+
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [scoreRange, setScoreRange] = useState<[number, number]>([0, 100]);
@@ -141,7 +142,7 @@ export default function Evals() {
       });
 
       setConnections(aiConnections);
-      
+
       // Auto-select first connection if only one
       if (aiConnections.length === 1) {
         setSelectedConnectionId(aiConnections[0].id);
@@ -183,14 +184,14 @@ export default function Evals() {
     let filtered = [...evaluations];
 
     if (agentFilter !== 'all') {
-      filtered = filtered.filter(item  => item.agent_name === agentFilter);
+      filtered = filtered.filter(item => item.agent_name === agentFilter);
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(item  => item.status === statusFilter);
+      filtered = filtered.filter(item => item.status === statusFilter);
     }
 
-    filtered = filtered.filter(item  => 
+    filtered = filtered.filter(item =>
       item.score >= scoreRange[0] && item.score <= scoreRange[1]
     );
 
@@ -212,7 +213,7 @@ export default function Evals() {
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.name.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
         item.agent_name.toLowerCase().includes(term)
@@ -263,7 +264,7 @@ export default function Evals() {
       toast.success("Retry evaluation started!");
 
       await Promise.all([fetchEvaluations(), fetchStats()]);
-      
+
       if (data.evaluation) {
         setSelectedEvalForDetails(data.evaluation);
         setIsDetailsOpen(true);
@@ -312,11 +313,11 @@ export default function Evals() {
 
   return (
     <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
-      
+
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
       <div className="relative z-10 container mx-auto px-4 py-8 w-full flex flex-col min-h-full">
-        
+
         {/* Header Section - Improved with better spacing */}
         <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -337,7 +338,7 @@ export default function Evals() {
                 </p>
               </div>
             </div>
-            
+
             {/* Header Stats & Button */}
             <div className="flex items-center gap-4">
               {stats && (
@@ -371,7 +372,7 @@ export default function Evals() {
 
         {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
+
           {/* Main Panel - Wider */}
           <div className="lg:col-span-3 space-y-6">
             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
@@ -381,22 +382,22 @@ export default function Evals() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                   <div className="relative flex-1 w-full sm:w-auto sm:min-w-[300px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Search evaluations by name, agent, or description..." 
+                    <input
+                      type="text"
+                      placeholder="Search evaluations by name, agent, or description..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => setShowFilters(!showFilters)}
                       className={cn(
                         "px-3 py-2.5 rounded-lg border transition-all duration-200 flex items-center gap-2 text-sm font-medium",
-                        showFilters 
-                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30" 
+                        showFilters
+                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30"
                           : "bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700"
                       )}
                     >
@@ -404,9 +405,9 @@ export default function Evals() {
                       Filters
                       {showFilters && <ChevronDown className="w-3 h-3 transform rotate-180 ml-1" />}
                     </button>
-                    
-                    <button 
-                      onClick={fetchEvaluations} 
+
+                    <button
+                      onClick={fetchEvaluations}
                       className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                       disabled={loadingEvals}
                     >
@@ -421,8 +422,8 @@ export default function Evals() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
                         <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Status</label>
-                        <select 
-                          value={statusFilter} 
+                        <select
+                          value={statusFilter}
                           onChange={(e) => setStatusFilter(e.target.value)}
                           className="w-full p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         >
@@ -431,11 +432,11 @@ export default function Evals() {
                           <option value="failed">Failed</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Agent</label>
-                        <select 
-                          value={agentFilter} 
+                        <select
+                          value={agentFilter}
                           onChange={(e) => setAgentFilter(e.target.value)}
                           className="w-full p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         >
@@ -445,11 +446,11 @@ export default function Evals() {
                           ))}
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2 block">Date Range</label>
-                        <select 
-                          value={dateRange} 
+                        <select
+                          value={dateRange}
                           onChange={(e) => setDateRange(e.target.value)}
                           className="w-full p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         >
@@ -459,9 +460,9 @@ export default function Evals() {
                           <option value="month">Last 30 Days</option>
                         </select>
                       </div>
-                      
+
                       <div className="flex items-end">
-                        <button 
+                        <button
                           onClick={resetFilters}
                           className="w-full py-2.5 text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg border border-rose-200 dark:border-rose-500/30 transition-colors"
                         >
@@ -504,16 +505,16 @@ export default function Evals() {
                   </div>
                 ) : (
                   filteredEvaluations.map((ev) => (
-                    <div 
-                      key={ev.eval_id} 
+                    <div
+                      key={ev.eval_id}
                       className="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden"
                     >
                       {/* Left Status Stripe */}
                       <div className={cn(
                         "absolute left-0 top-0 bottom-0 w-1",
                         ev.status === 'completed' ? "bg-emerald-500" :
-                        ev.status === 'failed' ? "bg-rose-500" :
-                        "bg-blue-500"
+                          ev.status === 'failed' ? "bg-rose-500" :
+                            "bg-blue-500"
                       )} />
 
                       <div className="flex flex-col md:flex-row gap-6 pl-2">
@@ -526,8 +527,8 @@ export default function Evals() {
                                 <span className={cn(
                                   "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                                   ev.status === 'completed' ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" :
-                                  ev.status === 'failed' ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20" :
-                                  "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                                    ev.status === 'failed' ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20" :
+                                      "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
                                 )}>
                                   {ev.status}
                                 </span>
@@ -539,10 +540,10 @@ export default function Evals() {
                                 {ev.description}
                               </p>
                             </div>
-                            
+
                             {/* Action Buttons */}
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedEvalForDetails(ev);
                                   setIsDetailsOpen(true);
@@ -552,10 +553,10 @@ export default function Evals() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => {
-                                  setRetryEvaluationData(ev); 
-                                  setRetryInput(ev.scores?.helpfulness?.input || "");  
+                                  setRetryEvaluationData(ev);
+                                  setRetryInput(ev.scores?.helpfulness?.input || "");
                                   setSelectedConnectionId(""); // Reset selection
                                   setShowRetryModal(true);
                                 }}
@@ -564,7 +565,7 @@ export default function Evals() {
                               >
                                 <RefreshCw className="w-4 h-4" />
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setDeleteEvalId(ev.eval_id)}
                                 className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                                 title="Delete evaluation"
@@ -584,7 +585,7 @@ export default function Evals() {
                             <div className="flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />
                               <span>{new Date(ev.created_at).toLocaleDateString()}</span>
-                              <span className="text-slate-400">{new Date(ev.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="text-slate-400">{new Date(ev.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                             <div className="flex items-center gap-1.5">
@@ -597,38 +598,38 @@ export default function Evals() {
                         {/* Right: Score Progress */}
                         <div className="w-full md:w-64 flex flex-col justify-end">
                           <div className="flex items-end justify-between mb-2">
-                             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Score</span>
-                             <div className={cn(
-                               "text-2xl font-black",
-                               ev.score >= 80 ? "text-emerald-600 dark:text-emerald-400" :
-                               ev.score >= 50 ? "text-amber-600 dark:text-amber-400" :
-                               "text-rose-600 dark:text-rose-400"
-                             )}>
-                               {ev.score}<span className="text-sm text-slate-400 dark:text-slate-500 font-medium">/100</span>
-                             </div>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Score</span>
+                            <div className={cn(
+                              "text-2xl font-black",
+                              ev.score >= 80 ? "text-emerald-600 dark:text-emerald-400" :
+                                ev.score >= 50 ? "text-amber-600 dark:text-amber-400" :
+                                  "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {ev.score}<span className="text-sm text-slate-400 dark:text-slate-500 font-medium">/100</span>
+                            </div>
                           </div>
-                          
+
                           <div className="relative h-2.5 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
-                             <div 
-                               className={cn(
-                                 "absolute top-0 left-0 h-full rounded-full transition-all duration-500",
-                                 ev.score >= 80 ? "bg-emerald-500" :
-                                 ev.score >= 50 ? "bg-amber-500" :
-                                 "bg-rose-500"
-                               )}
-                               style={{ width: `${ev.score}%` }}
-                             />
+                            <div
+                              className={cn(
+                                "absolute top-0 left-0 h-full rounded-full transition-all duration-500",
+                                ev.score >= 80 ? "bg-emerald-500" :
+                                  ev.score >= 50 ? "bg-amber-500" :
+                                    "bg-rose-500"
+                              )}
+                              style={{ width: `${ev.score}%` }}
+                            />
                           </div>
-                          
+
                           <div className="flex justify-end mt-2">
-                             <div className={cn(
-                               "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border",
-                               ev.score >= 80 ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20" :
-                               ev.score >= 50 ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20" :
-                               "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20"
-                             )}>
-                               {ev.score}
-                             </div>
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border",
+                              ev.score >= 80 ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20" :
+                                ev.score >= 50 ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20" :
+                                  "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20"
+                            )}>
+                              {ev.score}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -639,14 +640,14 @@ export default function Evals() {
 
               {/* Pagination Section */}
               {totalPages > 1 && (
-              <CustomPagination 
-                currentPage={page}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setPage}
-                onItemsPerPageChange={setItemsPerPage}
-                className="mt-8 border-t border-slate-100 dark:border-white/5 pt-8"
-              />
+                <CustomPagination
+                  currentPage={page}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                  className="mt-8 border-t border-slate-100 dark:border-white/5 pt-8"
+                />
               )}
             </div>
           </div>
@@ -656,10 +657,10 @@ export default function Evals() {
             {/* Stats Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-5 shadow-sm">
               <h3 className="font-semibold text-lg mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
-                <TrendingUp className="w-5 h-5 text-emerald-500" /> 
+                <TrendingUp className="w-5 h-5 text-emerald-500" />
                 Performance Overview
               </h3>
-              
+
               {stats ? (
                 <div className="space-y-6">
                   <div>
@@ -670,13 +671,13 @@ export default function Evals() {
                       </span>
                     </div>
                     <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-white/5">
-                      <div 
-                        className="h-full bg-linear-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]" 
-                        style={{ width: `${Math.min(100, stats.avgScore || 0)}%` }} 
+                      <div
+                        className="h-full bg-linear-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                        style={{ width: `${Math.min(100, stats.avgScore || 0)}%` }}
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-slate-50 dark:bg-white/5 p-3.5 rounded-xl border border-slate-100 dark:border-white/5">
                       <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-500 mb-1">Total Runs</p>
@@ -731,10 +732,10 @@ export default function Evals() {
               <p className="text-white/80 text-sm mb-4">
                 Run a standard quality check on your most active agent in minutes.
               </p>
-              <button 
-                onClick={() => { 
-                  setIsRunDialogOpen(true); 
-                  toast.info("Select an agent to begin standard check"); 
+              <button
+                onClick={() => {
+                  setIsRunDialogOpen(true);
+                  toast.info("Select an agent to begin standard check");
                 }}
                 className="w-full py-2.5 bg-white text-blue-600 font-semibold rounded-lg hover:bg-white/90 transition-colors shadow-md"
               >
@@ -759,14 +760,14 @@ export default function Evals() {
                   Running new test for "{retryEvaluationData.name}" (Retry)
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowRetryModal(false)}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            
+
             <div className="mb-6">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
                 New Input Prompt
@@ -796,12 +797,12 @@ export default function Evals() {
                   <option value="">Select a connection...</option>
                   {connections.map((conn) => (
                     <option key={conn.id} value={conn.id}>
-                      {conn.service === 'openrouter' ? '🔑' : '🔌'} {conn.name || conn.service} ({conn.id.substring(0,8)}...)
+                      {conn.service === 'openrouter' ? '🔑' : '🔌'} {conn.name || conn.service} ({conn.id.substring(0, 8)}...)
                     </option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                   <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4" />
                 </div>
               </div>
               {connections.length === 0 && !loadingConnections && (
@@ -811,7 +812,7 @@ export default function Evals() {
                 </p>
               )}
             </div>
-            
+
             <div className="flex gap-3">
               <button disabled={loadingRetry}
                 onClick={() => setShowRetryModal(false)}
@@ -821,7 +822,7 @@ export default function Evals() {
               </button>
               <button disabled={loadingRetry}
                 onClick={async () => {
-                  if(retryEvaluationData) {
+                  if (retryEvaluationData) {
                     await retryEvaluation(retryEvaluationData, retryInput, selectedConnectionId);
                     setShowRetryModal(false);
                   }
@@ -841,7 +842,7 @@ export default function Evals() {
         document.body
       )}
 
-      <RunEvaluationDialog 
+      <RunEvaluationDialog
         open={isRunDialogOpen}
         onOpenChange={setIsRunDialogOpen}
         userId={user?.id}
@@ -854,7 +855,7 @@ export default function Evals() {
           }
         }}
       />
-      
+
       <AlertDialog open={!!deleteEvalId} onOpenChange={(open) => !open && setDeleteEvalId(null)}>
         <AlertDialogContent className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl">
           <AlertDialogHeader>
@@ -870,12 +871,12 @@ export default function Evals() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <EvaluationDetailsSheet 
-        evaluation={selectedEvalForDetails} 
-        open={isDetailsOpen} 
-        onOpenChange={setIsDetailsOpen} 
+      <EvaluationDetailsSheet
+        evaluation={selectedEvalForDetails}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
       />
-      
+
       <Toaster position="bottom-right" />
     </div>
   );

@@ -80,6 +80,12 @@ export default function ComponentCustomizer({ design, onChange }: ComponentCusto
                         label="Input Bar"
                     />
                     <OptionButton
+                        active={!!styles.show_history}
+                        onClick={() => toggleVisibility('show_history' as any)}
+                        icon={Square} // Placeholder icon
+                        label="History"
+                    />
+                    <OptionButton
                         active={!!styles.logo_visible}
                         onClick={() => toggleVisibility('logo_visible')}
                         icon={Circle} // Placeholder icon

@@ -41,6 +41,9 @@ export interface ComponentStyles {
     input_visible?: boolean;
     logo_visible?: boolean;
     send_button?: boolean; // Renamed from send_button_visible for brevity if preferred, sticking to plan though? Let's use send_button
+    show_history?: boolean; // Toggle for Chat History Sidebar
+    history_panel_color?: string; // Custom background color for history panel
+    show_stop_button?: boolean; // Toggle for Stop Generation button
 }
 
 export interface UITemplate {
@@ -73,7 +76,8 @@ export const TEMPLATES: UITemplate[] = [
                 chat_visible: true,
                 input_visible: true,
                 logo_visible: true,
-                send_button: true
+                send_button: true,
+                show_history: true
             },
             allow_file_uploads: false,
             show_header: true,
@@ -101,7 +105,8 @@ export const TEMPLATES: UITemplate[] = [
                 chat_visible: true,
                 input_visible: true,
                 logo_visible: true,
-                send_button: true
+                send_button: true,
+                show_history: true
             },
             allow_file_uploads: false,
             show_header: true,
@@ -129,7 +134,8 @@ export const TEMPLATES: UITemplate[] = [
                 chat_visible: true,
                 input_visible: true,
                 logo_visible: true,
-                send_button: true
+                send_button: true,
+                show_history: true
             },
             allow_file_uploads: false,
             show_header: true,
@@ -158,7 +164,8 @@ export const TEMPLATES: UITemplate[] = [
                 chat_visible: false,
                 input_visible: false,
                 logo_visible: false,
-                send_button: false
+                send_button: false,
+                show_history: true
             },
             allow_file_uploads: false,
             show_header: true,

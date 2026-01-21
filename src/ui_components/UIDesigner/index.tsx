@@ -3,11 +3,12 @@ import { Plus, Search } from 'lucide-react';
 import type { UIDesign } from './types';
 import DesignCard from './DesignCard';
 import CreateDesignDialog from './CreateDesignDialog';
-import { API_URL } from '@/ui_components/api/apiurl';
+import { API_URL } from "../api/apiurl";
 
 interface UIDesignerProps {
     userId: string;
 }
+
 
 export default function UIDesigner({ userId }: UIDesignerProps) {
     const [designs, setDesigns] = useState<UIDesign[]>([]);

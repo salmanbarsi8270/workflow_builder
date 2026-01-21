@@ -9,8 +9,10 @@ import ColorCustomizer from './ColorCustomizer';
 import TextCustomizer from './TextCustomizer';
 import ComponentCustomizer from './ComponentCustomizer';
 import LivePreview from './LivePreview';
+import { API_URL } from '../api/apiurl';
 
 interface CreateDesignDialogProps {
+    agentId?: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     userId: string;
@@ -43,6 +45,7 @@ const DEFAULT_DESIGN: Partial<UIDesign> = {
 };
 
 export default function CreateDesignDialog({
+    agentId,
     open,
     onOpenChange,
     userId,
@@ -61,7 +64,7 @@ export default function CreateDesignDialog({
         if (!prompt) return;
         setIsGenerating(true);
         try {
-            const response = await fetch('/api/v1/ui-designs/generate', {
+            const response = await fetch(`${API_URL}/api/v1/agents/generate-ui`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt })
@@ -106,22 +109,32 @@ export default function CreateDesignDialog({
         try {
             setIsSaving(true);
 
-            // Validate
-            if (!design.name) {
-                alert('Please provide a name for your design');
-                return;
+            let url = '';
+            let method = '';
+            let body = {};
+
+            if (agentId) {
+                // Save to Agent API
+                url = `${API_URL}/api/v1/agents/${agentId}`;
+                method = 'PATCH';
+                body = { uiConfig: design };
+            } else {
+                // Legacy / General UI Design API
+                if (initialDesign?.id) {
+                    url = `${API_URL}/api/v1/ui-designs/${initialDesign.id}`;
+                    method = 'PATCH';
+                    body = design;
+                } else {
+                    url = `${API_URL}/api/v1/ui-designs`;
+                    method = 'POST';
+                    body = { ...design, user_id: userId };
+                }
             }
-
-            const url = initialDesign
-                ? `/api/v1/ui-designs/${initialDesign.id}`
-                : '/api/v1/ui-designs';
-
-            const method = initialDesign ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...design, user_id: userId })
+                body: JSON.stringify(body)
             });
 
             if (!response.ok) throw new Error('Failed to save design');
