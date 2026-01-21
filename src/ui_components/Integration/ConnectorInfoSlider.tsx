@@ -342,17 +342,17 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
                         {/* Animated Tab Bar */}
                         <div className="px-8 pt-6">
                             <TabsList className="inline-flex h-12 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-1 gap-1 w-full">
-                                <TabsTrigger value="triggers" className="w-full px-6 rounded-xl font-bold text-xs uppercase tracking-wider data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600/10 data-[state=active]:text-blue-200 data-[state=active]:border data-[state=active]:border-blue-500/20 transition-all">
+                                <TabsTrigger value="triggers" className="w-full px-6 rounded-xl font-bold text-xs uppercase tracking-wider data-[state=active]:bg-linear-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-blue-500/20 transition-all">
                                     <Zap className="h-4 w-4 mr-2" />
                                     Triggers
-                                    <Badge variant="outline" className="ml-2 px-2 py-0.5 text-[10px]">
+                                    <Badge variant="outline" className="ml-2 px-2 py-0.5 text-[10px] data-[state=active]:text-white">
                                         {metadata?.triggers?.length || 0}
                                     </Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="actions" className="w-full px-6 rounded-xl font-bold text-xs uppercase tracking-wider data-[state=active]:bg-linear-to-r data-[state=active]:from-indigo-500/5 data-[state=active]:to-indigo-600 data-[state=active]:text-indigo-200 data-[state=active]:border data-[state=active]:border-indigo-500/20 transition-all">
+                                <TabsTrigger value="actions" className="w-full px-6 rounded-xl font-bold text-xs uppercase tracking-wider data-[state=active]:bg-linear-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-indigo-500/20 transition-all">
                                     <Settings className="h-4 w-4 mr-2" />
                                     Actions
-                                    <Badge variant="outline" className="ml-2 px-2 py-0.5 text-[10px]">
+                                    <Badge variant="outline" className="ml-2 px-2 py-0.5 text-[10px] data-[state=active]:text-white">
                                         {metadata?.actions?.length || 0}
                                     </Badge>
                                 </TabsTrigger> 
