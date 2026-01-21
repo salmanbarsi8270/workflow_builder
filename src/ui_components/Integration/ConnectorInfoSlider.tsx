@@ -355,7 +355,7 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
                                     <Badge variant="outline" className="ml-2 px-2 py-0.5 text-[10px]">
                                         {metadata?.actions?.length || 0}
                                     </Badge>
-                                </TabsTrigger>
+                                </TabsTrigger> 
                             </TabsList>
                         </div>
 
