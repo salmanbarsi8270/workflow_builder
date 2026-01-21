@@ -13,7 +13,7 @@ export async function getConnections(userId: string) {
  * Fetch services with their connections arrays (new structure for multiple accounts)
  */
 export async function getServices(userId: string) {
-    const response = await fetch(`${API_URL}/api/services?userId=${userId}`);
+    const response = await fetch(`${API_URL}/api/services?userId=${userId}&_t=${new Date().getTime()}`);
     const data = await response.json();
     return data;
 }

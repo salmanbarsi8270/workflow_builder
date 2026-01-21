@@ -265,28 +265,24 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
                   : "flex flex-col gap-3"
               )}
             >
-              {filteredTemplates.map((template, index) => (
+              {filteredTemplates.map((template) => (
                 <motion.div
                   key={template.id}
                   layoutId={template.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+                  transition={{ duration: 0, delay: 0, ease: "easeOut" }}
                   onClick={() => setSelectedTemplate(template)}
                   className={cn(
                     "group relative cursor-pointer", // Wrapper for positioning
                     viewMode === 'grid' ? "h-[220px] w-full" : "w-full h-auto"
                   )}
                 >
-                 {/* Stabilized Hover Glow */}
-                <div className={cn(
-                    "absolute -inset-0.5 bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-all duration-500"
-                )} />
 
                 <div className={cn(
                   "relative bg-white/50 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden",
                 )}>
-                  <div className={cn("space-y-3", viewMode === 'list' && "flex items-start justify-between gap-8 space-y-0")}>
+                  <div className={cn("space-y-3")}>
                     <div className="space-y-2">
                       <h3 className="text-lg font-bold mb-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
                         {template.name}
@@ -307,7 +303,7 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
 
                   <div className={cn(
                     "flex items-center justify-between pt-4 mt-auto",
-                    viewMode === 'list' && "mt-0 pt-0" // Adjust for list view
+                    viewMode === 'list' && "mt-4 pt-0" // Adjust for list view
                   )}>
                      <div className="flex -space-x-2">
                         {template.apps?.map((app, i) => {
@@ -375,20 +371,38 @@ export const TemplateGallery = forwardRef<TemplateGalleryHandle, TemplateGallery
       {/* Instantiate Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Give it a name</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Personalize your new <strong>{selectedTemplate?.name}</strong> automation.
+          <DialogHeader className="space-y-3 pb-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+               <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
+                  <HugeiconsIcon icon={ZapIcon} className="h-7 w-7" />
+               </div>
+               <div className="space-y-0.5">
+                  <DialogTitle className="text-xl font-black text-slate-900 dark:text-white leading-none">
+                    {selectedTemplate?.name}
+                  </DialogTitle>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                    Template Configuration
+                  </div>
+               </div>
+            </div>
+            <DialogDescription className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed text-left bg-slate-200 dark:bg-slate-800 p-4 rounded-lg">
+              <span className="font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Description</span>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed text-left">
+                {selectedTemplate?.description}
+              </p>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-             <Input
-                value={newAutomationName}
-                onChange={(e) => setNewAutomationName(e.target.value)}
-                placeholder="Marketing Campaign Automation"
-                className="bg-muted focus:bg-background border-border h-11"
-                autoFocus
-             />
+          <div className="space-y-4 py-6">
+             <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Automation Name</label>
+                <Input
+                   value={newAutomationName}
+                   onChange={(e) => setNewAutomationName(e.target.value)}
+                   placeholder="e.g., Marketing Campaign Automation"
+                   className="bg-muted/50 focus:bg-background border-border h-12 rounded-xl font-medium mt-4"
+                   autoFocus
+                />
+             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={handleCloseDialog} className="hover:bg-accent text-muted-foreground hover:text-foreground">

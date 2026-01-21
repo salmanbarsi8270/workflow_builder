@@ -282,7 +282,7 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                                 <div className="flex items-center justify-center gap-3">
                                   <div className="flex items-center gap-1 text-xs">
                                     <Layers className="h-3 w-3 text-blue-500" />
-                                    {item.nodes?.length || 0}
+                                    {item.nodes?.length-1 || 0}
                                   </div>
                                   <div className="flex items-center gap-1 text-xs">
                                     <PlayCircle className="h-3 w-3 text-emerald-500" />

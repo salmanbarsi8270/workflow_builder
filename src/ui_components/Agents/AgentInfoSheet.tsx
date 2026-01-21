@@ -109,6 +109,21 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                         </div>
                                     )}
 
+                                    <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm mt-2">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Evaluation Monitoring</span>
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${agent.evals_enabled ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-white/5 text-slate-400'}`}>
+                                                {agent.evals_enabled ? 'ENABLED' : 'DISABLED'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                                            {agent.evals_enabled 
+                                                ? "This agent's responses are automatically scored for helpfulness."
+                                                : "Auto-scoring is disabled for this agent."
+                                            }
+                                        </div>
+                                    </div>
+
 
                                 </div>
 

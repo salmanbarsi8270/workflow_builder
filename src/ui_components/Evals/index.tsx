@@ -10,8 +10,11 @@ import {
   RefreshCw, ChevronDown, X, Sparkles,
   Search, Filter, 
   TrendingUp, Clock,
-  User
+  User,
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
+import { getServices } from '../api/connectionlist';
 import { AI_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -79,6 +82,9 @@ export default function Evals() {
   const [dateRange, setDateRange] = useState<string>('all');
 
   const [loadingRetry, setLoadingRetry] = useState(false);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
+  const [loadingConnections, setLoadingConnections] = useState(false);
 
   const fetchEvaluations = async () => {
     try {
@@ -108,6 +114,46 @@ export default function Evals() {
     }
   };
 
+  const fetchConnections = async () => {
+    try {
+      if (!user?.id) return;
+      setLoadingConnections(true);
+      const data = await getServices(user.id);
+      const services = data.data || [];
+      const aiConnections: any[] = [];
+
+      services.forEach((service: any) => {
+        const isAIService = (service.id === 'openrouter') ||
+          (service.id === 'openai') ||
+          (service.id === 'anthropic') ||
+          (service.id === 'google') ||
+          (service.name && service.name.toLowerCase().includes('openrouter')) ||
+          (service.name === 'AI');
+
+        if (isAIService && service.accounts && Array.isArray(service.accounts)) {
+          service.accounts.forEach((acc: any) => {
+            aiConnections.push({
+              id: acc.id,
+              name: acc.username || acc.id,
+              service: service.id
+            });
+          });
+        }
+      });
+
+      setConnections(aiConnections);
+      
+      // Auto-select first connection if only one
+      if (aiConnections.length === 1) {
+        setSelectedConnectionId(aiConnections[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching connections:', err);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const params = new URLSearchParams({
@@ -129,6 +175,9 @@ export default function Evals() {
 
   useEffect(() => {
     fetchEvaluations();
+    if (user?.id) {
+      fetchConnections();
+    }
   }, [page, itemsPerPage, user?.id]);
 
   useEffect(() => {
@@ -184,8 +233,12 @@ export default function Evals() {
     setShowFilters(false);
   };
 
-  const retryEvaluation = async (evaluation: Evaluation, newInput: string) => {
+  const retryEvaluation = async (evaluation: Evaluation, newInput: string, connectionId: string) => {
     try {
+      if (!connectionId) {
+        toast.error("Please select an AI service connection");
+        return;
+      }
       setLoadingRetry(true);
 
       const newRunId = `run_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -200,7 +253,8 @@ export default function Evals() {
           description: evaluation.description,
           testCount: evaluation.test_count || 1,
           runId: newRunId,
-          userId: user?.id || ''
+          userId: user?.id || '',
+          connectionId: connectionId
         }),
       });
 
@@ -210,6 +264,11 @@ export default function Evals() {
       toast.success("Retry evaluation started!");
 
       await Promise.all([fetchEvaluations(), fetchStats()]);
+      
+      if (data.evaluation) {
+        setSelectedEvalForDetails(data.evaluation);
+        setIsDetailsOpen(true);
+      }
 
       // ✅ CLOSE MODAL AFTER SUCCESS
       setShowRetryModal(false);
@@ -498,6 +557,7 @@ export default function Evals() {
                                 onClick={() => {
                                   setRetryEvaluationData(ev); 
                                   setRetryInput(ev.scores?.helpfulness?.input || "");  
+                                  setSelectedConnectionId(""); // Reset selection
                                   setShowRetryModal(true);
                                 }}
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
@@ -722,6 +782,36 @@ export default function Evals() {
                 This will create a new evaluation with updated input
               </p>
             </div>
+
+            <div className="mb-6">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                AI Service Connection *
+              </label>
+              <div className="relative">
+                <select
+                  disabled={loadingRetry}
+                  value={selectedConnectionId}
+                  onChange={(e) => setSelectedConnectionId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm transition-all pr-10"
+                >
+                  <option value="">Select a connection...</option>
+                  {connections.map((conn) => (
+                    <option key={conn.id} value={conn.id}>
+                      {conn.service === 'openrouter' ? '🔑' : '🔌'} {conn.name || conn.service} ({conn.id.substring(0,8)}...)
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                   <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+              {connections.length === 0 && !loadingConnections && (
+                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  No AI connections found.
+                </p>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <button disabled={loadingRetry}
@@ -733,7 +823,7 @@ export default function Evals() {
               <button disabled={loadingRetry}
                 onClick={async () => {
                   if(retryEvaluationData) {
-                    await retryEvaluation(retryEvaluationData, retryInput);
+                    await retryEvaluation(retryEvaluationData, retryInput, selectedConnectionId);
                     setShowRetryModal(false);
                   }
                 }}
@@ -756,9 +846,13 @@ export default function Evals() {
         open={isRunDialogOpen}
         onOpenChange={setIsRunDialogOpen}
         userId={user?.id}
-        onSuccess={() => {
+        onSuccess={(newEval) => {
           fetchEvaluations();
           fetchStats();
+          if (newEval) {
+            setSelectedEvalForDetails(newEval);
+            setIsDetailsOpen(true);
+          }
         }}
       />
       

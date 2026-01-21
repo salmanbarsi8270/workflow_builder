@@ -107,7 +107,7 @@ function AgentChatPage() {
   
   useEffect(() => {
     // Fetch agent configuration
-    fetch(`/api/v1/agents/${agentId}`)
+    fetch(`${API_URL}/api/v1/agents/${agentId}`)
       .then(res => res.json())
       .then(data => setAgent(data));
   }, [agentId]);

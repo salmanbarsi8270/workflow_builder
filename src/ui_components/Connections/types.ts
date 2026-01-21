@@ -10,6 +10,23 @@ export interface Connection {
   category: string;
 }
 
+export interface ConnectedAccount {
+  id: string;
+  externalId: string;
+  username: string;
+  avatarUrl: string;
+  connectedAt: string;
+  serviceId: string;
+  serviceName: string;
+  serviceIcon: string;
+  status?: 'active' | 'expired' | 'warning';
+  lastUsed?: string;
+  permissions?: string[];
+  isPublic?: boolean;
+  category?: string;
+  usage?: { type: 'flow' | 'agent', id: string, name: string }[];
+}
+
 export interface ServiceDefinition {
     id: string; // 'google-sheets'
     name: string; // 'Google Sheets'

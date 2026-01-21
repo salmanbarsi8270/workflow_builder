@@ -6,7 +6,8 @@ import { useDropzone } from 'react-dropzone';
 import { FileIcon, Trash2, Upload, Download, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { API_URL } from "../api/apiurl";
+import { API_URL } from '@/ui_components/api/apiurl';
+
 
 interface AppFile {
     id: string;

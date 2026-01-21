@@ -1000,7 +1000,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 setNodes(layoutedNodes);
 
                 setAddingNodeOnEdgeId(null);
-                setSelectedNodeId(null);
+                setSelectedNodeId(selectedNodeId);
                 return;
             }
         }
@@ -1028,6 +1028,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 return n;
             }));
             setSwappingNodeId(null);
+            setSelectedNodeId(swappingNodeId);
             return;
         }
 
@@ -1185,7 +1186,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         setNodes(layoutedNodes);
         setEdges(updatedEdges);
         setAddingNodeOnEdgeId(null); // Close selector
-        setSelectedNodeId(null);
+        setSelectedNodeId(newNodeId);
     };
 
 

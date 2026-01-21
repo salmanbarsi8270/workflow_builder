@@ -128,8 +128,9 @@ export default function AutomationIndex() {
                     name: flow.name,
                     createdDate: new Date(flow.created_at).toISOString().split('T')[0],
                     status: flow.is_active,
-                    nodes: [],
-                    edges: []
+                    nodes: flow.ui_definition?.nodes || [],
+                    edges: flow.ui_definition?.edges || [],
+                    triggerCount: parseInt(flow.run_count) || 0
                 }));
                 setAutomations(mappedFlows);
             }
