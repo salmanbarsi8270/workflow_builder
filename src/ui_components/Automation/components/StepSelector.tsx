@@ -39,6 +39,9 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
     // Filter apps based on tab and search
     const filteredApps = useMemo(() => {
         return allPieces.filter((app: any) => {
+            // Filter out internal apps starting with _ or -
+            if ((app.id || '').startsWith('_') || (app.id || '').startsWith('-')) return false;
+
             const category = app.category || 'app';
             let matchesTab = false;
 
@@ -76,8 +79,15 @@ export default function StepSelector({ onSelect, onClose, mode = 'action' }: Ste
 
     const filteredActions = useMemo(() => {
         if (!selectedApp) return [];
-        const actions = (selectedApp.actions || []).filter((a: any) => a.type === mode);
+        let actions = (selectedApp.actions || []).filter((a: any) => a.type === mode);
         
+        // Filter out internal actions/triggers starting with _ or -
+        actions = actions.filter((action: any) => {
+            const id = action.id || '';
+            const name = action.name || '';
+            return !id.startsWith('_') && !id.startsWith('-') && !name.startsWith('_') && !name.startsWith('-');
+        });
+
         if (!searchTerm) return actions;
 
         // If search term exists, we filter actions. 
