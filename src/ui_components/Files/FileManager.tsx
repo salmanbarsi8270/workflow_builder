@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone';
 import { FileIcon, Trash2, Upload, Download, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { API_URL } from "../api/apiurl";
 
 interface AppFile {
     id: string;
@@ -17,7 +18,7 @@ interface AppFile {
     chunk_count: number;
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
 
 export default function FileManager() {
     const { user } = useUser();
@@ -31,7 +32,7 @@ export default function FileManager() {
     const fetchFiles = useCallback(async () => {
         if (!user?.id) return;
         try {
-            const { data } = await axios.get(`${BACKEND_URL}/api/v1/files?userId=${user.id}`);
+            const { data } = await axios.get(`${API_URL}/api/v1/files?userId=${user.id}`);
             setFiles(data);
         } catch (error) {
             console.error('Failed to fetch files:', error);
@@ -58,7 +59,7 @@ export default function FileManager() {
             formData.append('userId', user.id);
 
             try {
-                const { data } = await axios.post(`${BACKEND_URL}/api/v1/files`, formData, {
+                const { data } = await axios.post(`${API_URL}/api/v1/files`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
@@ -84,7 +85,7 @@ export default function FileManager() {
         if (!confirm(`Are you sure you want to delete ${name}?`)) return;
 
         try {
-            await axios.delete(`${BACKEND_URL}/api/v1/files/${id}?userId=${user.id}`);
+            await axios.delete(`${API_URL}/api/v1/files/${id}?userId=${user.id}`);
             toast.success('File deleted');
             setFiles(prev => prev.filter(f => f.id !== id));
         } catch (error) {
@@ -96,7 +97,7 @@ export default function FileManager() {
     const downloadFile = (id: string, name: string) => {
         // Direct download link
         const link = document.createElement('a');
-        link.href = `${BACKEND_URL}/api/v1/files/${id}/content`;
+        link.href = `${API_URL}/api/v1/files/${id}/content`;
         link.setAttribute('download', name);
         document.body.appendChild(link);
         link.click();
@@ -199,10 +200,10 @@ export default function FileManager() {
                         {/* Block Right Click to discourage saving */}
                         <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-4 flex items-center justify-center relative" onContextMenu={(e) => e.preventDefault()}>
                             {previewFile.mime_type.startsWith('image/') ? (
-                                <img src={`${BACKEND_URL}/api/v1/files/${previewFile.id}/content`} alt={previewFile.original_name} className="max-w-full max-h-full object-contain shadow-lg pointer-events-none select-none" />
+                                <img src={`${API_URL}/api/v1/files/${previewFile.id}/content`} alt={previewFile.original_name} className="max-w-full max-h-full object-contain shadow-lg pointer-events-none select-none" />
                             ) : previewFile.mime_type === 'application/pdf' ? (
                                 <iframe
-                                    src={`${BACKEND_URL}/api/v1/files/${previewFile.id}/content#toolbar=0&navpanes=0&scrollbar=0`}
+                                    src={`${API_URL}/api/v1/files/${previewFile.id}/content#toolbar=0&navpanes=0&scrollbar=0`}
                                     className="w-full h-full bg-white border-none shadow-lg rounded-md"
                                     title="File Preview"
                                 />
@@ -227,7 +228,7 @@ function FileContentPreview({ file }: { file: AppFile }) {
             try {
                 // If it's a known text type, fetch text. Otherwise show placeholder.
                 if (file.mime_type.startsWith('text/') || file.mime_type.includes('json') || file.mime_type.includes('javascript') || file.mime_type.includes('xml')) {
-                    const response = await fetch(`${BACKEND_URL}/api/v1/files/${file.id}/content`);
+                    const response = await fetch(`${API_URL}/api/v1/files/${file.id}/content`);
                     const text = await response.text();
                     setContent(text);
                 } else {

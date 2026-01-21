@@ -74,6 +74,35 @@ export default function ColorCustomizer({ design, onChange }: ColorCustomizerPro
                     />
                 </div>
             </div>
+
+            {/* History Panel Color */}
+            <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Sidebar / History Color (Optional)
+                </label>
+                <div className="flex items-center gap-2">
+                    <div
+                        className="w-8 h-8 rounded border border-slate-200 dark:border-slate-700"
+                        style={{ backgroundColor: design.component_styles?.history_panel_color || '#f8fafc' }}
+                    />
+                    <input
+                        type="text"
+                        value={design.component_styles?.history_panel_color || ''}
+                        onChange={(e) => onChange({
+                            component_styles: {
+                                ...design.component_styles,
+                                history_panel_color: e.target.value
+                            }
+                        })}
+                        placeholder="#f8fafc"
+                        className="flex-1 px-3 py-1.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-blue-500 font-mono"
+                    />
+                </div>
+                <p className="text-xs text-slate-500">
+                    Leave empty for default light gray.
+                </p>
+            </div>
         </div>
     );
 }
+
