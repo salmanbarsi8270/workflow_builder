@@ -13,13 +13,17 @@ interface IntegrationListItemProps {
   app: IntegrationApp;
   onConnect: (app: IntegrationApp) => void;
   connectingApp: string | null;
+  onShowDetails: (app: IntegrationApp) => void;
 }
 
-export const IntegrationListItem = ({ app, onConnect, connectingApp }: IntegrationListItemProps) => {
+export const IntegrationListItem = ({ app, onConnect, connectingApp, onShowDetails }: IntegrationListItemProps) => {
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
-    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500 group rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none">
+    <Card
+      className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500 group rounded-2xl shadow-sm shadow-slate-200/50 dark:shadow-none cursor-pointer"
+      onClick={() => onShowDetails(app)}
+    >
       <CardContent className="p-4 lg:p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:gap-6">
           <div className="relative shrink-0">
@@ -88,7 +92,10 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
             <Button
               variant={app.connected ? "outline" : "default"}
               size="lg"
-              onClick={() => onConnect(app)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnect(app);
+              }}
               disabled={connectingApp === app.id}
               className={`
                 flex-1 sm:flex-none min-w-[140px] h-11 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden
@@ -105,7 +112,7 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
               )}
             </Button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="outline"
                 size="icon"
@@ -124,7 +131,10 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp }: Integrati
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl border-slate-200 dark:border-white/10 shadow-xl p-1">
-                  <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
+                  <DropdownMenuItem
+                    className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5"
+                    onClick={() => onShowDetails(app)}
+                  >
                     <Info className="h-4 w-4 mr-2 text-blue-500" />
                     View Details
                   </DropdownMenuItem>

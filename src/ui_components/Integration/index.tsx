@@ -20,6 +20,8 @@ import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
+import axios from 'axios';
+import { IntegrationDetailSheet } from './IntegrationDetailSheet';
 import { CreateConnectorDialog } from './CreateConnectorDialog';
 import { CreateTriggerDialog } from './CreateTriggerDialog';
 import { CreateActionDialog } from './CreateActionDialog';
@@ -50,10 +52,27 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const [createConnectorOpen, setCreateConnectorOpen] = useState(false);
   const [createTriggerOpen, setCreateTriggerOpen] = useState(false);
   const [createActionOpen, setCreateActionOpen] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<IntegrationApp | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [piecesMetadata, setPiecesMetadata] = useState<Record<string, any>>({});
+  const [initialTriggerData, setInitialTriggerData] = useState<any>(null);
+  const [initialActionData, setInitialActionData] = useState<any>(null);
 
   useEffect(() => {
     fetchConnections();
+    fetchPiecesMetadata();
   }, [user?.id]);
+
+  const fetchPiecesMetadata = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/v1/pieces`);
+      if (response.data.success) {
+        setPiecesMetadata(response.data.pieces || {});
+      }
+    } catch (error) {
+      console.error("Failed to fetch pieces metadata", error);
+    }
+  };
 
   useEffect(() => {
     filterAndSortApps();
@@ -187,6 +206,30 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     setStatusFilter('all');
   };
 
+  const handleShowDetails = (app: IntegrationApp) => {
+    // Enrich with metadata if available
+    const enrichedApp = {
+      ...app,
+      metadata: piecesMetadata[app.id] ? {
+        actions: piecesMetadata[app.id].actions,
+        triggers: piecesMetadata[app.id].triggers,
+        fullMetadata: piecesMetadata[app.id].metadata
+      } : undefined
+    };
+    setSelectedApp(enrichedApp);
+    setDetailOpen(true);
+  };
+
+  const handleContextualAction = (type: 'trigger' | 'action', initialData?: any) => {
+    if (type === 'trigger') {
+      setInitialTriggerData(initialData);
+      setCreateTriggerOpen(true);
+    } else {
+      setInitialActionData(initialData);
+      setCreateActionOpen(true);
+    }
+  };
+
   const getFilterCount = () => {
     let count = 0;
     if (searchQuery.trim()) count++;
@@ -266,21 +309,6 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
               Create Connector
             </Button>
 
-            <Button
-              onClick={() => setCreateTriggerOpen(true)}
-              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-[1.02]"
-            >
-              <Plus className="h-4 w-4 text-white" />
-              Create Trigger
-            </Button>
-
-            <Button
-              onClick={() => setCreateActionOpen(true)}
-              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all duration-300 hover:scale-[1.02]"
-            >
-              <Plus className="h-4 w-4 text-white" />
-              Create Action
-            </Button>
           </div>
         </motion.div>
 
@@ -492,6 +520,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                         app={app}
                         onConnect={handleConnect}
                         connectingApp={connectingApp}
+                        onShowDetails={handleShowDetails}
                       />
                     ))
                   )}
@@ -520,6 +549,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                         app={app}
                         onConnect={handleConnect}
                         connectingApp={connectingApp}
+                        onShowDetails={handleShowDetails}
                       />
                     ))
                   )}
@@ -538,9 +568,9 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           onItemsPerPageChange={setItemsPerPage}
         />
 
-        <OpenRouterModel 
-          open={openroutermodel} 
-          onOpenChange={handleOpenRouterChange} 
+        <OpenRouterModel
+          open={openroutermodel}
+          onOpenChange={handleOpenRouterChange}
           onSuccess={() => {
             fetchConnections();
             toast.success("Provider added successfully");
@@ -548,8 +578,31 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
-        <CreateTriggerDialog open={createTriggerOpen} onOpenChange={setCreateTriggerOpen} />
-        <CreateActionDialog open={createActionOpen} onOpenChange={setCreateActionOpen} />
+        <CreateTriggerDialog
+          open={createTriggerOpen}
+          onOpenChange={(open) => {
+            setCreateTriggerOpen(open);
+            if (!open) setInitialTriggerData(null);
+          }}
+          connectorId={selectedApp?.id}
+          initialData={initialTriggerData}
+        />
+        <CreateActionDialog
+          open={createActionOpen}
+          onOpenChange={(open) => {
+            setCreateActionOpen(open);
+            if (!open) setInitialActionData(null);
+          }}
+          connectorId={selectedApp?.id}
+          initialData={initialActionData}
+        />
+        <IntegrationDetailSheet
+          app={selectedApp}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          onConnect={handleConnect}
+          onAction={handleContextualAction}
+        />
       </div>
     </div>
   );
