@@ -120,7 +120,7 @@ export function SidebarIconExample() {
 
   return (
     <SidebarProvider className="h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-      <Sidebar collapsible="icon" className="border-r border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+      <Sidebar collapsible="icon" className="border-r border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl">
         <SidebarHeader className='p-2 mt-2'>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -243,7 +243,7 @@ export function SidebarIconExample() {
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="overflow-hidden flex flex-col h-full bg-transparent">
-        <header className="flex h-16 shrink-0 items-center justify-between px-8 border-b bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-all z-20">
+        <header className="flex h-16 shrink-0 items-center justify-between px-8 border-b border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-950/50 backdrop-blur-xl transition-all z-20">
           <div className="flex items-center gap-4">
             <SidebarTrigger className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500" />
             <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/10" />

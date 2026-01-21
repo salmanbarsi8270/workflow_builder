@@ -21,7 +21,7 @@ import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
 import axios from 'axios';
-import { IntegrationDetailSheet } from './IntegrationDetailSheet';
+import { ConnectorInfoSlider } from './ConnectorInfoSlider';
 import { CreateConnectorDialog } from './CreateConnectorDialog';
 import { CreateTriggerDialog } from './CreateTriggerDialog';
 import { CreateActionDialog } from './CreateActionDialog';
@@ -57,6 +57,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const [piecesMetadata, setPiecesMetadata] = useState<Record<string, any>>({});
   const [initialTriggerData, setInitialTriggerData] = useState<any>(null);
   const [initialActionData, setInitialActionData] = useState<any>(null);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
 
   useEffect(() => {
     fetchConnections();
@@ -206,18 +207,41 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     setStatusFilter('all');
   };
 
-  const handleShowDetails = (app: IntegrationApp) => {
-    // Enrich with metadata if available
-    const enrichedApp = {
-      ...app,
-      metadata: piecesMetadata[app.id] ? {
-        actions: piecesMetadata[app.id].actions,
-        triggers: piecesMetadata[app.id].triggers,
-        fullMetadata: piecesMetadata[app.id].metadata
-      } : undefined
-    };
-    setSelectedApp(enrichedApp);
+  const handleShowDetails = async (app: IntegrationApp) => {
     setDetailOpen(true);
+    
+    // If metadata not already available, we could fetch it here or just use what we have
+    // For now, let's simulate a small delay or check if we need to show loading
+    const hasMetadata = !!piecesMetadata[app.id];
+    
+    if (!hasMetadata) {
+      setIsLoadingMetadata(true);
+      // Metadata is usually fetched on mount, but if it's missing, we wait
+      // In a real scenario, we might trigger a specific fetch here
+      setTimeout(() => {
+        const enrichedApp = {
+          ...app,
+          metadata: piecesMetadata[app.id] ? {
+            actions: piecesMetadata[app.id].actions,
+            triggers: piecesMetadata[app.id].triggers,
+            fullMetadata: piecesMetadata[app.id].metadata
+          } : undefined
+        };
+        setSelectedApp(enrichedApp);
+        setIsLoadingMetadata(false);
+      }, 500);
+    } else {
+      const enrichedApp = {
+        ...app,
+        metadata: {
+          actions: piecesMetadata[app.id].actions,
+          triggers: piecesMetadata[app.id].triggers,
+          fullMetadata: piecesMetadata[app.id].metadata
+        }
+      };
+      setSelectedApp(enrichedApp);
+      setIsLoadingMetadata(false);
+    }
   };
 
   const handleContextualAction = (type: 'trigger' | 'action', initialData?: any) => {
@@ -596,12 +620,13 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           connectorId={selectedApp?.id}
           initialData={initialActionData}
         />
-        <IntegrationDetailSheet
+        <ConnectorInfoSlider
           app={selectedApp}
           open={detailOpen}
           onOpenChange={setDetailOpen}
           onConnect={handleConnect}
           onAction={handleContextualAction}
+          isLoading={isLoadingMetadata}
         />
       </div>
     </div>

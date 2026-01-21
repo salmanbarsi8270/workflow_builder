@@ -11,7 +11,6 @@ import {
   Search, Filter, 
   TrendingUp, Clock,
   User,
-  ChevronRight,
   AlertCircle
 } from 'lucide-react';
 import { getServices } from '../api/connectionlist';
