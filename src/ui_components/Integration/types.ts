@@ -21,4 +21,9 @@ export interface IntegrationApp {
   service?: string;
   popularity?: number;
   featured?: boolean;
+  metadata?: {
+    actions?: string[];
+    triggers?: string[];
+    fullMetadata?: any;
+  };
 }

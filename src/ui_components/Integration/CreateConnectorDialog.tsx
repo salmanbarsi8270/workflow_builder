@@ -95,15 +95,15 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto border-slate-200 dark:border-white/10 bg-[#020617] dark:bg-[#020617] p-6 custom-scrollbar text-white">
+            <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto border-border bg-background p-6 custom-scrollbar text-foreground">
                 <DialogHeader className="mb-6">
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-white">
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-foreground">
                         <div className="p-2 rounded-lg bg-blue-500/10">
                             <Zap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         Create Connector
                     </DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-muted-foreground">
                         Define app metadata and dynamic authentication configuration.
                     </DialogDescription>
                 </DialogHeader>
@@ -112,68 +112,68 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
                     {/* App Metadata Section */}
                     <section className="space-y-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <Globe className="h-4 w-4 text-slate-400" />
-                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Application Metadata</h3>
+                            <Globe className="h-4 w-4 text-muted-foreground" />
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Application Metadata</h3>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-300">Connector ID (Unique)</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground">Connector ID (Unique)</Label>
                                 <Input
                                     placeholder="e.g. gmail or drive"
                                     value={formData.id}
                                     onChange={e => setFormData({ ...formData, id: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                                    className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600"
+                                    className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-300">Display Name</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground">Display Name</Label>
                                 <Input
                                     placeholder="e.g. Google Drive"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600"
+                                    className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-slate-300">Description</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Description</Label>
                             <Textarea
                                 placeholder="Describe what this connector enables..."
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                className="min-h-[80px] rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600 resize-none"
+                                className="min-h-[80px] rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 resize-none"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-slate-300">Base URL</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Base URL</Label>
                             <Input
                                 placeholder="https://api.example.com/v1"
                                 value={formData.baseUrl}
                                 onChange={e => setFormData({ ...formData, baseUrl: e.target.value })}
-                                className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600 font-mono text-sm"
+                                className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 font-mono text-sm"
                             />
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-300">Icon URL</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground">Icon URL</Label>
                                 <Input
                                     placeholder="https://img.icons8.com/..."
                                     value={formData.icon}
                                     onChange={e => setFormData({ ...formData, icon: e.target.value })}
-                                    className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                    className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-300">Category</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground">Category</Label>
                                 <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
-                                    <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white">
+                                    <SelectTrigger className="h-11 rounded-xl bg-muted/50 border-border text-foreground">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                                    <SelectContent className="bg-background border-border text-foreground">
                                         <SelectItem value="productivity">Productivity</SelectItem>
                                         <SelectItem value="communication">Communication</SelectItem>
                                         <SelectItem value="marketing">Marketing</SelectItem>
@@ -183,18 +183,18 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-300">Theme Color</Label>
+                                <Label className="text-xs font-semibold text-muted-foreground">Theme Color</Label>
                                 <Input
                                     placeholder="e.g. text-blue-500"
                                     value={formData.color}
                                     onChange={e => setFormData({ ...formData, color: e.target.value })}
-                                    className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600 font-mono text-xs"
+                                    className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 font-mono text-xs"
                                 />
                             </div>
                         </div>
                     </section>
 
-                    <div className="h-px bg-white/5" />
+                    <div className="h-px bg-border" />
 
                     {/* Authentication Section */}
                     <section className="space-y-6">
@@ -204,12 +204,12 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-slate-300">Auth Type</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Auth Type</Label>
                             <Select value={formData.auth.type} onValueChange={v => setFormData({ ...formData, auth: { ...formData.auth, type: v } })}>
-                                <SelectTrigger className="h-11 rounded-xl bg-white/5 border-emerald-500/20 text-emerald-500 font-bold uppercase tracking-wider text-[10px]">
+                                <SelectTrigger className="h-11 rounded-xl bg-muted/50 border-emerald-500/20 text-emerald-500 font-bold uppercase tracking-wider text-[10px]">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                                <SelectContent className="bg-background border-border text-foreground">
                                     <SelectItem value="none">No Auth</SelectItem>
                                     <SelectItem value="bearer">Bearer Token</SelectItem>
                                     <SelectItem value="oauth2">OAuth 2.0</SelectItem>
@@ -221,67 +221,67 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
                         </div>
 
                         {formData.auth.type === 'oauth2' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 p-4 rounded-2xl bg-white/5 border border-white/10">
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 p-4 rounded-2xl bg-muted/30 border border-border">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Authorize URL</Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Authorize URL</Label>
                                         <div className="relative">
-                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <Input
                                                 placeholder="https://..."
                                                 value={formData.auth.authUrl}
                                                 onChange={e => setFormData({ ...formData, auth: { ...formData.auth, authUrl: e.target.value } })}
-                                                className="pl-9 h-9 rounded-lg bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                                className="pl-9 h-9 rounded-lg bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Token URL</Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Token URL</Label>
                                         <div className="relative">
-                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <Input
                                                 placeholder="https://..."
                                                 value={formData.auth.tokenUrl}
                                                 onChange={e => setFormData({ ...formData, auth: { ...formData.auth, tokenUrl: e.target.value } })}
-                                                className="pl-9 h-9 rounded-lg bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                                className="pl-9 h-9 rounded-lg bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                             />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Client ID</Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Client ID</Label>
                                         <div className="relative">
-                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <Input
                                                 placeholder="Enter Client ID"
                                                 value={formData.auth.clientId}
                                                 onChange={e => setFormData({ ...formData, auth: { ...formData.auth, clientId: e.target.value } })}
-                                                className="pl-9 h-9 rounded-lg bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                                className="pl-9 h-9 rounded-lg bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                             />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold uppercase text-slate-400">Client Secret</Label>
+                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Client Secret</Label>
                                         <div className="relative">
-                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <Input
                                                 type="password"
                                                 placeholder="Enter Secret"
                                                 value={formData.auth.clientSecret}
                                                 onChange={e => setFormData({ ...formData, auth: { ...formData.auth, clientSecret: e.target.value } })}
-                                                className="pl-9 h-9 rounded-lg bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                                className="pl-9 h-9 rounded-lg bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                             />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-bold uppercase text-slate-400">Scopes (Space-separated)</Label>
+                                    <Label className="text-[10px] font-bold uppercase text-muted-foreground">Scopes (Space-separated)</Label>
                                     <Input
                                         placeholder="openid profile email https://..."
                                         value={formData.auth.scope}
                                         onChange={e => setFormData({ ...formData, auth: { ...formData.auth, scope: e.target.value } })}
-                                        className="h-9 rounded-lg bg-white/5 border-white/10 text-white placeholder:text-slate-600 text-xs"
+                                        className="h-9 rounded-lg bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 text-xs"
                                     />
                                 </div>
                             </div>
@@ -289,24 +289,24 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
 
                         {formData.auth.type === 'header' && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <Label className="text-[10px] font-bold uppercase text-slate-400">Header Name</Label>
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Header Name</Label>
                                 <Input
                                     placeholder="e.g. X-API-Key or Authorization"
                                     value={formData.auth.headerName}
                                     onChange={e => setFormData({ ...formData, auth: { ...formData.auth, headerName: e.target.value } })}
-                                    className="h-10 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600"
+                                    className="h-10 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60"
                                 />
                             </div>
                         )}
 
                         {formData.auth.type === 'query' && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <Label className="text-[10px] font-bold uppercase text-slate-400">Parameter Name</Label>
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground">Parameter Name</Label>
                                 <Input
                                     placeholder="e.g. api_key or token"
                                     value={formData.auth.queryParam}
                                     onChange={e => setFormData({ ...formData, auth: { ...formData.auth, queryParam: e.target.value } })}
-                                    className="h-10 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600"
+                                    className="h-10 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60"
                                 />
                             </div>
                         )}
@@ -314,7 +314,7 @@ export function CreateConnectorDialog({ open, onOpenChange }: CreateConnectorDia
                 </div>
 
                 <div className="flex gap-4 mt-10 p-2">
-                    <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-slate-300 hover:text-white hover:bg-white/10" onClick={() => onOpenChange(false)} disabled={loading}>
+                    <Button variant="ghost" className="flex-1 h-12 rounded-2xl font-bold text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => onOpenChange(false)} disabled={loading}>
                         Cancel
                     </Button>
                     <Button

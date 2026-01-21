@@ -15,9 +15,11 @@ import { useUser } from '@/context/UserContext';
 interface CreateTriggerDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    connectorId?: string;
+    initialData?: { name: string; definition: any };
 }
 
-export function CreateTriggerDialog({ open, onOpenChange }: CreateTriggerDialogProps) {
+export function CreateTriggerDialog({ open, onOpenChange, connectorId, initialData }: CreateTriggerDialogProps) {
     const { user } = useUser();
     const [loading, setLoading] = useState(false);
     const [connectors, setConnectors] = useState<any[]>([]);
@@ -32,11 +34,17 @@ export function CreateTriggerDialog({ open, onOpenChange }: CreateTriggerDialogP
         if (open && user?.id) {
             getServices(user.id).then((res: any) => {
                 setConnectors(res.data || []);
+                setFormData(prev => ({
+                    ...prev,
+                    connector_id: connectorId || prev.connector_id,
+                    name: initialData?.name || prev.name,
+                    definition: initialData?.definition ? JSON.stringify(initialData.definition, null, 2) : prev.definition
+                }));
             }).catch(err => {
                 console.error("Failed to load connectors", err);
             });
         }
-    }, [open, user?.id]);
+    }, [open, user?.id, connectorId, initialData]);
 
     const handleSubmit = async () => {
         if (!formData.connector_id || !formData.name || !formData.definition) {
@@ -74,15 +82,15 @@ export function CreateTriggerDialog({ open, onOpenChange }: CreateTriggerDialogP
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] border-slate-200 dark:border-white/10 bg-[#020617] p-6 text-white">
+            <DialogContent className="sm:max-w-[600px] border-border bg-background p-6 text-foreground">
                 <DialogHeader className="mb-6">
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-white">
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-foreground">
                         <div className="p-2 rounded-lg bg-emerald-500/10">
                             <Zap className="h-6 w-6 text-emerald-400" />
                         </div>
                         Create Trigger
                     </DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-muted-foreground">
                         Define a new event trigger for a connector.
                     </DialogDescription>
                 </DialogHeader>
@@ -90,12 +98,12 @@ export function CreateTriggerDialog({ open, onOpenChange }: CreateTriggerDialogP
                 <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-slate-300">Select Connector</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Select Connector</Label>
                             <Select value={formData.connector_id} onValueChange={v => setFormData({ ...formData, connector_id: v })}>
-                                <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 text-white">
+                                <SelectTrigger className="h-11 rounded-xl bg-muted/50 border-border text-foreground">
                                     <SelectValue placeholder="Choose a connector" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                                <SelectContent className="bg-background border-border text-foreground">
                                     {connectors.map(c => (
                                         <SelectItem key={c.id} value={c.id}>{c.name} ({c.id})</SelectItem>
                                     ))}
@@ -104,32 +112,32 @@ export function CreateTriggerDialog({ open, onOpenChange }: CreateTriggerDialogP
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-slate-300">Trigger Name</Label>
+                            <Label className="text-xs font-semibold text-muted-foreground">Trigger Name</Label>
                             <Input
                                 placeholder="e.g. onIssueOpened"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="h-11 rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600"
+                                className="h-11 rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60"
                             />
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label className="text-xs font-semibold text-slate-300">Definition (JSON)</Label>
-                                <span className="text-[10px] text-slate-500 font-mono">Accepts JSON object</span>
+                                <Label className="text-xs font-semibold text-muted-foreground">Definition (JSON)</Label>
+                                <span className="text-[10px] text-muted-foreground/50 font-mono">Accepts JSON object</span>
                             </div>
                             <Textarea
                                 placeholder='{"type": "webhook", ...}'
                                 value={formData.definition}
                                 onChange={e => setFormData({ ...formData, definition: e.target.value })}
-                                className="min-h-[300px] rounded-xl bg-white/5 border-white/10 text-white placeholder:text-slate-600 font-mono text-xs resize-none"
+                                className="min-h-[300px] rounded-xl bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 font-mono text-xs resize-none"
                             />
                         </div>
                     </div>
                 </div>
 
                 <div className="flex gap-4 mt-8">
-                    <Button variant="ghost" className="flex-1 h-12 rounded-xl text-slate-300 hover:text-white hover:bg-white/10" onClick={() => onOpenChange(false)} disabled={loading}>
+                    <Button variant="ghost" className="flex-1 h-12 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => onOpenChange(false)} disabled={loading}>
                         Cancel
                     </Button>
                     <Button

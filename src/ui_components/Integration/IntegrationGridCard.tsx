@@ -14,13 +14,17 @@ interface IntegrationGridCardProps {
   app: IntegrationApp;
   onConnect: (app: IntegrationApp) => void;
   connectingApp: string | null;
+  onShowDetails: (app: IntegrationApp) => void;
 }
 
-export const IntegrationGridCard = ({ app, onConnect, connectingApp }: IntegrationGridCardProps) => {
+export const IntegrationGridCard = ({ app, onConnect, connectingApp, onShowDetails }: IntegrationGridCardProps) => {
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
-    <Card className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col">
+    <Card
+      className="overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group h-full shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl flex flex-col cursor-pointer"
+      onClick={() => onShowDetails(app)}
+    >
       <CardHeader className="p-6 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
@@ -77,7 +81,7 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
               </div>
             </div>
             <div className="flex -space-x-2">
-              {app.accounts.slice(0, 3).map((account, index) => (
+              {app.accounts?.slice(0, 3).map((account: any, index: number) => (
                 <TooltipProvider key={account.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -136,8 +140,10 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
           {app.connected && (
             <Button
               variant="outline"
+              size="sm"
               className="h-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest"
               asChild
+              onClick={(e) => e.stopPropagation()}
             >
               <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
                 <UserCircle className="h-4 w-4 mr-2 text-blue-500" />
@@ -154,7 +160,10 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp }: Integrati
                 ? 'border-dashed border-blue-400 dark:border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400'
                 : 'bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02]'}
             `}
-            onClick={() => onConnect(app)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConnect(app);
+            }}
             disabled={connectingApp === app.id}
           >
             {connectingApp === app.id ? (
