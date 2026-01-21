@@ -74,6 +74,7 @@ export function CreateAgentDialog({
     const [selectedType, setSelectedType] = useState<string>('');
     const [selectedInputType, setSelectedInputType] = useState<string>('');
     const [ragEnabled, setRagEnabled] = useState(false);
+    const [evalsEnabled, setEvalsEnabled] = useState(false);
 
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
@@ -231,6 +232,7 @@ export function CreateAgentDialog({
                             : (hasBannedWords || hasOutputRules);
                         setEnableGuardrails(flag);
                         setRagEnabled(initialAgent.rag_enabled !== false);
+                        setEvalsEnabled(initialAgent.evals_enabled === true);
                     })
                     .catch(err => console.error("Error fetching guardrails:", err));
 
@@ -260,6 +262,7 @@ export function CreateAgentDialog({
         setSelectedUiDesign('');
         setSelectedFileIds([]);
         setEnableGuardrails(false);
+        setEvalsEnabled(false);
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -381,7 +384,8 @@ export function CreateAgentDialog({
                 tools: [...formattedTools, ...formattedMcpTools],
                 ui_design_id: selectedUiDesign,
                 rag_enabled: ragEnabled,
-                rag_file_ids: selectedFileIds // Send selected file IDs to backend
+                rag_file_ids: selectedFileIds, // Send selected file IDs to backend
+                evals_enabled: evalsEnabled
             };
 
             let response;
@@ -716,6 +720,17 @@ export function CreateAgentDialog({
 
 
                         <div className="grid gap-2">
+                            <div className="flex items-center justify-between mb-4">
+                                <Label htmlFor="evals-mode" className="text-slate-700 dark:text-white font-medium flex items-center gap-2">
+                                    <span>Enable Agent Evaluations</span>
+                                    <Badge variant="outline" className="text-[10px] font-normal">Auto-Score Helpfulness</Badge>
+                                </Label>
+                                <div className="flex items-center space-x-2">
+                                    <Label htmlFor="evals-mode" className="text-xs font-medium cursor-pointer">Enable</Label>
+                                    <Switch id="evals-mode" checked={evalsEnabled} onCheckedChange={setEvalsEnabled} />
+                                </div>
+                            </div>
+
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="knowledge" className="text-slate-700 dark:text-white font-medium flex items-center gap-2">
                                     <span>Knowledge Base (RAG)</span>
@@ -726,7 +741,6 @@ export function CreateAgentDialog({
                                     <Switch id="rag-mode" checked={ragEnabled} onCheckedChange={setRagEnabled} />
                                 </div>
                             </div>
-
                             {ragEnabled && (
                                 <div className="flex flex-col gap-3">
                                     <Label className="text-xs text-slate-500">Select files from your Library to add to this agent's knowledge.</Label>

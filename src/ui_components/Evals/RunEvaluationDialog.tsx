@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Play, CheckCircle, Clock, Loader2, AlertCircle, Sparkles, Zap, Brain, Target, Shield, Lightbulb, Wand2 } from "lucide-react";
+import { Play, CheckCircle, Clock, Loader2, AlertCircle, Sparkles, Zap, Brain, Target, Shield, Lightbulb, Wand2, ChevronDown, ChevronRight, Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_URL, AI_URL } from '../api/apiurl';
 import { toast } from 'sonner';
+import { getServices } from '../api/connectionlist';
 
 // Enhanced test cases with more details and icons
 const mockTestCases = [
@@ -109,7 +110,7 @@ interface RunEvaluationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId?: string;
-  onSuccess: () => void;
+  onSuccess: (evaluation?: any) => void;
 }
 
 export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: RunEvaluationDialogProps) {
@@ -123,6 +124,48 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
   const [activeStep, setActiveStep] = useState<'agent' | 'tests' | 'settings'>('agent');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [connections, setConnections] = useState<any[]>([]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>('');
+  const [loadingConnections, setLoadingConnections] = useState(false);
+
+  const fetchConnections = async () => {
+    try {
+      setLoadingConnections(true);
+      const data = await getServices(userId || '');
+      const services = data.data || [];
+      const aiConnections: any[] = [];
+
+      services.forEach((service: any) => {
+        const isAIService = (service.id === 'openrouter') ||
+          (service.id === 'openai') ||
+          (service.id === 'anthropic') ||
+          (service.id === 'google') ||
+          (service.name && service.name.toLowerCase().includes('openrouter')) ||
+          (service.name === 'AI');
+
+        if (isAIService && service.accounts && Array.isArray(service.accounts)) {
+          service.accounts.forEach((acc: any) => {
+            aiConnections.push({
+              id: acc.id,
+              name: acc.username || acc.id,
+              service: service.id
+            });
+          });
+        }
+      });
+
+      setConnections(aiConnections);
+      
+      // Auto-select first connection if only one
+      if (aiConnections.length === 1) {
+        setSelectedConnectionId(aiConnections[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching connections:', err);
+    } finally {
+      setLoadingConnections(false);
+    }
+  };
 
   const fetchAgents = async () => {
     try {
@@ -147,10 +190,12 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
   useEffect(() => {
     if (open && userId) {
       fetchAgents();
+      fetchConnections();
       setSelectedAgent(null);
       setSelectedTests([]);
       setEvaluationName('');
       setEvaluationMessage('');
+      setSelectedConnectionId('');
       setActiveStep('agent');
       setSearchTerm('');
       setSelectedCategory('all');
@@ -165,6 +210,11 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
 
     if (!evaluationName.trim()) {
       toast.error("Please enter an evaluation name");
+      return;
+    }
+
+    if (!selectedConnectionId) {
+      toast.error("Please select an AI service connection");
       return;
     }
 
@@ -189,7 +239,8 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
           description: selectedTestDescriptions,
           testCount: selectedTests.length,
           runId: `run_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-          userId: userId || ''
+          userId: userId || '',
+          connectionId: selectedConnectionId
         }),
       });
 
@@ -203,7 +254,7 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
       toast.success("Evaluation started successfully!", {
         description: "Results will appear shortly in your dashboard"
       });
-      onSuccess();
+      onSuccess(data.evaluation);
       onOpenChange(false);
 
     } catch (err) {
@@ -239,9 +290,10 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
 
   const getProgress = () => {
     let progress = 0;
-    if (selectedAgent) progress += 33;
-    if (selectedTests.length > 0) progress += 33;
-    if (evaluationName.trim()) progress += 34;
+    if (selectedAgent) progress += 25;
+    if (selectedTests.length > 0) progress += 25;
+    if (evaluationName.trim()) progress += 25;
+    if (selectedConnectionId) progress += 25;
     return progress;
   };
 
@@ -249,7 +301,7 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[950px] border-slate-200 dark:border-white/10 shadow-2xl p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 min-h-[90vh] max-h-[90vh] flex flex-col">
         <DialogHeader className="p-6 pb-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b border-slate-200 dark:border-white/10 relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-white/[0.02] bg-[size:20px_20px]" />
+          <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-white/[0.02] bg-size-[20px_20px]" />
           <div className="relative z-10">
             <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-white mb-2">
               <div className="p-2.5 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
@@ -631,6 +683,38 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
                           placeholder="e.g. Weekly Performance Benchmark - March 2024"
                         />
                       </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          AI Service Connection *
+                          <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">
+                            Select credentials for evaluation
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={selectedConnectionId}
+                            onChange={(e) => setSelectedConnectionId(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all pr-10"
+                          >
+                            <option value="">Select a connection...</option>
+                            {connections.map((conn) => (
+                              <option key={conn.id} value={conn.id}>
+                                {conn.service === 'openrouter' ? '🔑' : '🔌'} {conn.name || conn.service} ({conn.id.substring(0,8)}...)
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                             <ChevronDown className="w-4 h-4" />
+                          </div>
+                        </div>
+                        {connections.length === 0 && !loadingConnections && (
+                          <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            No AI connections found. Please add one in Connectors.
+                          </p>
+                        )}
+                      </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -721,7 +805,7 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
                   </button>
                   <button 
                     onClick={startEvaluation}
-                    disabled={isRunning || !evaluationName.trim()}
+                    disabled={isRunning || !evaluationName.trim() || !selectedConnectionId}
                     className="px-6 py-2.5 text-white font-medium rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
                   >
                     {isRunning ? (
@@ -768,23 +852,3 @@ export function RunEvaluationDialog({ open, onOpenChange, userId, onSuccess }: R
     </Dialog>
   );
 }
-
-// Add missing icon imports
-const Settings = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const Search = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-  </svg>
-);
-
-const ChevronRight = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);

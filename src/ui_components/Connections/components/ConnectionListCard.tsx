@@ -82,7 +82,7 @@ export function ConnectionListCard({ account, onDelete, isDeleting }: Connection
                            </div>
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>{item.name}</p>
+                           <p className='font-bold lowercase tracking-widest text-xs'><span className="font-bold uppercase tracking-widest">{item.type}</span>: {item.name}</p>
                          </TooltipContent>
                        </Tooltip>
                      ))
