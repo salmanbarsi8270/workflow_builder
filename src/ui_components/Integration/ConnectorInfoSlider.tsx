@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -148,13 +148,11 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
     };
 
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent
+        <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+            <DrawerContent
                 ref={sliderRef}
-                side="right"
                 className={cn(
                     "p-0 border-l border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950/95 backdrop-blur-xl flex flex-col h-full overflow-hidden shadow-2xl shadow-blue-500/5 rounded-l-2xl max-w-none!",
-                    "data-open:animate-in data-closed:animate-out data-open:fade-in-0 data-closed:fade-out-0 data-open:slide-in-from-right-full data-closed:slide-out-to-right-full data-open:duration-500 data-closed:duration-300",
                     isResizing ? "transition-none" : "transition-[width] duration-300 ease-out"
                 )}
                 style={{ width: `${width}px` }}
@@ -225,9 +223,9 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
                             <div className="flex-1 space-y-4">
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <SheetTitle className="text-3xl font-bold bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                                        <DrawerTitle className="text-3xl font-bold bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                                             {app.name}
-                                        </SheetTitle>
+                                        </DrawerTitle>
                                         <Badge className={cn(
                                             "px-3 py-1 text-xs font-bold uppercase tracking-wider",
                                             colors.bg, colors.text, "border-0 shadow-md"
@@ -236,9 +234,9 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
                                             {app.category}
                                         </Badge>
                                     </div>
-                                    <SheetDescription className="text-muted-foreground/70 text-sm font-medium leading-relaxed max-w-lg">
+                                    <DrawerDescription className="text-muted-foreground/70 text-sm font-medium leading-relaxed max-w-lg">
                                         {app.description}
-                                    </SheetDescription>
+                                    </DrawerDescription>
                                 </div>
 
                                 {/* Connected Accounts */}
@@ -575,7 +573,7 @@ export function ConnectorInfoSlider({ app, open, onOpenChange, onConnect, onActi
                     </Tabs>
                 </div>
                 ) : null}
-            </SheetContent>
-        </Sheet>
+            </DrawerContent>
+        </Drawer>
     );
 }

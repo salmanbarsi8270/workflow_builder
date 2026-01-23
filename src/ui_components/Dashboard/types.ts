@@ -11,6 +11,7 @@ export interface DashboardStats {
 
 export interface RecentRun {
   id: string;
+  flow_id?: string;
   name: string;
   status: string;
   time: string;
@@ -18,6 +19,7 @@ export interface RecentRun {
   duration: string;
   appIcon: string;
   trigger: string;
+  current_context?: any;
 }
 
 export interface ActivityChartData {

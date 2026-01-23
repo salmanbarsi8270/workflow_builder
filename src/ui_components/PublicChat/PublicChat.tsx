@@ -6,14 +6,27 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { API_URL } from '../api/apiurl.js';
 
-export function PublicChat() {
+interface PublicChatProps {
+    agent?: any;
+    userId?: string;
+}
+
+export function PublicChat({ agent: propAgent, userId: propUserId }: PublicChatProps = {}) {
     const { slug } = useParams<{ slug: string }>();
-    const [agent, setAgent] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [agent, setAgent] = useState<any>(propAgent || null);
+    const [loading, setLoading] = useState(!propAgent);
     const [error, setError] = useState<string | null>(null);
     const { user, isLoading: isAuthLoading } = useUser();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Update agent if prop changes
+    useEffect(() => {
+        if (propAgent) {
+            setAgent(propAgent);
+            setLoading(false);
+        }
+    }, [propAgent]);
 
     useEffect(() => {
         const fetchAgent = async () => {
@@ -33,10 +46,10 @@ export function PublicChat() {
             }
         };
 
-        if (slug) {
+        if (slug && !propAgent) {
             fetchAgent();
         }
-    }, [slug]);
+    }, [slug, propAgent]);
 
     if (loading || isAuthLoading) {
         return (
@@ -46,7 +59,9 @@ export function PublicChat() {
         );
     }
 
-    if (!user) {
+    const effectiveUserId = propUserId || user?.id;
+
+    if (!effectiveUserId && !isAuthLoading) {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
                 <div className="text-center space-y-6 max-w-md bg-white p-8 rounded-xl shadow-lg border border-slate-100">
@@ -89,5 +104,5 @@ export function PublicChat() {
         );
     }
 
-    return <DynamicChatInterface agent={agent} userId={user.id} />;
+    return <DynamicChatInterface agent={agent} userId={effectiveUserId as string} />;
 }

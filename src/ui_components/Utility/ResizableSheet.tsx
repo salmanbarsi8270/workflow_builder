@@ -25,7 +25,9 @@ export function ResizableSheetContent({
     const [width, setWidth] = useState<number>(() => {
         try {
             const saved = localStorage.getItem(storageKey);
-            return saved ? parseInt(saved, 10) : defaultWidth;
+            if (!saved) return defaultWidth;
+            const parsed = parseInt(saved, 10);
+            return isNaN(parsed) ? defaultWidth : parsed;
         } catch (e) {
             return defaultWidth;
         }
@@ -98,8 +100,8 @@ export function ResizableSheetContent({
             <div 
                 onMouseDown={handleMouseDown}
                 className={cn(
-                    "absolute top-0 bottom-0 w-3 cursor-col-resize z-50 flex items-center justify-center group/handle",
-                    side === 'left' ? "-right-1.5" : "-left-1.5"
+                    "absolute top-0 bottom-0 w-6 cursor-col-resize z-50 flex items-center justify-center group/handle",
+                    side === 'left' ? "-right-3" : "-left-3"
                 )}
                 title="Drag to resize"
             >

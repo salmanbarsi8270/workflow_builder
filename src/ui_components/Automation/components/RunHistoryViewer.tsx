@@ -119,7 +119,7 @@ export default function RunHistoryViewer({ run, initialNodes, initialEdges, onCl
     // Let's rely on `nodesConnectable={false}` prop in ReactFlow which might propagate.
 
     return (
-        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
+        <div className="absolute inset-0 z-50 bg-background flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b bg-background/50">
                 <div className="flex items-center gap-4">

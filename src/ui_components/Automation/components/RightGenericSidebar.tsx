@@ -31,9 +31,10 @@ interface RightGenericSidebarProps {
     onUpdateNode: (label: string, data?: any, immediate?: boolean) => void;
     onDeleteNode: () => void;
     onClose: () => void;
-    nodeStatus?: 'pending' | 'running' | 'success' | 'error' | 'warning';
+    nodeStatus?: 'pending' | 'running' | 'success' | 'error' | 'warning' | 'waiting' | 'skipped';
     isLocked?: boolean;
     flowId?: string;
+    results?: Record<string, any>;
 }
 
 const getStatusColor = (status?: string) => {
@@ -98,7 +99,7 @@ const getInitialParams = (node: Node, pieces: any[]) => {
 };
 
 
-export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false, flowId }: RightGenericSidebarProps) {
+export default function RightGenericSidebar({ selectedNode, nodes, edges = [], onUpdateNode, onDeleteNode, onClose, nodeStatus = 'pending', isLocked = false, flowId, results = {} }: RightGenericSidebarProps) {
     const { pieces, piecesMap, isLoading: metadataLoading } = usePieces();
     const [localLabel, setLocalLabel] = useState(selectedNode?.data.label as string || '');
     const [localParams, setLocalParams] = useState(() => selectedNode ? getInitialParams(selectedNode, pieces) : {});
@@ -369,7 +370,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
         <TooltipProvider>
             <div
                 className={cn(
-                    "border-l bg-linear-to-b from-background to-background/95 backdrop-blur-sm flex flex-col h-full overflow-hidden relative group/sidebar shadow-xl",
+                    "border-l bg-linear-to-b from-background to-background/95 flex flex-col h-full overflow-hidden relative group/sidebar shadow-xl",
                     isDragging && "transition-none select-none"
                 )}
                 style={{ width: `${width}px`, transition: isDragging ? 'none' : 'width 0.2s ease' }}
@@ -476,7 +477,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="absolute left-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
+                                    className="absolute left-0 z-10 h-8 w-8 bg-background/80 shadow-sm"
                                     onClick={() => scrollTabs('left')}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
@@ -531,7 +532,7 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="absolute right-0 z-10 h-8 w-8 bg-background/80 backdrop-blur-sm shadow-sm"
+                                    className="absolute right-0 z-10 h-8 w-8 bg-background/80 shadow-sm"
                                     onClick={() => scrollTabs('right')}
                                 >
                                     <ChevronRight className="h-4 w-4" />
@@ -736,9 +737,30 @@ export default function RightGenericSidebar({ selectedNode, nodes, edges = [], o
                                         }
 
                                         const sampleOutput = generateSampleOutput(schema);
+                                        const actualResult = results[selectedNode.id]?.output || results[selectedNode.id] || null;
 
                                         return (
                                             <div className="space-y-6">
+                                                {actualResult && (
+                                                    <div className="rounded-lg border border-green-500/30 bg-green-500/5 overflow-hidden">
+                                                        <div className="bg-green-500/10 px-4 py-2 border-b border-green-500/20 flex justify-between items-center">
+                                                            <span className="text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400">Actual Run Result</span>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(JSON.stringify(actualResult, null, 2));
+                                                                    sonner.success("Actual result copied!");
+                                                                }}
+                                                                className="text-xs text-green-600 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <Copy className="h-3 w-3" /> Copy
+                                                            </button>
+                                                        </div>
+                                                        <div className="p-4 bg-muted/5 font-mono text-xs overflow-x-auto max-h-[300px] whitespace-pre-wrap break-all">
+                                                            <pre>{JSON.stringify(actualResult, null, 2)}</pre>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="rounded-lg border bg-card overflow-hidden">
                                                     <div className="bg-muted/30 px-4 py-2 border-b flex justify-between items-center">
                                                         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sample JSON Output</span>

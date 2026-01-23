@@ -67,6 +67,16 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                             ];
                         }
 
+                        // Special case: Wait for Approval - custom instructions label
+                        if (id === 'delay' && actionId === 'waitForApproval') {
+                            parameters = parameters.map((p: any) => {
+                                if (p.name === 'instructions') {
+                                    return { ...p, label: 'INSTRUCTIONS' };
+                                }
+                                return p;
+                            });
+                        }
+
                         // Special case: Microsoft Excel - transform fileId to dynamic-select for workbook selection
                         if ((id === 'microsoft_excel' || id === 'excel') && parameters.some((p: any) => p.name === 'fileId')) {
                             parameters = parameters.map((p: any) => {
