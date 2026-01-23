@@ -646,7 +646,7 @@ export default function AutomationIndex() {
                 onPublish={handlePublish}
                 theme={theme === 'dark' ? 'dark' : 'light'}
                 isLoading={isEditorLoading || isSaving}
-                socket={socket}
+                socket={socket as any}
                 flowId={id}
             />
             <Toaster />

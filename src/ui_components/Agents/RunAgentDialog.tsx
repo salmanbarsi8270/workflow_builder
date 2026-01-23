@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Terminal, Loader2, Play, Bot } from "lucide-react";
-import { AI_URL } from '../api/apiurl';
+import { useState, useEffect, useCallback } from 'react';
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import type { Agent } from './types';
+import { cn } from "@/lib/utils";
+import { PublicChat } from '../PublicChat/PublicChat';
+
+
 
 interface RunAgentDialogProps {
     agent: Agent | null;
@@ -15,182 +14,63 @@ interface RunAgentDialogProps {
 }
 
 export function RunAgentDialog({ agent, open, onOpenChange, userId }: RunAgentDialogProps) {
-    const [input, setInput] = useState('');
-    const [response, setResponse] = useState('');
-    const [isRunning, setIsRunning] = useState(false);
+    const [width, setWidth] = useState(600);
+    const [isResizing, setIsResizing] = useState(false);
+
+    // Resize logic
+    const startResizing = useCallback((e: React.MouseEvent) => {
+        setIsResizing(true);
+        e.preventDefault();
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+    }, []);
+
+    const stopResizing = useCallback(() => {
+        setIsResizing(false);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    }, []);
+
+    const resize = useCallback((e: MouseEvent) => {
+        if (isResizing) {
+            const newWidth = window.innerWidth - e.clientX;
+            const minWidth = 400;
+            const maxWidth = window.innerWidth * 0.9;
+            
+            if (newWidth > minWidth && newWidth < maxWidth) {
+                setWidth(newWidth);
+            }
+        }
+    }, [isResizing]);
+
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResizing);
+        }
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [isResizing, resize, stopResizing]);
 
     // UI Config
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const uiConfig: any = agent?.ui_config || {};
-    const themeColor = uiConfig.theme_color || '#2563eb';
     const fontFamily = uiConfig.font_family || 'Inter, sans-serif';
 
-    // Reset state when dialog opens/closes or agent changes
-    useEffect(() => {
-        setInput('');
-        setResponse('');
-        setIsRunning(false);
-    }, [open, agent]);
 
-    const handleRun = async () => {
-        if (!agent || !input.trim()) return;
-
-        setIsRunning(true);
-        setResponse(''); // Clear previous response
-
-        try {
-            // Use custom API endpoint that handles guardrails properly
-            const res = await fetch(`${AI_URL}/api/v1/agents/${agent.id}/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    input: input,
-                    userId: userId,
-                    stream: true,
-                    conversationId: agent.id
-                })
-            });
-
-            if (!res.ok) {
-                try {
-                    const data = await res.json();
-                    setResponse(`Error: ${data.error || 'Failed to run agent'}`);
-                } catch (e) {
-                    setResponse(`Error: Failed to run agent (${res.status})`);
-                }
-                return;
-            }
-
-            // Check if response is JSON (error case)
-            const contentType = res.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                const data = await res.json();
-                // Handle error response
-                if (data.error) {
-                    setResponse(`Error: ${data.error}`);
-                } else {
-                    // Extract text from success response
-                    const reply = data.text || data.output || data._output || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-                    setResponse(reply);
-                }
-            } else {
-                // Handle plain text streaming response
-                if (!res.body) {
-                    setResponse("Error: No response body received.");
-                    return;
-                }
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value, { stream: true });
-                    fullText += chunk;
-                    setResponse(fullText);
-                }
-            }
-
-        } catch (error) {
-            console.error(error);
-            setResponse("Error: Something went wrong while communicating with the AI service.");
-        } finally {
-            setIsRunning(false);
-        }
-    };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px] border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden p-0 gap-0" style={{ fontFamily }}>
-                <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: themeColor }} />
-                <DialogHeader className="p-6 pb-2">
-                    <DialogTitle className="flex items-center gap-3 text-xl">
-                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                            {uiConfig.logo_url ? (
-                                <img src={uiConfig.logo_url} alt="Logo" className="h-5 w-5 rounded-full object-cover" />
-                            ) : (
-                                <Terminal className="h-5 w-5" style={{ color: themeColor }} />
-                            )}
-                        </div>
-                        <div className="flex flex-col">
-                            <span style={{ color: themeColor }} className="font-bold text-lg">{agent?.name || 'Agent'}</span>
-                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">
-                                {agent?.model ? `Model: ${agent.model}` : 'Run Agent'}
-                            </span>
-                        </div>
-                    </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Interact with {agent?.name} and see its live responses here.
-                    </DialogDescription>
-                </DialogHeader>
+        <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+            <DrawerContent className={cn("h-full border-none shadow-2xl flex flex-col p-0 gap-0 rounded-none mt-0 ml-auto bg-background/95 backdrop-blur-xl", isResizing ? "transition-none" : "transition-[width] duration-300 ease-out")} style={{ width, fontFamily }}>
+                {/* Resize Handle */}
+                <div className={cn("absolute left-0 top-0 w-1.5 h-full cursor-ew-resize hover:bg-blue-500/50 transition-colors z-50", isResizing && "bg-blue-500")} onMouseDown={startResizing}/>
 
-                <div className="p-6 grid gap-6 h-[500px] grid-rows-[auto_1fr]">
-                    <div className="grid gap-2">
-                        <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User Input</Label>
-                        <div className="flex gap-3">
-                            <Textarea
-                                placeholder="Enter your prompt here..."
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                className="resize-none h-24 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-medium leading-relaxed"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleRun();
-                                    }
-                                }}
-                            />
-                            <Button
-                                className="h-24 w-28 flex flex-col gap-2 shadow-lg active:scale-95 transition-all text-white border-none"
-                                style={{ backgroundColor: themeColor }}
-                                onClick={handleRun}
-                                disabled={isRunning || !input.trim()}
-                            >
-                                {isRunning ? <Loader2 className="h-6 w-6 animate-spin" /> : <Play className="h-6 w-6" />}
-                                {isRunning ? "Running..." : "Run"}
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2 h-full overflow-hidden">
-                        <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                            Agent Response
-                            {response && !isRunning && (
-                                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">Completed</span>
-                            )}
-                        </Label>
-                        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 font-mono text-sm h-full overflow-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                            {isRunning && !response ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 dark:text-slate-500">
-                                    <div className="relative">
-                                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 animate-pulse" />
-                                        <Bot className="h-8 w-8 relative z-10 animate-bounce" />
-                                    </div>
-                                    <span className="text-xs font-medium animate-pulse">Processing request...</span>
-                                </div>
-                            ) : response ? (
-                                <div className="animate-in fade-in duration-500 flex flex-col gap-4">
-                                    <div>{response}</div>
-                                    {isRunning && (
-                                        <div className="flex items-center gap-2 text-blue-500 animate-pulse mt-2">
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">Agent is typing...</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400/60 dark:text-slate-600">
-                                    <Terminal className="h-8 w-8 opacity-20" />
-                                    <span className="text-xs">Response will appear here...</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                <div className="flex flex-col h-full">
+                    <PublicChat agent={agent} userId={userId} />
                 </div>
-            </DialogContent>
-        </Dialog>
+
+            </DrawerContent>
+        </Drawer>
     );
 }

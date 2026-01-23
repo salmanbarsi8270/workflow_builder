@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
 import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
@@ -29,6 +30,14 @@ import { API_URL } from '@/ui_components/api/apiurl';
 
 
 
+interface FlowRun {
+    id: string;
+    status: string;
+    logs: string[];
+    result: string | Record<string, unknown>;
+    created_at: string;
+}
+
 interface AutomationEditorProps {
     automationName: string;
     initialNodes: Node[];
@@ -40,7 +49,7 @@ interface AutomationEditorProps {
     onPublish: () => void;
     theme: 'dark' | 'light' | 'system';
     isLoading?: boolean;
-    socket?: any;
+    socket?: import('socket.io-client').Socket;
     flowId?: string;
 }
 
@@ -49,7 +58,7 @@ export type StepStatus = 'pending' | 'running' | 'success' | 'error' | 'skipped'
 export interface StepResult {
     nodeId: string;
     status: StepStatus;
-    output: any;
+    output: unknown;
     duration: number;
 }
 
@@ -60,10 +69,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [viewingRun, setViewingRun] = useState<any | null>(null);
+    const [viewingRun, setViewingRun] = useState<FlowRun | null>(null);
 
     const [addingNodeOnEdgeId, setAddingNodeOnEdgeId] = useState<string | null>(null);
-    const [rfInstance, setRfInstance] = useState<any>(null);
+    const [rfInstance, setRfInstance] = useState<import('@xyflow/react').ReactFlowInstance | null>(null);
     const [isRunSidebarOpen, setIsRunSidebarOpen] = useState(false);
     const [results, setResults] = useState<Record<string, StepResult>>({});
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
@@ -93,7 +102,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
     useEffect(() => {
         if (initialNodes.length > 0 || initialEdges.length > 0) {
-            const cleanNode = (n: any) => ({
+            const cleanNode = (n: Node) => ({
                 id: n.id,
                 type: n.type,
                 position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
@@ -149,7 +158,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             if (!sourceNode) return edge;
 
             if (sourceNode.type === 'condition' || sourceNode.type === 'parallel') {
-                const branches = (sourceNode.data.params as any)?.branches || (sourceNode.data.branches as string[]) || [];
+                const branches = (sourceNode.data?.params as { branches?: string[] })?.branches || (sourceNode.data?.branches as string[]) || [];
                 const label = edge.data?.label as string;
                 if (!label || branches.length === 0) return edge;
 
@@ -207,24 +216,164 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         return calculateLayout(layoutNodes, layoutEdges);
     }, [nodes, edges]);
 
+    // --- CRITICAL: Join Flow Room for Updates ---
+    useEffect(() => {
+        if (socket && flowId) {
+            console.log("Joining flow room:", flowId);
+            socket.emit('join-flow', flowId);
+            return () => {
+                socket.emit('leave-flow', flowId);
+            };
+        }
+    }, [socket, flowId]);
+
+    // --- Normalize IDs for mapping engine results to editor nodes ---
+    const normalizeId = useCallback((id: string | number) => {
+        const idStr = String(id);
+        
+        // 1. Direct match
+        if (nodesRef.current.some(n => n.id === idStr)) return idStr;
+
+        // 2. Trigger fallback (handles common trigger names and node '1')
+        const triggerIds = ['webhook', 'trigger', 'schedule', 'newEmail', 'newRow', 'form', 'runAgent', 'http_webhook'];
+        if (triggerIds.includes(idStr)) {
+            const triggerNode = nodesRef.current.find(n => n.type === 'trigger' || n.id === '1');
+            if (triggerNode) return triggerNode.id;
+        }
+
+        // 3. Action ID, App Name, or Combined Match
+        const actionMatch = nodesRef.current.find(n => {
+            const data = n.data as any;
+            const appName = data?.appName;
+            const actionId = data?.actionId || data?.id;
+            return (
+                (actionId === idStr) || 
+                (appName === idStr) ||
+                (appName && actionId && (`${appName}_${actionId}` === idStr || `${appName}-${actionId}` === idStr))
+            );
+        });
+        if (actionMatch) return actionMatch.id;
+
+        // 4. Label match (fallback)
+        const labelMatch = nodesRef.current.find(n => n.data?.label === idStr);
+        if (labelMatch) return labelMatch.id;
+
+        return idStr;
+    }, [nodes]);
+
+    // --- State Rehydration: Fetch Active Run on Mount ---
+    useEffect(() => {
+        if (!flowId || nodes.length === 0) return;
+
+        const fetchActiveRun = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/flows/${flowId}/runs?limit=10`);
+                const data = await res.json();
+                if (data.success && data.runs.length > 0) {
+                    // Find active active run OR recent run (within 5 mins) to show context
+                    let activeRun = data.runs.find((r: FlowRun) => r.status === 'running' || r.status === 'waiting');
+                    
+                    if (!activeRun && data.runs.length > 0) {
+                         const latest = data.runs[0];
+                         const isRecent = (new Date().getTime() - new Date(latest.created_at).getTime()) < 5 * 60 * 1000;
+                         if (isRecent) activeRun = latest;
+                    }
+
+                    if (activeRun) {
+                        // setViewingRun(activeRun); // REMOVED: User prefers clean UI by default
+                        
+                        // Parse Context/Logs to restore step results
+                        let restoredResults: Record<string, StepResult> = {};
+                        
+                        // If we have structure logs or context
+                        if (activeRun.current_context) {
+                            const context = typeof activeRun.current_context === 'string' 
+                                ? JSON.parse(activeRun.current_context) 
+                                : activeRun.current_context;
+
+                            if (context.steps) {
+                                Object.keys(context.steps).forEach(key => {
+                                    const sData = context.steps[key];
+                                    const nodeId = normalizeId(key);
+                                    restoredResults[nodeId] = {
+                                        nodeId: nodeId,
+                                        status: sData.data?.status || (sData.data?.error ? 'error' : 'success'),
+                                        output: sData.data,
+                                        duration: 0
+                                    }
+                                });
+                            }
+                            
+                            // 3. Handle Waiting Steps
+                            if (context.waited_steps) {
+                                Object.keys(context.waited_steps).forEach(k => {
+                                    const nodeId = normalizeId(k);
+                                    // If run is running, then these waiting steps are effectively being resumed
+                                    const status = activeRun.status === 'running' ? 'running' : 'waiting';
+                                    restoredResults[nodeId] = {
+                                        nodeId: nodeId,
+                                        status: status,
+                                        output: null,
+                                        duration: 0
+                                    };
+                                });
+                            }
+
+                            // 4. Frontier Inference: If running, find the "Next" step to animate
+                            if (activeRun.status === 'running') {
+                                // Find steps that are NOT in results, but whose parents ARE in results (or is trigger)
+                                const completedIds = new Set(Object.keys(restoredResults));
+                                
+                                // Special case: Trigger (usually '1' or 'webhook')
+                                // If no steps are done, trigger is likely running if not done
+                                const triggerNode = nodesRef.current.find(n => n.type === 'trigger' || n.id === '1');
+                                if (triggerNode && !completedIds.has(triggerNode.id)) {
+                                     restoredResults[triggerNode.id] = { nodeId: triggerNode.id, status: 'running', output: null, duration: 0 };
+                                } else {
+                                     // Standard Frontier
+                                     edges.forEach(edge => {
+                                         if (completedIds.has(edge.source) && !completedIds.has(edge.target)) {
+                                             // This target is a frontier node
+                                             // Double check it's not the end
+                                             const targetNode = nodesRef.current.find(n => n.id === edge.target);
+                                             if (targetNode && targetNode.type !== 'end' && !targetNode.data.isPlaceholder) {
+                                                 restoredResults[edge.target] = {
+                                                     nodeId: edge.target,
+                                                     status: 'running',
+                                                     output: null,
+                                                     duration: 0
+                                                 };
+                                             }
+                                         }
+                                     });
+                                }
+                            }
+                        }
+                        
+                        setResults(restoredResults);
+                        // setIsRunSidebarOpen(true); // REMOVED: User prefers clean UI by default
+                    }
+                }
+            } catch (err) {
+                console.error("[Editor] Failed to rehydrate active run:", err);
+            }
+        };
+
+        fetchActiveRun();
+    }, [flowId, nodes.length, normalizeId]);
+
     // Socket listeners for run progress
     useEffect(() => {
         if (socket) {
-            const normalizeId = (id: any) => {
-                const idStr = String(id);
-                const triggerIds = ['webhook', 'trigger', 'schedule', 'form', 'runAgent'];
-                if (triggerIds.includes(idStr)) return '1';
-                return idStr;
-            };
-
             const handleStepStart = (data: any) => {
                 const nodeId = normalizeId(data.nodeId);
                 setResults(prev => {
                     const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
                     const isFirstNode = sortedNodes[0]?.id === nodeId;
-                    const noActiveResults = Object.keys(prev).length === 0;
-
-                    if (isFirstNode || noActiveResults) {
+                    
+                    // Only start fresh if it's the absolute first node (trigger) 
+                    // and we weren't already in a running/waiting state for a resumed flow.
+                    if (isFirstNode) {
                         return {
                             [nodeId]: {
                                 nodeId: nodeId,
@@ -234,6 +383,8 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             }
                         };
                     }
+
+                    // Otherwise, append/update the result for this node
                     return {
                         ...prev,
                         [nodeId]: {
@@ -356,7 +507,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 socket.off('flow-failed', handleFlowFailed);
             };
         }
-    }, [socket]); // Removed dependency on nodes/results to avoid recycles, logic uses prev state
+    }, [socket, normalizeId]); // Removed dependency on nodes/results to avoid recycles, logic uses prev state
 
     // --- CRITICAL FIX: Sync Results to Node Status for Canvas Visualization ---
     // The nodes on the canvas need to know their status to change color.
@@ -763,7 +914,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (!nodeToDelete) return;
 
         // 2. Compute deletion scope
-        let nodesToRemove = new Set<string>([idToDelete]);
+        const nodesToRemove = new Set<string>([idToDelete]);
         const mergeNodeId = nodeToDelete.data?.mergeNodeId as string | undefined;
 
 
@@ -1206,11 +1357,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             nodes.forEach(node => {
                 const isLogic = node.type === 'condition' || node.type === 'parallel';
                 if (isLogic) {
-                    const branches = safeParseBranches((node.data.params as any)?.branches || node.data.branches || (node.type === 'condition' ? ['If', 'Else'] : []));
+                    const branches = safeParseBranches((node.data?.params as { branches?: string[] })?.branches || (node.data?.branches as string[]) || (node.type === 'condition' ? ['If', 'Else'] : []));
                     if (branches.length > 0) {
-                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches }: any = reconcileParallelBranches(node, branches, nextNodes, nextEdges);
+                        const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges) as { nextNodes: Node[], nextEdges: Edge[], mergeNodeId: string, normalizedBranches: string[] };
 
-                        const edgesToCompare = (eds: Edge[]) => eds.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, label: (e.data as any)?.label })).sort((a,b) => a.id.localeCompare(b.id));
+                        const edgesToCompare = (eds: Edge[]) => eds.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, label: (e.data as { label?: string })?.label })).sort((a,b) => a.id.localeCompare(b.id));
 
                         const edgesDiffer = JSON.stringify(edgesToCompare(nextEdges)) !== JSON.stringify(edgesToCompare(rEdges));
                         const mergeNodeFixed = recoveredId && node.data.mergeNodeId !== recoveredId;
@@ -1345,9 +1496,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             onUpdateNode={handleUpdateNode}
                             onDeleteNode={handleDeleteNode}
                             onClose={() => setSelectedNodeId(null)}
-                            nodeStatus={(selectedNode.data as any).status}
+                            nodeStatus={selectedNode.data?.status as any}
                             isLocked={false}
                             flowId={flowId}
+                            results={Object.keys(results).length > 0 ? results : lastRunResults}
                         />
                     )}
 
@@ -1388,9 +1540,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         edges={edges}
                         flowId={flowId}
                         results={Object.keys(results).length > 0 ? results : lastRunResults}
-                        onViewRun={(run) => {
-                            setViewingRun(run);
-                        }}
+                        onViewRun={(run: any) => setViewingRun(run)}
                     />
 
                     {viewingRun && (
@@ -1445,26 +1595,21 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                     }
                                     setIsPublishing(true);
                                     try {
-                                        // TODO: Import axios if not available, or use fetch
-                                        const response = await fetch(`${API_URL}/api/templates/publish`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                name: templateName,
-                                                description: templateDescription,
-                                                definition: JSON.stringify({ nodes, edges }), // Ensure serialized
-                                                uidefinition: JSON.stringify({ nodes, edges }), // Sending duplicate for now as requested
-                                                created_at: new Date().toISOString()
-                                            })
+                                        const response = await axios.post(`${API_URL}/api/templates/publish`, {
+                                            name: templateName,
+                                            description: templateDescription,
+                                            definition: JSON.stringify({ nodes, edges }), // Ensure serialized
+                                            uidefinition: JSON.stringify({ nodes, edges }), // Sending duplicate for now
+                                            created_at: new Date().toISOString()
                                         });
-                                        const result = await response.json();
-                                        if (result.success) {
+
+                                        if (response.data.success) {
                                             toast.success("Template published successfully!");
                                             setIsPublishDialogOpen(false);
                                         } else {
-                                            toast.error("Failed to publish template", { description: result.error });
+                                            toast.error("Failed to publish template", { description: response.data.error });
                                         }
-                                    } catch (error: any) {
+                                    } catch (error: unknown) {
                                         console.error("Publish error:", error);
                                         toast.error("Failed to publish template");
                                     } finally {

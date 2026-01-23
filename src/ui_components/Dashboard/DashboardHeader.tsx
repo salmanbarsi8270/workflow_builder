@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Refresh01Icon, PlusSignIcon, Layout01Icon } from "@hugeicons/core-free-icons";
+import { Refresh01Icon, PlusSignIcon, Layout01Icon, Notification03Icon } from "@hugeicons/core-free-icons";
 
 interface DashboardHeaderProps {
     onRefresh: () => void;
     onNewWorkflow: () => void;
+    approvalCount: number;
+    onOpenApprovals: () => void;
 }
 
-export function DashboardHeader({ onRefresh, onNewWorkflow }: DashboardHeaderProps) {
+export function DashboardHeader({ onRefresh, onNewWorkflow, approvalCount, onOpenApprovals }: DashboardHeaderProps) {
     return (
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 shrink-0">
             <div className="flex items-center gap-4">
@@ -31,6 +33,22 @@ export function DashboardHeader({ onRefresh, onNewWorkflow }: DashboardHeaderPro
             </div>
             
             <div className="flex items-center gap-3">
+                <div className="relative">
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={onOpenApprovals}
+                        className="h-11 w-11 cursor-pointer rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 shadow-sm"
+                    >
+                        <HugeiconsIcon icon={Notification03Icon} className="h-4 w-4 text-slate-600 dark:text-blue-100" />
+                    </Button>
+                    {approvalCount > 0 && (
+                        <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 flex items-center justify-center animate-bounce">
+                            <span className="text-[10px] font-black text-white">{approvalCount}</span>
+                        </div>
+                    )}
+                </div>
+
                 <Button 
                     variant="outline" 
                     size="icon" 

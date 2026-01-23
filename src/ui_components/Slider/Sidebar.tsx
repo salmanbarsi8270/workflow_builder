@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Moon, Sun, Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -63,6 +63,8 @@ export function SidebarIconExample() {
         return "Live Evaluations";
       case "/ui-designer":
         return "UI Designer";
+      case "/files":
+        return "FILE MANAGER";
       default:
         return "Workflow Builder";
     }
@@ -112,7 +114,7 @@ export function SidebarIconExample() {
       icon: <Palette size={20} />,
     },
     {
-      title: "Files",
+      title: "File Manager",
       url: "/files",
       icon: <FolderOpen size={20} />,
     },
@@ -248,22 +250,6 @@ export function SidebarIconExample() {
             <SidebarTrigger className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500" />
             <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/10" />
             <h1 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">{pageTitle}</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 rounded-xl bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 transition-all shadow-sm"
-            >
-              {theme === "dark" ? <Sun className='h-4 w-4 text-yellow-500' /> : <Moon className='h-4 w-4 text-slate-900' />}
-            </button>
-            <div className="h-10 w-10 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 p-[1px] shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
-              <div className="h-full w-full rounded-[11px] bg-slate-50 dark:bg-slate-950 flex items-center justify-center overflow-hidden">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.picture} />
-                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
           </div>
         </header>
         <div className="flex flex-1 flex-col overflow-y-auto relative z-10">
