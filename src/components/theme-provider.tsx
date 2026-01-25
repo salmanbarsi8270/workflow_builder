@@ -6,16 +6,21 @@ type ThemeProviderProps = {
   children: React.ReactNode
   defaultTheme?: Theme
   storageKey?: string
+  accentStorageKey?: string
 }
 
 type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
+  accentColor: string
+  setAccentColor: (color: string) => void
 }
 
 const initialState: ThemeProviderState = {
   theme: "system",
   setTheme: () => null,
+  accentColor: "#3b82f6", // Default blue-500
+  setAccentColor: () => null,
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
@@ -24,9 +29,15 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "vite-ui-theme",
+  accentStorageKey = "vite-ui-accent-color",
+  ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  })
+
+  const [accentColor, setAccentColor] = useState<string>(() => {
+    return localStorage.getItem(accentStorageKey) || "#3b82f6"
   })
 
   useEffect(() => {
@@ -41,11 +52,19 @@ export function ThemeProvider({
         : "light"
 
       root.classList.add(systemTheme)
-      return
+    } else {
+      root.classList.add(theme)
     }
-
-    root.classList.add(theme)
   }, [theme])
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    root.style.setProperty('--primary-color', accentColor)
+    
+    // Also update oklch primary if possible, but for simplicity we'll use --primary-color in our components
+    // Or we can convert hex to oklch if we want to be fancy.
+    // For now, let's just use the hex color.
+  }, [accentColor])
 
   const value = {
     theme,
@@ -53,6 +72,11 @@ export function ThemeProvider({
       localStorage.setItem(storageKey, theme)
       setTheme(theme)
     },
+    accentColor,
+    setAccentColor: (color: string) => {
+      localStorage.setItem(accentStorageKey, color)
+      setAccentColor(color)
+    }
   }
 
   return (
@@ -70,5 +94,3 @@ export const useTheme = () => {
 
   return context
 }
-
-const props = {}

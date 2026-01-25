@@ -908,7 +908,7 @@ export default function GenericActionForm({ data, params = {}, onChange, paramet
                         )}
 
                         {param.type === 'string' && (
-                            ['body', 'description', 'text', 'input', 'prompt', 'messages'].includes(param.name) ? (
+                            ['body', 'description', 'text', 'input', 'prompt', 'messages', 'instructions'].includes(param.name) ? (
                                 <Textarea
                                     value={params[param.name] || param.default || ''}
                                     onChange={(e) => handleChange(param.name, e.target.value)}
