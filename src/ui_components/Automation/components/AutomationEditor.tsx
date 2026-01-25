@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon, RefreshCcw, HistoryIcon } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcw, History as HistoryIcon, Upload, Loader2, Play } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Upload } from "lucide-react"
 import { ReactFlow, Controls, MiniMap, Background, useNodesState, useEdgesState, addEdge, type Connection, type Node as Node, type Edge as Edge, ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -60,6 +59,7 @@ export interface StepResult {
     status: StepStatus;
     output: unknown;
     duration: number;
+    uiStatusHidden?: boolean;
 }
 
 
@@ -97,6 +97,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [templateName, setTemplateName] = useState("");
     const [templateDescription, setTemplateDescription] = useState("");
     const [isPublishing, setIsPublishing] = useState(false);
+
+    // Derived Run State for UI feedback
+    const hasActiveRun = React.useMemo(() => 
+        Object.values(results).some(r => (r.status === 'running' || r.status === 'waiting') && !r.uiStatusHidden),
+    [results]);
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
@@ -196,10 +201,23 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         onToggleStatus();
         if (checked) {
             setIsRunSidebarOpen(true);
-        } else {
-            // Clear results when turning off? Or keep them?
-            // Usually good to clear if we're stopping the flow
-            setResults({});
+        }
+    };
+
+    const handleExecuteRun = async () => {
+        if (!flowId) return;
+        setIsRunSidebarOpen(true);
+        setResults({}); // Clear previous results for fresh run
+        try {
+            const res = await axios.post(`${API_URL}/api/flows/${flowId}/run`, {
+                triggerData: { manual: true, source: 'Editor' }
+            });
+            if (res.data.success) {
+                toast.success("Execution started");
+            }
+        } catch (err) {
+            console.error("Execution failed", err);
+            toast.error("Failed to start execution");
         }
     };
 
@@ -231,35 +249,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const normalizeId = useCallback((id: string | number) => {
         const idStr = String(id);
         
-        // 1. Direct match
+        // 1. Direct match (Preferred/Most Accurate)
         if (nodesRef.current.some(n => n.id === idStr)) return idStr;
 
-        // 2. Trigger fallback (handles common trigger names and node '1')
+        // 2. Trigger fallback
         const triggerIds = ['webhook', 'trigger', 'schedule', 'newEmail', 'newRow', 'form', 'runAgent', 'http_webhook'];
         if (triggerIds.includes(idStr)) {
             const triggerNode = nodesRef.current.find(n => n.type === 'trigger' || n.id === '1');
             if (triggerNode) return triggerNode.id;
         }
 
-        // 3. Action ID, App Name, or Combined Match
-        const actionMatch = nodesRef.current.find(n => {
-            const data = n.data as any;
-            const appName = data?.appName;
-            const actionId = data?.actionId || data?.id;
-            return (
-                (actionId === idStr) || 
-                (appName === idStr) ||
-                (appName && actionId && (`${appName}_${actionId}` === idStr || `${appName}-${actionId}` === idStr))
-            );
-        });
-        if (actionMatch) return actionMatch.id;
-
-        // 4. Label match (fallback)
-        const labelMatch = nodesRef.current.find(n => n.data?.label === idStr);
-        if (labelMatch) return labelMatch.id;
-
         return idStr;
-    }, [nodes]);
+    }, []);
 
     // --- State Rehydration: Fetch Active Run on Mount ---
     useEffect(() => {
@@ -365,36 +366,23 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // Socket listeners for run progress
     useEffect(() => {
         if (socket) {
+            const handleRunStart = (data: any) => {
+                console.log("[Editor] 🚀 New Run Started:", data.runId);
+                setResults({}); 
+                setLastRunResults({});
+            };
+
             const handleStepStart = (data: any) => {
                 const nodeId = normalizeId(data.nodeId);
-                setResults(prev => {
-                    const sortedNodes = [...nodesRef.current].sort((a, b) => a.position.y - b.position.y).filter(n => n.type !== 'end' && !n.data.isPlaceholder);
-                    const isFirstNode = sortedNodes[0]?.id === nodeId;
-                    
-                    // Only start fresh if it's the absolute first node (trigger) 
-                    // and we weren't already in a running/waiting state for a resumed flow.
-                    if (isFirstNode) {
-                        return {
-                            [nodeId]: {
-                                nodeId: nodeId,
-                                status: 'running',
-                                output: null,
-                                duration: 0
-                            }
-                        };
+                setResults(prev => ({
+                    ...prev,
+                    [nodeId]: {
+                        nodeId: nodeId,
+                        status: 'running',
+                        output: null,
+                        duration: 0
                     }
-
-                    // Otherwise, append/update the result for this node
-                    return {
-                        ...prev,
-                        [nodeId]: {
-                            nodeId: nodeId,
-                            status: 'running',
-                            output: null,
-                            duration: 0
-                        }
-                    };
-                });
+                }));
             };
 
             const handleStepFinish = (data: any) => {
@@ -408,6 +396,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         duration: data.duration
                     }
                 }));
+
+                // Auto-hide status from node after 5 seconds
+                setTimeout(() => {
+                    setResults(prev => {
+                        if (prev[nodeId]) {
+                            return {
+                                ...prev,
+                                [nodeId]: { ...prev[nodeId], uiStatusHidden: true }
+                            };
+                        }
+                        return prev;
+                    });
+                }, 5000);
             };
 
             const handleRunComplete = () => {
@@ -446,10 +447,18 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 // 2. Persist to LastRunResults (so sidebar keeps showing data)
                 setLastRunResults(finalResults);
 
-                // 3. Clear Canvas Status after 30 seconds (longer so user can see it)
+                // 3. Auto-hide all statuses after 5 seconds
                 setTimeout(() => {
-                    setResults({}); 
-                }, 30000);
+                    setResults(prev => {
+                        const next = { ...prev };
+                        Object.keys(next).forEach(id => {
+                            next[id] = { ...next[id], uiStatusHidden: true };
+                        });
+                        return next;
+                    });
+                }, 5000);
+
+                // No longer clearing results - "dont vanish once run completed"
             };
 
             const handleRunWaiting = (data: any) => {
@@ -487,12 +496,27 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 ...current,
                                 status: 'error'
                             };
+
+                            // Auto-hide error status after 5 seconds
+                            const nodeId = node.id;
+                            setTimeout(() => {
+                                setResults(prev => {
+                                    if (prev[nodeId]) {
+                                        return {
+                                            ...prev,
+                                            [nodeId]: { ...prev[nodeId], uiStatusHidden: true }
+                                        };
+                                    }
+                                    return prev;
+                                });
+                            }, 5000);
                         }
                     });
                     return next;
                 });
             };
 
+            socket.on('run-start', handleRunStart);
             socket.on('step-run-start', handleStepStart);
             socket.on('step-run-finish', handleStepFinish);
             socket.on('run-waiting', handleRunWaiting);
@@ -500,6 +524,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             socket.on('flow-failed', handleFlowFailed);
 
             return () => {
+                socket.off('run-start', handleRunStart);
                 socket.off('step-run-start', handleStepStart);
                 socket.off('step-run-finish', handleStepFinish);
                 socket.off('run-waiting', handleRunWaiting);
@@ -525,15 +550,19 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         setNodes(nds => nds.map(node => {
             const res = results[node.id];
-            // Only update if status is different to avoid infinite loops
-            if (res && (node.data.status !== res.status || node.data.duration !== res.duration)) {
+            
+            // If we have a result and it's NOT hidden from UI
+            const targetStatus = (res && !res.uiStatusHidden) ? res.status : undefined;
+            const targetDuration = res?.duration;
+
+            if (node.data.status !== targetStatus || node.data.duration !== targetDuration) {
                 return {
                     ...node,
                     data: {
                         ...node.data,
-                        status: res.status,
-                        duration: res.duration,
-                        output: res.output
+                        status: targetStatus,
+                        duration: targetDuration,
+                        output: res?.output
                     }
                 };
             }
@@ -1447,9 +1476,30 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         >
                             <Upload className="mr-2 h-4 w-4" /> Publish
                         </Button>
-                        <div className="flex items-center gap-2 mr-2">
-                            <span className="text-sm font-medium text-muted-foreground">Run</span>
-                            <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
+                        <div className="flex items-center gap-4 py-1 px-3 bg-white/50 dark:bg-black/20 rounded-full border border-white/20 shadow-sm">
+                            <div className="flex items-center gap-2 pr-3 border-r border-white/20">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Automation</span>
+                                <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
+                            </div>
+                            <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 gap-1.5 font-semibold"
+                                onClick={handleExecuteRun}
+                                disabled={!automationStatus || hasActiveRun}
+                            >
+                                {hasActiveRun ? (
+                                    <>
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        Running...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="h-3.5 w-3.5 fill-current" />
+                                        Run Now
+                                    </>
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </div>

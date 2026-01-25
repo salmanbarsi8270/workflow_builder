@@ -12,7 +12,7 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --primary: var(--primary-color, oklch(0.205 0 0));
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
@@ -47,7 +47,7 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.87 0.00 0);
+    --primary: var(--primary-color, oklch(0.87 0.00 0));
     --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -66,7 +66,7 @@
     --chart-5: oklch(0.424 0.199 265.638);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary: var(--primary-color, oklch(0.488 0.243 264.376));
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -114,6 +114,31 @@
     --radius-2xl: calc(var(--radius) + 8px);
     --radius-3xl: calc(var(--radius) + 12px);
     --radius-4xl: calc(var(--radius) + 16px);
+
+    /* Theme Color Aliasing village */
+    --color-blue-50: color-mix(in srgb, var(--primary-color), white 95%);
+    --color-blue-100: color-mix(in srgb, var(--primary-color), white 90%);
+    --color-blue-200: color-mix(in srgb, var(--primary-color), white 80%);
+    --color-blue-300: color-mix(in srgb, var(--primary-color), white 60%);
+    --color-blue-400: color-mix(in srgb, var(--primary-color), white 40%);
+    --color-blue-500: var(--primary-color);
+    --color-blue-600: color-mix(in srgb, var(--primary-color), black 10%);
+    --color-blue-700: color-mix(in srgb, var(--primary-color), black 20%);
+    --color-blue-800: color-mix(in srgb, var(--primary-color), black 30%);
+    --color-blue-900: color-mix(in srgb, var(--primary-color), black 40%);
+    --color-blue-950: color-mix(in srgb, var(--primary-color), black 60%);
+
+    --color-indigo-50: var(--color-blue-50);
+    --color-indigo-100: var(--color-blue-100);
+    --color-indigo-200: var(--color-blue-200);
+    --color-indigo-300: var(--color-blue-300);
+    --color-indigo-400: var(--color-blue-400);
+    --color-indigo-500: var(--color-blue-500);
+    --color-indigo-600: var(--color-blue-600);
+    --color-indigo-700: var(--color-blue-700);
+    --color-indigo-800: var(--color-blue-800);
+    --color-indigo-900: var(--color-blue-900);
+    --color-indigo-950: var(--color-blue-950);
 }
 
 @layer base {

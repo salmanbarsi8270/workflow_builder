@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon, RefreshCw } from "lucide-react";
+import { Loader2, ChevronsUpDown, X, Key, Bot, Terminal, Plus, FileText, Palette, Search, Check, Shield, Mail, Phone, AlertTriangle, MessageSquare, MoreHorizontal, Trash2, Workflow as WorkflowIcon, RefreshCw, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
@@ -80,6 +80,8 @@ export function CreateAgentDialog({
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
     const [selectedUiDesign, setSelectedUiDesign] = useState<string>('');
+    const [instructions_library, setInstructionsLibrary] = useState<any[]>([]);
+    const [selectedInstructionId, setSelectedInstructionId] = useState<string>('');
 
     const [showAddModelDialog, setShowAddModelDialog] = useState(false);
     const [modelOpen, setModelOpen] = useState(false);
@@ -106,7 +108,6 @@ export function CreateAgentDialog({
             fetchModels();
         }
     }, [open, api_key]);
-
     // Fetch UI Designs
     useEffect(() => {
         if (open && userId) {
@@ -118,6 +119,20 @@ export function CreateAgentDialog({
                     }
                 })
                 .catch(err => console.error("Error fetching UI designs:", err));
+        }
+    }, [open, userId]);
+
+    // Fetch Instructions from Library
+    useEffect(() => {
+        if (open && userId) {
+            fetch(`${API_URL}/api/v1/ai/personas?userId=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setInstructionsLibrary(data);
+                    }
+                })
+                .catch(err => console.error("Error fetching instructions library:", err));
         }
     }, [open, userId]);
 
@@ -239,6 +254,7 @@ export function CreateAgentDialog({
         setSelectedFileIds([]);
         setEnableGuardrails(false);
         setEvalsEnabled(false);
+        setSelectedInstructionId('');
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -662,7 +678,33 @@ export function CreateAgentDialog({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
+                                {instructions_library.length > 0 && (
+                                    <Select 
+                                        value={selectedInstructionId} 
+                                        onValueChange={(id) => {
+                                            setSelectedInstructionId(id);
+                                            const p = instructions_library.find(inst => inst.id === id);
+                                            if (p) setInstructions(p.system_prompt);
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-[200px] h-7 text-[10px] bg-slate-100 dark:bg-slate-800 border-none">
+                                            <SelectValue placeholder="Use Instruction" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {instructions_library.map(p => (
+                                                <SelectItem key={p.id} value={p.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserCircle className="h-3 w-3 text-blue-500" />
+                                                        <span>{p.name}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
                             <Textarea
                                 id="instructions"
                                 placeholder="You are a helpful assistant..."

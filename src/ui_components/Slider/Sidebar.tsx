@@ -32,17 +32,20 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen, UserCircle } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
+import { useState } from 'react';
 
 import { motion } from 'framer-motion';
+import { ColorPickerModal } from './ColorPickerModal';
 
 export function SidebarIconExample() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, accentColor } = useTheme()
   const { user } = useUser();
   const location = useLocation();
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
 
   const getPageTitle = (pathname: string) => {
     switch (pathname) {
@@ -65,6 +68,8 @@ export function SidebarIconExample() {
         return "UI Designer";
       case "/files":
         return "FILE MANAGER";
+      case "/personas":
+        return "INSTRUCTION LIBRARY";
       default:
         return "Workflow Builder";
     }
@@ -118,6 +123,11 @@ export function SidebarIconExample() {
       url: "/files",
       icon: <FolderOpen size={20} />,
     },
+    {
+      title: "Instructions",
+      url: "/personas",
+      icon: <UserCircle size={20} />,
+    },
   ]
 
   return (
@@ -129,14 +139,25 @@ export function SidebarIconExample() {
               <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
                 <Link to="/" className="flex items-center gap-3">
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-lg rounded-xl group-hover:bg-blue-500/30 transition-all" />
-                    <div className="relative p-2 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                    <div 
+                      className="absolute inset-0 blur-lg rounded-xl opacity-20 transition-all group-hover:opacity-30" 
+                      style={{ backgroundColor: accentColor }}
+                    />
+                    <div 
+                      className="relative p-2 rounded-xl flex items-center justify-center text-white shadow-lg transition-all"
+                      style={{ backgroundColor: accentColor, boxShadow: `${accentColor}33 0px 8px 24px` }}
+                    >
                       <LayoutDashboard size={22} className="group-hover:scale-110 transition-transform" />
                     </div>
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="truncate font-black text-slate-900 dark:text-white tracking-tighter text-base">WORKFLOW</span>
-                    <span className="truncate text-[10px] font-bold text-blue-500 uppercase tracking-widest">Faaz Tech</span>
+                    <span 
+                      className="truncate text-[10px] font-bold uppercase tracking-widest"
+                      style={{ color: accentColor }}
+                    >
+                      Faaz Tech
+                    </span>
                   </div>
                 </Link>
               </SidebarMenuButton>
@@ -156,18 +177,23 @@ export function SidebarIconExample() {
                         asChild
                         tooltip={item.title}
                         isActive={isActive}
+                        style={{
+                          backgroundColor: isActive ? accentColor : undefined,
+                          boxShadow: isActive ? `${accentColor}40 0px 8px 20px` : undefined,
+                        }}
                         className={cn(
                           "h-11 rounded-xl transition-all duration-300 relative group",
                           isActive
-                            ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border-none"
-                            : "text-slate-500 dark:text-slate-400 hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400"
+                            ? "text-white border-none"
+                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"
                         )}
                       >
                         <Link to={item.url} className="flex items-center gap-3 font-bold text-sm tracking-tight">
                           <div className={cn(
                             "transition-colors",
                             isActive ? "text-white" : "group-hover:text-blue-500"
-                          )}>
+                          )} style={{ color: !isActive && isActive ? undefined : undefined }}>
+                            {/* We could use accentColor here for hover icons too */}
                             {item.icon}
                           </div>
                           <span className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"}>{item.title}</span>
@@ -192,7 +218,7 @@ export function SidebarIconExample() {
                     <div className="relative">
                       <Avatar className="border-2 border-white dark:border-slate-800 shadow-sm">
                         <AvatarImage src={user?.picture} alt={user?.name || 'User'} />
-                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
+                        <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">{user?.name ? user.name[0] : 'U'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
                     </div>
@@ -234,6 +260,12 @@ export function SidebarIconExample() {
                         className="data-[state=checked]:bg-blue-600"
                       />
                     </div>
+                    <DropdownMenuItem 
+                      className="rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer"
+                      onClick={() => setIsColorPickerOpen(true)}
+                    >
+                      Change Theme
+                    </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator className="bg-slate-100 dark:bg-white/5" />
                   <Logout />
@@ -256,6 +288,7 @@ export function SidebarIconExample() {
           <Outlet />
         </div>
       </SidebarInset>
+      <ColorPickerModal open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen} />
     </SidebarProvider>
   )
 }

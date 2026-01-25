@@ -160,9 +160,10 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
 
     // Derived results for rendering
     const displayResults = useMemo(() => {
-        // If there's an active live run, always prefer showing it
+        // 1. If there's an active live run, always prefer showing it
         if (hasActiveRun) return results;
 
+        // 2. If viewing a specific run from history
         if (view === 'detail' && selectedRun) {
             const mapped: Record<string, StepResult> = {};
             let runRes: Record<string, unknown>;
@@ -217,8 +218,48 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
             });
             return mapped;
         }
+
+        // 3. FALLBACK: If view is live but results are empty, show the latest run from history
+        if (view === 'live' && Object.keys(results).length === 0 && runHistory.length > 0) {
+            const latestRun = runHistory[0];
+            const mapped: Record<string, StepResult> = {};
+            let runRes: Record<string, unknown>;
+            try {
+                runRes = typeof latestRun.result === 'string' ? JSON.parse(latestRun.result) : latestRun.result;
+            } catch {
+                runRes = {};
+            }
+
+            nodes.forEach(node => {
+                let stepData = runRes && (runRes[node.id] as any);
+                if (!stepData && runRes) {
+                    const triggerKeys = ['schedule', 'newEmail', 'newRow', 'webhook', 'trigger', 'form', 'runAgent', 'http_webhook'];
+                    const foundTriggerKey = triggerKeys.find(k => runRes[k]);
+                    if (foundTriggerKey && (node.type === 'trigger' || node.id === '1')) stepData = runRes[foundTriggerKey];
+                    if (!stepData) {
+                        const appName = (node.data as any)?.appName;
+                        const actionId = (node.data as any)?.actionId || (node.data as any)?.id;
+                        const label = (node.data as any)?.label;
+                        stepData = (actionId && runRes[actionId]) || (appName && runRes[appName]) || (label && runRes[label]);
+                    }
+                }
+
+                if (stepData) {
+                    mapped[node.id] = {
+                        nodeId: node.id,
+                        status: stepData.status || 'success',
+                        output: stepData.data || stepData.output || stepData,
+                        duration: stepData.duration || 0
+                    };
+                } else {
+                    mapped[node.id] = { nodeId: node.id, status: 'skipped', output: null, duration: 0 };
+                }
+            });
+            return mapped;
+        }
+
         return results;
-    }, [view, selectedRun, results, nodes, hasActiveRun]);
+    }, [view, selectedRun, results, nodes, hasActiveRun, runHistory]);
 
     // Auto-switch to live view when a run starts
     useEffect(() => {
@@ -367,8 +408,26 @@ export default function RunSidebar({ isOpen, onClose, nodes, flowId, results, on
                         {isExpanded && (
                             <div className="animate-in slide-in-from-top-2 fade-in duration-300 mt-2">
                                 {(result?.output || status === 'running' || status === 'pending') && (
-                                    <div className="rounded-xl bg-white/30 dark:bg-black/30 p-4 text-xs font-mono overflow-auto w-full max-h-[400px] border border-white/20 dark:border-white/10 shadow-inner">
-                                        <div className="mb-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Output Payload</div>
+                                    <div className="rounded-xl bg-white/30 dark:bg-black/30 p-4 text-xs font-mono overflow-auto w-full max-h-[400px] border border-white/20 dark:border-white/10 shadow-inner relative group/payload">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Output Payload</div>
+                                            {status !== 'running' && status !== 'pending' && (
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 opacity-0 group-hover/payload:opacity-100 transition-opacity bg-black/5 dark:bg-white/5"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const out = result?.output;
+                                                        const text = typeof out === 'string' ? out : JSON.stringify(out, null, 2);
+                                                        navigator.clipboard.writeText(text);
+                                                        toast.success("Payload copied to clipboard");
+                                                    }}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                                </Button>
+                                            )}
+                                        </div>
                                         {status === 'running' ? (
                                             <div className="flex items-center gap-2 text-blue-600"><Loader2 className="h-3 w-3 animate-spin" /> Executing...</div>
                                         ) : status === 'pending' ? (

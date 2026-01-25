@@ -67,14 +67,27 @@ export function PieceProvider({ children }: { children: ReactNode }) {
                             ];
                         }
 
-                        // Special case: Wait for Approval - custom instructions label
+                        // Special case: Wait for Approval - custom instructions label and ensure all email params exist
                         if (id === 'delay' && actionId === 'waitForApproval') {
-                            parameters = parameters.map((p: any) => {
-                                if (p.name === 'instructions') {
-                                    return { ...p, label: 'INSTRUCTIONS' };
+                            const expectedParams = [
+                                { name: 'instructions', label: 'INSTRUCTIONS', type: 'string', required: false },
+                                { name: 'enableEmailApproval', label: 'Enable Email Approval', type: 'boolean', default: false },
+                                { name: 'emailRecipients', label: 'Email Recipients', type: 'string', dependsOn: { field: 'enableEmailApproval', value: true } },
+                                { name: 'emailSubject', label: 'Email Subject', type: 'string', default: 'Approval Requested: {{flow_name}}', dependsOn: { field: 'enableEmailApproval', value: true } },
+                                { name: 'emailProvider', label: 'Email Provider', type: 'select', default: 'gmail', dependsOn: { field: 'enableEmailApproval', value: true }, options: [{ label: 'Gmail', value: 'gmail' }, { label: 'Outlook', value: 'outlook' }, { label: 'Resend (System)', value: 'resend' }] }
+                            ];
+
+                            // Merge backend parameters with expected parameters to ensure nothing is lost
+                            const mergedParams = [...expectedParams];
+                            parameters.forEach((p: any) => {
+                                const index = mergedParams.findIndex(ep => ep.name === p.name);
+                                if (index !== -1) {
+                                    mergedParams[index] = { ...p, ...mergedParams[index] }; // Frontend overrides label/UI defaults if needed
+                                } else {
+                                    mergedParams.push(p);
                                 }
-                                return p;
                             });
+                            parameters = mergedParams;
                         }
 
                         // Special case: Microsoft Excel - transform fileId to dynamic-select for workbook selection
