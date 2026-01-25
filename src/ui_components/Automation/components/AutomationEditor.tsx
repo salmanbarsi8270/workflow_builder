@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon, RefreshCcw, History as HistoryIcon, Upload, Loader2, Play } from "lucide-react"
@@ -99,9 +99,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const [isPublishing, setIsPublishing] = useState(false);
 
     // Derived Run State for UI feedback
-    const hasActiveRun = React.useMemo(() => 
+    const hasActiveRun = React.useMemo(() =>
         Object.values(results).some(r => (r.status === 'running' || r.status === 'waiting') && !r.uiStatusHidden),
-    [results]);
+        [results]);
 
 
     // Synchronize nodes and edges when initialProps change (e.g. after fetch completes)
@@ -121,7 +121,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const currentNodesStr = JSON.stringify(nodes.map(cleanNode));
             const incomingNodesStr = JSON.stringify(initialNodes.map(cleanNode));
-            
+
             if (currentNodesStr !== incomingNodesStr) {
                 setNodes(prevNodes => {
                     return initialNodes.map(newNode => {
@@ -144,7 +144,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const currentEdgesStr = JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
             const incomingEdgesStr = JSON.stringify(initialEdges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
-            
+
             if (currentEdgesStr !== incomingEdgesStr) {
                 setEdges(initialEdges);
             }
@@ -193,7 +193,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     const handleRunClick = () => {
         setIsRunSidebarOpen(true);
     };
-    
+
     // Store the results of the LAST run to show in Sidebar even after canvas clears
     const [lastRunResults, setLastRunResults] = useState<Record<string, StepResult>>({});
 
@@ -248,7 +248,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
     // --- Normalize IDs for mapping engine results to editor nodes ---
     const normalizeId = useCallback((id: string | number) => {
         const idStr = String(id);
-        
+
         // 1. Direct match (Preferred/Most Accurate)
         if (nodesRef.current.some(n => n.id === idStr)) return idStr;
 
@@ -273,23 +273,23 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 if (data.success && data.runs.length > 0) {
                     // Find active active run OR recent run (within 5 mins) to show context
                     let activeRun = data.runs.find((r: FlowRun) => r.status === 'running' || r.status === 'waiting');
-                    
+
                     if (!activeRun && data.runs.length > 0) {
-                         const latest = data.runs[0];
-                         const isRecent = (new Date().getTime() - new Date(latest.created_at).getTime()) < 5 * 60 * 1000;
-                         if (isRecent) activeRun = latest;
+                        const latest = data.runs[0];
+                        const isRecent = (new Date().getTime() - new Date(latest.created_at).getTime()) < 5 * 60 * 1000;
+                        if (isRecent) activeRun = latest;
                     }
 
                     if (activeRun) {
                         // setViewingRun(activeRun); // REMOVED: User prefers clean UI by default
-                        
+
                         // Parse Context/Logs to restore step results
                         let restoredResults: Record<string, StepResult> = {};
-                        
+
                         // If we have structure logs or context
                         if (activeRun.current_context) {
-                            const context = typeof activeRun.current_context === 'string' 
-                                ? JSON.parse(activeRun.current_context) 
+                            const context = typeof activeRun.current_context === 'string'
+                                ? JSON.parse(activeRun.current_context)
                                 : activeRun.current_context;
 
                             if (context.steps) {
@@ -304,7 +304,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                     }
                                 });
                             }
-                            
+
                             // 3. Handle Waiting Steps
                             if (context.waited_steps) {
                                 Object.keys(context.waited_steps).forEach(k => {
@@ -324,33 +324,33 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             if (activeRun.status === 'running') {
                                 // Find steps that are NOT in results, but whose parents ARE in results (or is trigger)
                                 const completedIds = new Set(Object.keys(restoredResults));
-                                
+
                                 // Special case: Trigger (usually '1' or 'webhook')
                                 // If no steps are done, trigger is likely running if not done
                                 const triggerNode = nodesRef.current.find(n => n.type === 'trigger' || n.id === '1');
                                 if (triggerNode && !completedIds.has(triggerNode.id)) {
-                                     restoredResults[triggerNode.id] = { nodeId: triggerNode.id, status: 'running', output: null, duration: 0 };
+                                    restoredResults[triggerNode.id] = { nodeId: triggerNode.id, status: 'running', output: null, duration: 0 };
                                 } else {
-                                     // Standard Frontier
-                                     edges.forEach(edge => {
-                                         if (completedIds.has(edge.source) && !completedIds.has(edge.target)) {
-                                             // This target is a frontier node
-                                             // Double check it's not the end
-                                             const targetNode = nodesRef.current.find(n => n.id === edge.target);
-                                             if (targetNode && targetNode.type !== 'end' && !targetNode.data.isPlaceholder) {
-                                                 restoredResults[edge.target] = {
-                                                     nodeId: edge.target,
-                                                     status: 'running',
-                                                     output: null,
-                                                     duration: 0
-                                                 };
-                                             }
-                                         }
-                                     });
+                                    // Standard Frontier
+                                    edges.forEach(edge => {
+                                        if (completedIds.has(edge.source) && !completedIds.has(edge.target)) {
+                                            // This target is a frontier node
+                                            // Double check it's not the end
+                                            const targetNode = nodesRef.current.find(n => n.id === edge.target);
+                                            if (targetNode && targetNode.type !== 'end' && !targetNode.data.isPlaceholder) {
+                                                restoredResults[edge.target] = {
+                                                    nodeId: edge.target,
+                                                    status: 'running',
+                                                    output: null,
+                                                    duration: 0
+                                                };
+                                            }
+                                        }
+                                    });
                                 }
                             }
                         }
-                        
+
                         setResults(restoredResults);
                         // setIsRunSidebarOpen(true); // REMOVED: User prefers clean UI by default
                     }
@@ -368,7 +368,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         if (socket) {
             const handleRunStart = (data: any) => {
                 console.log("[Editor] 🚀 New Run Started:", data.runId);
-                setResults({}); 
+                setResults({});
                 setLastRunResults({});
             };
 
@@ -413,10 +413,10 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
             const handleRunComplete = () => {
                 console.log("Socket update success: Run Complete");
-                
+
                 // 1. Calculate the final state including skipped steps
                 let finalResults: Record<string, StepResult> = {};
-                
+
                 setResults(prev => {
                     const next = { ...prev };
                     const allNodes = nodesRef.current;
@@ -439,7 +439,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             };
                         }
                     });
-                    
+
                     finalResults = next; // Capture for LastRun
                     return next;
                 });
@@ -550,7 +550,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
 
         setNodes(nds => nds.map(node => {
             const res = results[node.id];
-            
+
             // If we have a result and it's NOT hidden from UI
             const targetStatus = (res && !res.uiStatusHidden) ? res.status : undefined;
             const targetDuration = res?.duration;
@@ -762,11 +762,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                 }
             }
         }
-        
+
         // At this point:
         // - assignedTargets[i] contains the branch that should go at index i.
         // - Any EXTRAS in the original branchTargets (that weren't assigned) should be DELETED.
-        
+
         // 1. Remove Extraneous Branches (Orphaned ones not in assignedTargets)
         const allOriginalIds = new Set(branchTargets.map(t => t.edge.id));
         const keptIds = new Set(assignedTargets.filter(t => t).map(t => t.edge.id));
@@ -808,7 +808,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         return n;
                     });
                 }
-                
+
                 // Ensure correct handle
                 let expectedHandleId = String(i);
 
@@ -818,7 +818,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         return e;
                     });
                 }
-                
+
                 // If it was pointed to merge, ensure that edge exists and is clean
                 if (mergeNodeId) {
                     const hasMergeEdge = nextEdges.some(e => e.source === node.id && e.target === mergeNodeId);
@@ -893,12 +893,12 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             const branchesArr = safeParseBranches(currentBranchesRaw);
 
             const { nextNodes: reconciledNodes, nextEdges: reconciledEdges, mergeNodeId: recoveredMergeId, normalizedBranches } = reconcileParallelBranches(targetNode, branchesArr, currentNodes, currentEdges);
-            
+
             if (JSON.stringify(currentNodes) !== JSON.stringify(reconciledNodes) || JSON.stringify(edges) !== JSON.stringify(reconciledEdges) || (normalizedBranches && JSON.stringify(branchesArr) !== JSON.stringify(normalizedBranches))) {
                 currentNodes = reconciledNodes;
                 currentEdges = reconciledEdges;
                 structureChanged = true;
-                
+
                 // Persist recovered mergeNodeId if it was missing 
                 if (recoveredMergeId && !targetNode.data.mergeNodeId) {
                     data = { ...data, mergeNodeId: recoveredMergeId };
@@ -922,13 +922,13 @@ export default function AutomationEditor({ automationName, initialNodes, initial
         const finalNodes = structureChanged ? onLayout(updatedNodes, currentEdges) : updatedNodes;
 
         setNodes(finalNodes);
-        
+
         if (structureChanged) {
             setEdges(currentEdges);
         }
 
         if (immediate) {
-             onAutoSave(finalNodes, currentEdges);
+            onAutoSave(finalNodes, currentEdges);
         }
     }, [selectedNodeId, edges, onLayout, onAutoSave, setNodes, setEdges]);
 
@@ -1086,11 +1086,11 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                         // Replace the bridge with Placeholder chain
                         nextEdges = nextEdges.filter(e => e.id !== currentEdgesForBranch[0].id);
                         nextEdges.push(
-                            { 
-                                id: `e-${inEdge.source}-${placeholderId}`, 
-                                source: inEdge.source, 
-                                target: placeholderId, 
-                                sourceHandle: inEdge.sourceHandle, 
+                            {
+                                id: `e-${inEdge.source}-${placeholderId}`,
+                                source: inEdge.source,
+                                target: placeholderId,
+                                sourceHandle: inEdge.sourceHandle,
                                 type: 'custom',
                                 data: inEdge.data // Persist the label!
                             },
@@ -1390,27 +1390,27 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     if (branches.length > 0) {
                         const { nextNodes: rNodes, nextEdges: rEdges, mergeNodeId: recoveredId, normalizedBranches } = reconcileParallelBranches(node, branches, nextNodes, nextEdges) as { nextNodes: Node[], nextEdges: Edge[], mergeNodeId: string, normalizedBranches: string[] };
 
-                        const edgesToCompare = (eds: Edge[]) => eds.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, label: (e.data as { label?: string })?.label })).sort((a,b) => a.id.localeCompare(b.id));
+                        const edgesToCompare = (eds: Edge[]) => eds.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, label: (e.data as { label?: string })?.label })).sort((a, b) => a.id.localeCompare(b.id));
 
                         const edgesDiffer = JSON.stringify(edgesToCompare(nextEdges)) !== JSON.stringify(edgesToCompare(rEdges));
                         const mergeNodeFixed = recoveredId && node.data.mergeNodeId !== recoveredId;
                         const branchesDiffer = normalizedBranches && JSON.stringify(branches.map((b: string) => b.toLowerCase())) !== JSON.stringify(normalizedBranches.map((b: string) => b.toLowerCase()));
 
                         if (edgesDiffer || mergeNodeFixed || branchesDiffer) {
-                             nextEdges = rEdges;
-                             nextNodes = rNodes.map((n:any) => {
-                                 if (n.id === node.id) {
-                                     let updatedNode = { ...n };
-                                     if (recoveredId) updatedNode.data = { ...updatedNode.data, mergeNodeId: recoveredId };
-                                     if (normalizedBranches) {
-                                         const updatedParams = { ...(updatedNode.data.params || {}), branches: normalizedBranches };
-                                         updatedNode.data = { ...updatedNode.data, params: updatedParams, branches: normalizedBranches };
-                                     }
-                                     return updatedNode;
-                                 }
-                                 return n;
-                             });
-                             structureFixed = true;
+                            nextEdges = rEdges;
+                            nextNodes = rNodes.map((n: any) => {
+                                if (n.id === node.id) {
+                                    let updatedNode = { ...n };
+                                    if (recoveredId) updatedNode.data = { ...updatedNode.data, mergeNodeId: recoveredId };
+                                    if (normalizedBranches) {
+                                        const updatedParams = { ...(updatedNode.data.params || {}), branches: normalizedBranches };
+                                        updatedNode.data = { ...updatedNode.data, params: updatedParams, branches: normalizedBranches };
+                                    }
+                                    return updatedNode;
+                                }
+                                return n;
+                            });
+                            structureFixed = true;
                         }
                     }
                 }
@@ -1443,7 +1443,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             onDeleteEdge: handleDeleteEdge,
             onEdgeClick: handleEdgeClick
         }}>
- 
+
             <div className="flex flex-col h-[calc(100vh-8rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <div className="flex items-center justify-between mb-4 px-1 mt-4">
                     <div className="flex items-center gap-4">
@@ -1481,9 +1481,9 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Automation</span>
                                 <Switch checked={automationStatus} onCheckedChange={handleRunToggle} />
                             </div>
-                            <Button 
-                                size="sm" 
-                                variant="ghost" 
+                            <Button
+                                size="sm"
+                                variant="ghost"
                                 className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50/50 gap-1.5 font-semibold"
                                 onClick={handleExecuteRun}
                                 disabled={!automationStatus || hasActiveRun}

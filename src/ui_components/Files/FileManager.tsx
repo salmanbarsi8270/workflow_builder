@@ -256,7 +256,7 @@ export default function FileManager() {
     );
 }
 
-function RAGExplorer({ file, onClose }: { file: AppFile, onClose: () => void }) {
+function RAGExplorer({ file }: { file: AppFile, onClose: () => void }) {
     const { user } = useUser();
     const [chunks, setChunks] = useState<Chunk[]>([]);
     const [loading, setLoading] = useState(true);
@@ -376,7 +376,7 @@ function RAGExplorer({ file, onClose }: { file: AppFile, onClose: () => void }) 
                     {testResults.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
                             <Search className="h-8 w-8 mb-2" />
-                            <p className="text-xs">No test results yet.<br/>Type above to see which chunks<br/>match your query.</p>
+                            <p className="text-xs">No test results yet.<br />Type above to see which chunks<br />match your query.</p>
                         </div>
                     ) : (
                         testResults.map((result, idx) => (

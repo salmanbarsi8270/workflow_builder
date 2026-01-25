@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, Edit3, UserCircle, Loader2, Save, X } from 'lucide-react';
+import { Trash2, Plus, Edit3, UserCircle, Loader2, Save } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { API_URL } from '@/ui_components/api/apiurl';
@@ -120,7 +120,7 @@ export default function InstructionLibrary() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase">Instruction Name</label>
-                            <Input 
+                            <Input
                                 placeholder="e.g. Legal Expert, Senior Dev, Creative Writer"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -128,7 +128,7 @@ export default function InstructionLibrary() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase">System Instructions</label>
-                            <Textarea 
+                            <Textarea
                                 placeholder="Describe exactly how this instruction should behave..."
                                 className="h-32 font-mono text-sm"
                                 value={formData.system_prompt}
