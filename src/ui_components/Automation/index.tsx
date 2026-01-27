@@ -119,7 +119,7 @@ export default function AutomationIndex() {
         try {
             const response = await listFlows(user.id);
             if (showLoading) setIsListLoading(false);
-            
+
             if (response.error) {
                 console.error("Failed to fetch automations:", response.error);
             } else if (response.success && response.flows) {
@@ -174,7 +174,7 @@ export default function AutomationIndex() {
             try {
                 const response = await getFlow(id);
                 setIsEditorLoading(false);
-                
+
                 if (response.error) {
                     console.error("Error loading flow", response.error);
                     toast.error("Failed to load automation");
@@ -218,7 +218,7 @@ export default function AutomationIndex() {
 
         try {
             const response = await updateFlow({ flowId: id, is_active: !currentStatus });
-            
+
             if (response.error) {
                 console.error("API status update failed:", response.error);
                 toast.error("Failed to update status");
@@ -241,7 +241,7 @@ export default function AutomationIndex() {
 
             try {
                 const response = await deleteFlow(id);
-                
+
                 if (response.error) {
                     console.error("Failed to delete flow:", response.error);
                     toast.error("Failed to delete automation");
@@ -408,7 +408,7 @@ export default function AutomationIndex() {
             try {
                 const response = await updateFlow(payload);
                 setIsSaving(false);
-                
+
                 if (response.error) {
                     console.error("API update failed:", response.error);
                     toast.error("Failed to save");
@@ -436,7 +436,7 @@ export default function AutomationIndex() {
 
             try {
                 const response = await updateFlow(payload);
-                
+
                 if (response.error) {
                     console.error("API status update failed:", response.error);
                     toast.error("Failed to update status");
@@ -485,11 +485,11 @@ export default function AutomationIndex() {
                 />
 
                 <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                    <ResizableSheetContent 
-                        side="right" 
-                        storageKey="create-automation-width" 
-                        defaultWidth={480} 
-                        className="sm:max-w-none border-l-0 shadow-2xl p-0 bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+                    <ResizableSheetContent
+                        side="right"
+                        storageKey="create-automation-width"
+                        defaultWidth={480}
+                        className="sm:max-w-none border-l-0 shadow-2xl p-0 bg-background"
                     >
                         <div className="h-full flex flex-col">
                             <div className="p-6 pb-4 border-b bg-linear-to-b from-primary/5 to-transparent">
@@ -518,11 +518,11 @@ export default function AutomationIndex() {
                                         <div className="space-y-3">
                                             <Label htmlFor="name" className="text-sm font-semibold ml-1">Flow Name</Label>
                                             <div className="relative group">
-                                                <Input 
-                                                    id="name" 
-                                                    value={newAutomationName} 
-                                                    onChange={(e) => setNewAutomationName(e.target.value)} 
-                                                    placeholder="e.g., Order Confirmation Flow" 
+                                                <Input
+                                                    id="name"
+                                                    value={newAutomationName}
+                                                    onChange={(e) => setNewAutomationName(e.target.value)}
+                                                    placeholder="e.g., Order Confirmation Flow"
                                                     className="h-12 px-4 bg-muted/30 focus:bg-background transition-all border-border/50 group-hover:border-primary/50 text-base"
                                                 />
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-hover:text-primary/30 transition-colors">
@@ -530,11 +530,11 @@ export default function AutomationIndex() {
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex gap-3 pt-2">
                                             <Button variant="outline" className="flex-1 h-12 text-base font-medium" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-                                            <Button 
-                                                disabled={createsutomationloading} 
+                                            <Button
+                                                disabled={createsutomationloading}
                                                 onClick={handleSaveAutomationName}
                                                 className="flex-2 h-12 text-base font-bold bg-linear-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
                                             >
@@ -552,7 +552,7 @@ export default function AutomationIndex() {
                                                 <Layout className="h-4 w-4" /> Templates
                                             </TabsTrigger>
                                         </TabsList>
-                                        
+
                                         <TabsContent value="blank" className="space-y-6 mt-0">
                                             <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 mb-2">
                                                 <div className="flex items-start gap-4">
@@ -570,18 +570,18 @@ export default function AutomationIndex() {
 
                                             <div className="space-y-3">
                                                 <Label htmlFor="blank-name" className="text-sm font-semibold ml-1">What should we call this?</Label>
-                                                <Input 
-                                                    id="blank-name" 
-                                                    value={newAutomationName} 
-                                                    onChange={(e) => setNewAutomationName(e.target.value)} 
-                                                    placeholder="e.g., Sync LinkedIn to Sheets" 
+                                                <Input
+                                                    id="blank-name"
+                                                    value={newAutomationName}
+                                                    onChange={(e) => setNewAutomationName(e.target.value)}
+                                                    placeholder="e.g., Sync LinkedIn to Sheets"
                                                     className="h-12 px-4 bg-muted/30 focus:bg-background transition-all border-border/50 focus:ring-2 focus:ring-primary/10 text-base"
                                                 />
                                             </div>
 
-                                            <Button 
-                                                className="w-full h-12 text-lg font-bold bg-linear-to-br from-primary to-primary/80 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl" 
-                                                disabled={createsutomationloading || !newAutomationName.trim()} 
+                                            <Button
+                                                className="w-full h-12 text-lg font-bold bg-linear-to-br from-primary to-primary/80 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all rounded-2xl"
+                                                disabled={createsutomationloading || !newAutomationName.trim()}
                                                 onClick={handleSaveAutomationName}
                                             >
                                                 {createsutomationloading ? (
@@ -592,18 +592,18 @@ export default function AutomationIndex() {
                                                     </span>
                                                 )}
                                             </Button>
-                                            
+
                                             <p className="text-center text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">
-                                               Automate anything in seconds
+                                                Automate anything in seconds
                                             </p>
                                         </TabsContent>
 
                                         <TabsContent value="templates" className="flex-1 min-h-0 pt-0">
                                             <div className="h-full overflow-hidden border border-border/40 rounded-2xl shadow-inner bg-muted/5">
-                                                <TemplateGallery 
-                                                    userId={user?.id || ""} 
+                                                <TemplateGallery
+                                                    userId={user?.id || ""}
                                                     onSuccess={(newId) => {
-                                                        fetchAutomations(false); 
+                                                        fetchAutomations(false);
                                                         setIsCreateModalOpen(false);
                                                         if (newId) {
                                                             navigate(`/automation/${newId}`);
@@ -632,7 +632,7 @@ export default function AutomationIndex() {
         );
     }
 
-    return ( 
+    return (
         <>
             <AutomationEditor
                 key={id}

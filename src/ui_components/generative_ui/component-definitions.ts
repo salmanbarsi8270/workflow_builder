@@ -1,231 +1,279 @@
-
 import type { ComponentType } from './types';
 
 export interface ComponentPropDefinition {
-    type: 'string' | 'number' | 'boolean' | 'enum' | 'array' | 'object' | 'function';
+    type: 'string' | 'number' | 'boolean' | 'enum' | 'array' | 'object';
     description: string;
     required?: boolean;
-    options?: string[]; // For enum types
+    options?: string[];
     defaultValue?: any;
 }
 
 export interface ComponentDefinition {
     type: ComponentType;
     description: string;
-    category: 'layout' | 'typography' | 'input' | 'display' | 'chart' | 'specialized';
+    category: 'data' | 'visualization' | 'feedback' | 'progress' | 'activity';
     props: Record<string, ComponentPropDefinition>;
-    allowedChildren?: ComponentType[] | 'all' | 'none'; // 'all' means any component, 'none' means no children
+    example?: string;
 }
 
-export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> = {
-    'container': {
-        type: 'container',
-        description: 'A generic wrapper component for grouping other components. Supports styling and basic layout.',
-        category: 'layout',
+export const COMPONENT_DEFINITIONS: Record<string, ComponentDefinition> = {
+    'kpi-card': {
+        type: 'kpi-card',
+        description: 'Single KPI/metric card with value, trend indicator, and optional icon. Perfect for dashboard metrics.',
+        category: 'data',
         props: {
-            className: { type: 'string', description: 'Tailwind CSS classes for styling', defaultValue: '' }
+            label: { type: 'string', description: 'Metric label/name', required: true },
+            value: { type: 'string', description: 'Metric value (can be number or formatted string)', required: true },
+            trend: { type: 'string', description: 'Trend indicator (e.g., "+12%", "-5%")', required: false },
+            trendDirection: { type: 'enum', description: 'Trend direction for color coding', options: ['up', 'down', 'neutral'], required: false },
+            icon: { type: 'string', description: 'Lucide icon name (e.g., "TrendingUp", "Users", "DollarSign")', required: false },
+            className: { type: 'string', description: 'Additional CSS classes', defaultValue: '' }
         },
-        allowedChildren: 'all'
+        example: '{"type": "kpi-card", "props": {"label": "Total Revenue", "value": "$45,231", "trend": "+12%", "trendDirection": "up", "icon": "DollarSign"}}'
     },
-    'stack': {
-        type: 'stack',
-        description: 'Arranges children sequentially in a vertical or horizontal direction with a gap.',
-        category: 'layout',
+    'stats-grid': {
+        type: 'stats-grid',
+        description: 'Responsive grid of KPI cards. Automatically layouts multiple metrics in a clean grid.',
+        category: 'data',
         props: {
-            direction: { type: 'enum', description: 'Direction to stack items', options: ['col', 'row'], defaultValue: 'col' },
-            gap: { type: 'number', description: 'Gap between items (tailwind spacing units)', defaultValue: 2 },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            stats: {
+                type: 'array',
+                description: 'Array of stat objects. Each object: {label, value, trend?, trendDirection?, icon?}',
+                required: true
+            },
+            cols: { type: 'number', description: 'Number of columns on large screens (1-4)', defaultValue: 4 },
+            className: { type: 'string', description: 'Additional CSS classes', defaultValue: '' }
         },
-        allowedChildren: 'all'
+        example: '{"type": "stats-grid", "props": {"cols": 3, "stats": [{"label": "Users", "value": "1,234", "trend": "+5%", "trendDirection": "up"}, {"label": "Revenue", "value": "$45K", "trend": "+12%", "trendDirection": "up"}]}}'
     },
-    'grid': {
-        type: 'grid',
-        description: 'Arranges children in a grid layout.',
-        category: 'layout',
+    'data-table': {
+        type: 'data-table',
+        description: 'Sortable data table. Perfect for displaying structured datasets.',
+        category: 'data',
         props: {
-            cols: { type: 'number', description: 'Number of columns', defaultValue: 1 },
-            gap: { type: 'number', description: 'Gap between grid items', defaultValue: 4 },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            title: { type: 'string', description: 'Table title', required: false },
+            data: { type: 'array', description: 'Array of row objects', required: true },
+            columns: { type: 'array', description: 'Column definitions: [{key, label, sortable?}]', required: true }
         },
-        allowedChildren: 'all'
+        example: '{"type": "data-table", "props": {"title": "Users", "columns": [{"key": "name", "label": "Name"}], "data": [{"name": "John"}]}}'
     },
-    'card': {
-        type: 'card',
-        description: 'A panel with shadow and proper spacing, used to group related content.',
-        category: 'layout',
+    'chart-card': {
+        type: 'chart-card',
+        description: 'Professional Recharts visualization (bar, line, area, or pie).',
+        category: 'visualization',
         props: {
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            title: { type: 'string', description: 'Chart title', required: true },
+            type: { type: 'enum', description: 'Chart type', options: ['bar', 'line', 'area', 'pie'], defaultValue: 'bar' },
+            data: { type: 'array', description: 'Chart data objects', required: true },
+            dataKey: { type: 'string', description: 'The property key for the values', defaultValue: 'value' },
+            categoryKey: { type: 'string', description: 'The property key for labels (X-axis)', defaultValue: 'name' }
         },
-        allowedChildren: ['card-header', 'card-content', 'card-footer', 'container', 'stack', 'grid', 'table'] // Broaden this if needed
+        example: '{"type": "chart-card", "props": {"title": "Sales", "type": "area", "data": [{"name": "Jan", "value": 400}, {"name": "Feb", "value": 300}]}}'
     },
-    'card-header': {
-        type: 'card-header',
-        description: 'Header section of a card.',
-        category: 'layout',
+    'heading': {
+        type: 'heading',
+        description: 'Large title or section header.',
+        category: 'feedback',
         props: {
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            title: { type: 'string', description: 'Heading text', required: true },
+            subtitle: { type: 'string', description: 'Subtext', required: false },
+            icon: { type: 'string', description: 'Lucide icon', required: false },
+            align: { type: 'enum', description: 'Alignment', options: ['left', 'center', 'right'], defaultValue: 'left' }
         },
-        allowedChildren: 'all'
+        example: '{"type": "heading", "props": {"title": "Dashboard", "subtitle": "Welcome back"}}'
     },
-    'card-content': {
-        type: 'card-content',
-        description: 'Main content area of a card.',
-        category: 'layout',
+    'code-card': {
+        type: 'code-card',
+        description: 'Terminal-style code/JSON viewer.',
+        category: 'visualization',
         props: {
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            code: { type: 'string', description: 'Code content', required: true },
+            title: { type: 'string', description: 'Header label', required: false },
+            language: { type: 'string', description: 'Language hint', defaultValue: 'json' }
         },
-        allowedChildren: 'all'
+        example: '{"type": "code-card", "props": {"title": "API Response", "code": "{\\"status\\": \\"ok\\"}"}}'
     },
-    'card-footer': {
-        type: 'card-footer',
-        description: 'Footer section of a card.',
-        category: 'layout',
+    'calendar-card': {
+        type: 'calendar-card',
+        description: 'Interactive Shadcn calendar component.',
+        category: 'feedback',
         props: {
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            title: { type: 'string', description: 'Card title', required: false },
+            selectedDate: { type: 'string', description: 'ISO date string', required: false },
+            mode: { type: 'enum', description: 'Mode: single, multiple, or range', options: ['single', 'multiple', 'range'], defaultValue: 'single' }
         },
-        allowedChildren: 'all'
-    },
-    'text': {
-        type: 'text',
-        description: 'Displays basic text with different variants.',
-        category: 'typography',
-        props: {
-            variant: { type: 'enum', description: 'Typography variant', options: ['h1', 'h2', 'h3', 'p', 'span'], defaultValue: 'p' },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'none' // Usually just text string, handled separately
+        example: '{"type": "calendar-card", "props": {"title": "Deadline"}}'
     },
     'button': {
         type: 'button',
-        description: 'Interactive button element.',
-        category: 'input',
+        description: 'Standard Shadcn button.',
+        category: 'feedback',
         props: {
-            variant: { type: 'enum', description: 'Button style variant', options: ['default', 'secondary', 'destructive', 'outline', 'ghost', 'link'], defaultValue: 'default' },
-            size: { type: 'enum', description: 'Button size', options: ['default', 'sm', 'lg', 'icon'], defaultValue: 'default' },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' },
-            onClick: { type: 'function', description: 'Click handler', required: false }
+            label: { type: 'string', description: 'Text label', required: true },
+            variant: { type: 'enum', description: 'Visual style', options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'], defaultValue: 'default' },
+            icon: { type: 'string', description: 'Lucide icon', required: false }
         },
-        allowedChildren: ['text', 'icon']
-    },
-    'icon': {
-        type: 'icon',
-        description: 'Displays an icon from the Lucide library.',
-        category: 'display',
-        props: {
-            name: { type: 'string', description: 'Name of the Lucide icon', required: true },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'none'
-    },
-    'input': {
-        type: 'input',
-        description: 'Input field for user text entry.',
-        category: 'input',
-        props: {
-            placeholder: { type: 'string', description: 'Placeholder text', defaultValue: '' },
-            type: { type: 'string', description: 'Input type (text, password, email, etc.)', defaultValue: 'text' },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'none'
-    },
-    'metric': {
-        type: 'metric',
-        description: 'Displays a standard statistic or metric with optional trend.',
-        category: 'specialized',
-        props: {
-            label: { type: 'string', description: 'Label for the metric', required: true },
-            value: { type: 'string', description: 'Main value to display', required: true },
-            trend: { type: 'string', description: 'Trend text (e.g. +12%)', required: false },
-            trendDirection: { type: 'enum', description: 'Direction (up/down) for coloring', options: ['up', 'down', 'neutral'], required: false },
-            subtext: { type: 'string', description: 'Small helper text below value', required: false },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'none'
-    },
-    'avatar': {
-        type: 'avatar',
-        description: 'Circular user image or fallback initials.',
-        category: 'display',
-        props: {
-            src: { type: 'string', description: 'Image source URL', required: false },
-            fallback: { type: 'string', description: 'Fallback text (initials)', required: true },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'none'
+        example: '{"type": "button", "props": {"label": "Submit", "icon": "Send"}}'
     },
     'badge': {
         type: 'badge',
-        description: 'Small status indicator or label.',
-        category: 'display',
+        description: 'Status badge/pill.',
+        category: 'feedback',
         props: {
-            variant: { type: 'enum', description: 'Badge style', options: ['default', 'secondary', 'destructive', 'outline'], defaultValue: 'default' },
-            className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            label: { type: 'string', description: 'Label text', required: true },
+            variant: { type: 'enum', description: 'Visual style', options: ['default', 'secondary', 'destructive', 'outline'], defaultValue: 'default' }
         },
-        allowedChildren: 'none'
+        example: '{"type": "badge", "props": {"label": "High Priority", "variant": "destructive"}}'
     },
-    'table': {
-        type: 'table',
-        description: 'Root container for a data table.',
-        category: 'display',
+    'accordion': {
+        type: 'accordion',
+        description: 'Collapsible item list.',
+        category: 'feedback',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            title: { type: 'string', description: 'Section title', required: false },
+            items: { type: 'array', description: 'Array of {title, content, icon?}', required: true }
         },
-        allowedChildren: ['table-header', 'table-body']
+        example: '{"type": "accordion", "props": {"items": [{"title": "Details", "content": "More info here"}]}}'
     },
-     'table-header': {
-        type: 'table-header',
-        description: 'Container for table header rows.',
-        category: 'display',
+    'avatar': {
+        type: 'avatar',
+        description: 'User profile avatar with name.',
+        category: 'visualization',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            name: { type: 'string', description: 'User name', required: true },
+            subtext: { type: 'string', description: 'Subtitle (e.g., role)', required: false },
+            src: { type: 'string', description: 'Image URL', required: false }
         },
-        allowedChildren: ['table-row']
+        example: '{"type": "avatar", "props": {"name": "Alice Wilson", "subtext": "Admin"}}'
     },
-     'table-body': {
-        type: 'table-body',
-        description: 'Container for table body rows.',
-        category: 'display',
+    'tabs': {
+        type: 'tabs',
+        description: 'Tabbed container for organizing content.',
+        category: 'feedback',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
+            items: { type: 'array', description: 'Array of {label, value, content}', required: true },
+            defaultValue: { type: 'string', description: 'Initial tab value', required: false }
         },
-        allowedChildren: ['table-row']
+        example: '{"type": "tabs", "props": {"items": [{"label": "Info", "value": "info", "content": "Information"}]}}'
     },
-     'table-row': {
-        type: 'table-row',
-        description: 'A single row in a table.',
-        category: 'display',
+    'info-card': {
+        type: 'info-card',
+        description: 'Informational card with icon.',
+        category: 'feedback',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: ['table-head', 'table-cell']
+            title: { type: 'string', description: 'Card title', required: true },
+            description: { type: 'string', description: 'Main message', required: true },
+            variant: { type: 'enum', description: 'Visual intent', options: ['default', 'success', 'warning', 'error', 'info'], defaultValue: 'default' }
+        }
     },
-     'table-head': {
-        type: 'table-head',
-        description: 'Header cell for a column title.',
-        category: 'display',
+    'stats-list': {
+        type: 'stats-list',
+        description: 'Vertical list of statistics.',
+        category: 'data',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'all' // Text usually
+            title: { type: 'string', description: 'List header', required: false },
+            stats: { type: 'array', description: 'Array of {label, value, icon?, badge?}', required: true }
+        }
     },
-     'table-cell': {
-        type: 'table-cell',
-        description: 'Standard data cell in a table.',
-        category: 'display',
+    'empty-state': {
+        type: 'empty-state',
+        description: 'Placeholder for no data.',
+        category: 'feedback',
         props: {
-             className: { type: 'string', description: 'Additional tailwind classes', defaultValue: '' }
-        },
-        allowedChildren: 'all'
+            title: { type: 'string', description: 'Empty state title', required: true },
+            description: { type: 'string', description: 'Explanation text', required: true },
+            icon: { type: 'string', description: 'Lucide icon', defaultValue: 'Inbox' }
+        }
     },
-     'chart-placeholder': {
-         type: 'chart-placeholder',
-         description: 'Placeholder for where a chart would acturally be rendered.',
-         category: 'chart',
-         props: {
-             type: { type: 'enum', description: 'Type of chart', options: ['bar', 'line', 'pie'], defaultValue: 'bar' },
-             title: { type: 'string', description: 'Title of the chart', defaultValue: 'Chart' }
-         },
-         allowedChildren: 'none'
-
-     }
+    'progress-card': {
+        type: 'progress-card',
+        description: 'Progress bar card.',
+        category: 'progress',
+        props: {
+            title: { type: 'string', description: 'Progress label', required: true },
+            current: { type: 'number', description: 'Current count/value', required: true },
+            total: { type: 'number', description: 'Target/max value', required: true },
+            label: { type: 'string', description: 'Subtext' }
+        }
+    },
+    'timeline-card': {
+        type: 'timeline-card',
+        description: 'Chronological event list.',
+        category: 'activity',
+        props: {
+            title: { type: 'string', description: 'Timeline header' },
+            events: { type: 'array', description: 'Array of {title, description, time, status}', required: true }
+        }
+    },
+    'comparison-card': {
+        type: 'comparison-card',
+        description: 'Side-by-side comparison.',
+        category: 'data',
+        props: {
+            title: { type: 'string', description: 'Comparison header' },
+            items: { type: 'array', description: 'Array of 2 items: {label, value, details}', required: true }
+        }
+    },
+    'summary-card': {
+        type: 'summary-card',
+        description: 'Executive summary block.',
+        category: 'data',
+        props: {
+            title: { type: 'string', description: 'Summary header', required: true },
+            summary: { type: 'string', description: 'Main narrative content', required: true },
+            highlights: { type: 'array', description: 'Bulleted list of points' }
+        }
+    },
+    'activity-feed': {
+        type: 'activity-feed',
+        description: 'Recent activity feed.',
+        category: 'activity',
+        props: {
+            title: { type: 'string', description: 'Feed header' },
+            activities: { type: 'array', description: 'Array of {action, details, time, icon}', required: true }
+        }
+    },
+    'step-indicator': {
+        type: 'step-indicator',
+        description: 'Process stepper.',
+        category: 'progress',
+        props: {
+            title: { type: 'string', description: 'Step header' },
+            steps: { type: 'array', description: 'Array of {title, description}', required: true },
+            activeStep: { type: 'number', description: 'Current zero-indexed step', defaultValue: 0 }
+        }
+    },
+    'status-tag': {
+        type: 'status-tag',
+        description: 'Key-value pill.',
+        category: 'feedback',
+        props: {
+            label: { type: 'string', description: 'Status name', required: true },
+            value: { type: 'string', description: 'Status value', required: true },
+            status: { type: 'enum', description: 'Color intent', options: ['default', 'success', 'warning', 'error', 'info'], defaultValue: 'default' }
+        }
+    },
+    'text-card': {
+        type: 'text-card',
+        description: 'Simple text block.',
+        category: 'feedback',
+        props: {
+            content: { type: 'string', description: 'Narrative content', required: true },
+            title: { type: 'string', description: 'Optional header' }
+        }
+    },
+    'wiki-card': {
+        type: 'wiki-card',
+        description: 'Wikipedia-style explanatory card. Use this when the user needs a detailed, text-heavy explanation of a concept or flow. It supports a title, subtitle, main content paragraph, optional image, citations, and related links.',
+        category: 'feedback',
+        props: {
+            title: { type: 'string', description: 'Article title', required: true },
+            subtitle: { type: 'string', description: 'Subtitle or short description', required: false },
+            content: { type: 'string', description: 'Main explanatory text. Use \\n for paragraph breaks.', required: true },
+            imageUrl: { type: 'string', description: 'URL for a side image (infobox style)', required: false },
+            citations: { type: 'array', description: 'List of reference strings', required: false },
+            relatedLinks: { type: 'array', description: 'List of {label, url} objects', required: false }
+        },
+        example: '{"type": "wiki-card", "props": {"title": "Flow Architecture", "subtitle": "System Design", "content": "The flow begins with an event trigger...", "citations": [" System docs v1"], "relatedLinks": [{"label": "Docs", "url": "#"}]}}'
+    }
 };

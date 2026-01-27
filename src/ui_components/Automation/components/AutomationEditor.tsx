@@ -1444,7 +1444,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
             onEdgeClick: handleEdgeClick
         }}>
 
-            <div className="flex flex-col h-[calc(100vh-8rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div className="flex flex-col h-[calc(100vh-8rem)] bg-background">
                 <div className="flex items-center justify-between mb-4 px-1 mt-4">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" onClick={onBack}>
@@ -1504,7 +1504,7 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                     </div>
                 </div>
 
-                <div className="flex flex-1 border rounded-lg overflow-hidden bg-background relative bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+                <div className="flex flex-1 border rounded-lg overflow-hidden bg-background relative">
                     <div className="flex-1 relative">
                         <ReactFlowProvider>
                             <ReactFlow
@@ -1532,7 +1532,6 @@ export default function AutomationEditor({ automationName, initialNodes, initial
                             >
                                 <Controls />
                                 <MiniMap zoomable pannable inversePan />
-                                <Background gap={12} size={1} />
                             </ReactFlow>
                         </ReactFlowProvider>
                     </div>

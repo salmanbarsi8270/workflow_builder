@@ -12,7 +12,7 @@ const AccordionItemContext = React.createContext<string>("")
 const Accordion = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { type?: "single" | "multiple"; collapsible?: boolean }
->(({ className, children, ...props }, ref) => {
+>(({ className, children, type, collapsible, ...props }, ref) => {
   const [value, setValue] = React.useState<string>("")
 
   return (
@@ -43,9 +43,9 @@ const AccordionTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const context = React.useContext(AccordionContext)
   const itemValue = React.useContext(AccordionItemContext)
-  
+
   if (!context) throw new Error("AccordionTrigger must be used within Accordion")
-  
+
   const isOpen = context.value === itemValue
 
   return (
@@ -72,7 +72,7 @@ const AccordionContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const context = React.useContext(AccordionContext)
   const itemValue = React.useContext(AccordionItemContext)
-  
+
   if (!context) return null
   const isOpen = context.value === itemValue
 
