@@ -1,4 +1,3 @@
-import React from 'react';
 import { DynamicRenderer } from './DynamicRenderer';
 import type { UIComponent } from './types';
 
