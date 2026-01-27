@@ -70,6 +70,8 @@ export function SidebarIconExample() {
         return "FILE MANAGER";
       case "/personas":
         return "INSTRUCTION LIBRARY";
+      case "/presentation":
+        return "PRESENTATION";
       default:
         return "Workflow Builder";
     }
@@ -126,6 +128,11 @@ export function SidebarIconExample() {
     {
       title: "Instructions",
       url: "/personas",
+      icon: <UserCircle size={20} />,
+    },
+     {
+      title: "Presentation",
+      url: "/presentation",
       icon: <UserCircle size={20} />,
     },
   ]
