@@ -1,4 +1,4 @@
-import type { UIComponent } from './types';
+import { type UIComponent, type Message } from '../../types';
 
 /**
  * Robustly extracts all JSON objects and arrays from a string using bracket matching.
@@ -73,4 +73,27 @@ export const extractAllJson = (text: string): UIComponent[] => {
  */
 export const generateComponentId = (type: string, index: number): string => {
     return `${type}-${Date.now()}-${index}`;
+};
+
+/**
+ * Generates a title based on the first user message.
+ */
+export const generateSessionTitle = (messages: Message[]): string => {
+    const firstUserMessage = messages.find(m => m.role === 'user');
+    if (firstUserMessage) {
+        const text = firstUserMessage.content.substring(0, 30);
+        return text.length < 30 ? text : text + '...';
+    }
+    return 'New Conversation';
+};
+
+/**
+ * Generates a preview snippet of the last message.
+ */
+export const getSessionPreview = (messages: Message[]): string => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage) {
+        return lastMessage.content.substring(0, 50) + '...';
+    }
+    return 'Empty conversation';
 };

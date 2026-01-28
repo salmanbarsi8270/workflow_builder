@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ChatSession } from '../SupportChatInterface';
+import { type ChatSession } from '../../types';
 import { useState, useMemo } from 'react';
 import React from 'react';
 import { cn } from "@/lib/utils";
@@ -131,7 +131,7 @@ export const HistorySlider: React.FC<HistorySliderProps> = ({
     return (
         <div 
             className={cn(
-                "bg-background border-r border-border dark:border-white/5 bg-white dark:bg-[#0a0a0a] flex flex-col h-full transition-all duration-500 ease-in-out overflow-hidden z-20",
+                "bg-background border-r border-border dark:border-white/5 dark:bg-[#0a0a0a] flex flex-col h-full transition-all duration-500 ease-in-out overflow-hidden z-20",
                 isOpen ? "w-80 opacity-100" : "w-0 opacity-0 border-r-0"
             )}
         >
@@ -226,7 +226,6 @@ const SessionItem: React.FC<SessionItemProps> = ({
     onSelect,
     onDelete,
     onPin,
-    onExport,
     onStartEdit,
     onSaveEdit,
     onCancelEdit,

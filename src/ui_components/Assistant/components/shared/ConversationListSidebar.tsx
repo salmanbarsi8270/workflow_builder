@@ -6,11 +6,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import aiClient from '@/ui_components/api/aiClient';
 
-interface Conversation {
-    id: string;
-    title: string;
-    date: string;
-}
+import { type ChatSession } from '../../types';
 
 interface ConversationListSidebarProps {
     isOpen: boolean;
@@ -19,12 +15,13 @@ interface ConversationListSidebarProps {
     onNew?: () => void;
     activeId?: string;
     agentId?: string;
+    history?: any;
 }
 
-export function ConversationListSidebar({ isOpen, className, onSelect, onNew, activeId, agentId }: ConversationListSidebarProps) {
+export function ConversationListSidebar({ isOpen, className, onSelect, onNew, activeId, agentId, history }: ConversationListSidebarProps) {
     const { user } = useUser();
-    const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [localConversations, setLocalConversations] = useState<ChatSession[]>([]);
+    const [localLoading, setLocalLoading] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -36,47 +33,59 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
         }
     }, [editingId]);
 
-    const handleRename = async (id: string, newTitle: string) => {
+    // Derived state from history prop or local
+    const conversations = history?.sessions || localConversations;
+    const isLoading = history?.isLoading || localLoading;
+
+    // Actions use history prop if available, otherwise fallback to local/API
+    const internalRename = async (id: string, newTitle: string) => {
         if (!newTitle.trim() || !user?.id) return;
-
-        try {
-            await aiClient.patch(`/api/v1/presentation/conversation/${id}`, {
-                title: newTitle,
-                userId: user.id
-            });
-
-            setConversations(prev => prev.map(c =>
-                c.id === id ? { ...c, title: newTitle } : c
-            ));
-            setEditingId(null);
-        } catch (err) {
-            console.error("Failed to rename conversation:", err);
+        
+        if (history?.renameSession) {
+            await history.renameSession(id, newTitle);
+        } else {
+            try {
+                await aiClient.patch(`/api/v1/presentation/conversation/${id}`, {
+                    title: newTitle,
+                    userId: user.id
+                });
+                setLocalConversations(prev => prev.map(c =>
+                    c.id === id ? { ...c, title: newTitle } : c
+                ));
+            } catch (err) {
+                console.error("Failed to rename conversation:", err);
+            }
         }
+        setEditingId(null);
     };
 
-    const handleDelete = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent selection
+    const internalDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         if (!user?.id) return;
-
         if (!confirm("Are you sure you want to delete this conversation?")) return;
 
-        try {
-            await aiClient.delete(`/api/v1/presentation/conversation/${id}?userId=${user.id}`);
-            setConversations(prev => prev.filter(c => c.id !== id));
-            if (activeId === id) {
-                // Deselect and reset to new chat state
-                onNew?.();
+        if (history?.deleteSession) {
+            await history.deleteSession(id);
+        } else {
+            try {
+                await aiClient.delete(`/api/v1/presentation/conversation/${id}?userId=${user.id}`);
+                setLocalConversations(prev => prev.filter(c => c.id !== id));
+            } catch (err) {
+                console.error("Failed to delete conversation:", err);
             }
-        } catch (err) {
-            console.error("Failed to delete conversation:", err);
+        }
+
+        if (activeId === id) {
+            onNew?.();
         }
     };
 
+    // Only fetch if history is not provided
     useEffect(() => {
-        if (!user?.id || !isOpen) return;
+        if (!user?.id || !isOpen || history) return;
 
         const fetchHistory = async () => {
-            setIsLoading(true);
+            setLocalLoading(true);
             try {
                 let url = `/api/v1/presentation/history?userId=${user.id}`;
                 if (agentId) {
@@ -84,17 +93,17 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
                 }
                 const response = await aiClient.get(url);
                 if (response.data?.success) {
-                    setConversations(response.data.conversations);
+                    setLocalConversations(response.data.conversations);
                 }
             } catch (err) {
                 console.error("Failed to fetch conversation history:", err);
             } finally {
-                setIsLoading(false);
+                setLocalLoading(false);
             }
         };
 
         fetchHistory();
-    }, [user?.id, isOpen, agentId]);
+    }, [user?.id, isOpen, agentId, history]);
 
     return (
         <div
@@ -136,7 +145,7 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
                         </div>
                     )}
 
-                    {conversations.map((con) => (
+                    {conversations.map((con: ChatSession) => (
                         <div
                             key={con.id}
                             onClick={() => onSelect?.(con.id)}
@@ -159,12 +168,12 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
                                             value={editTitle}
                                             onChange={(e) => setEditTitle(e.target.value)}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleRename(con.id, editTitle);
+                                                if (e.key === 'Enter') internalRename(con.id, editTitle);
                                                 if (e.key === 'Escape') setEditingId(null);
                                             }}
                                             className="h-6 text-xs px-1 py-0"
                                         />
-                                        <button onClick={() => handleRename(con.id, editTitle)} className="p-1 hover:text-green-500"><Check className="h-3 w-3" /></button>
+                                        <button onClick={() => internalRename(con.id, editTitle)} className="p-1 hover:text-green-500"><Check className="h-3 w-3" /></button>
                                         <button onClick={() => setEditingId(null)} className="p-1 hover:text-red-500"><X className="h-3 w-3" /></button>
                                     </div>
                                 ) : (
@@ -173,7 +182,7 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
                                             {con.title}
                                         </span>
                                         <span className="text-[10px] text-muted-foreground font-medium">
-                                            {con.date}
+                                            {new Date(con.timestamp).toLocaleDateString()}
                                         </span>
                                     </div>
                                 )}
@@ -196,7 +205,7 @@ export function ConversationListSidebar({ isOpen, className, onSelect, onNew, ac
                                                 <Pencil className="h-3.5 w-3.5 mr-2" />
                                                 Edit
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e: any) => handleDelete(con.id, e)}>
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e: any) => internalDelete(con.id, e)}>
                                                 <Trash2 className="h-3.5 w-3.5 mr-2" />
                                                 Delete
                                             </DropdownMenuItem>

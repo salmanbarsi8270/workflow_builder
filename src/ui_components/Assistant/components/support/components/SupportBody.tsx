@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar } from "@/components/ui/avatar";
 import { Bot, User, ThumbsUp, ThumbsDown, Copy } from "lucide-react";
-import type { Message } from '../SupportChatInterface';
+import { type Message } from '../../../types';
 import { MessageBubble } from './MessageBubble';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -70,18 +70,22 @@ export const SupportBody: React.FC<SupportBodyProps> = ({
         <div className="flex-1 flex flex-col relative z-20 w-full h-full overflow-hidden">
             <ScrollArea className="flex-1 h-full w-full" ref={scrollAreaRef}>
                 <div className="flex flex-col w-full max-w-6xl mx-auto py-2 px-3 sm:px-6">
-                    {messages.length === 0 ? (
+                    {loading && messages.length === 0 ? (
+                        <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 min-h-[60vh] animate-fade-in text-center">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                                <p className="text-lg font-medium text-slate-400 animate-pulse">Loading conversation...</p>
+                            </div>
+                        </div>
+                    ) : messages.length === 0 ? (
                         <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-8 min-h-[60vh] animate-fade-in text-center">
                             <div className="space-y-4">
-                                <h1 className="text-5xl md:text-7xl font-bold tracking-tight animate-slide-up">
-                                    Hey! <span className="text-amber-500">{userName}</span>
+                                <h1 className="text-5xl md:text-6xl font-bold tracking-tight animate-slide-up">
+                                    Hey! <span className="text-primary">{userName}</span>
                                 </h1>
                                 <h2 className="text-4xl md:text-6xl font-bold text-foreground animate-slide-up delay-100">
                                     What can I help with?
                                 </h2>
-                                <p className="text-lg text-slate-400 dark:text-white/30 font-medium animate-slide-up delay-200">
-                                    {sessionTitle || 'New Conversation'}
-                                </p>
                             </div>
 
                             <div className="w-full max-w-md mx-auto mt-8">

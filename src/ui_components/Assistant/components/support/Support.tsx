@@ -3,7 +3,7 @@ import { useUser } from '@/context/UserContext';
 import { SupportChatInterface } from './SupportChatInterface';
 import { Loader2, Bot } from 'lucide-react';
 
-export const Support = () => {
+export const Support = ({ activeSessionId, onSessionSelect, history }: any) => {
     const { user } = useUser();
     const [agent, setAgent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -46,6 +46,9 @@ export const Support = () => {
                 <SupportChatInterface 
                     userId={user?.id || 'anonymous'} 
                     userName={user?.name || 'user'} 
+                    activeSessionId={activeSessionId}
+                    onSessionSelect={onSessionSelect}
+                    history={history}
                 />
             </div>
         </div>

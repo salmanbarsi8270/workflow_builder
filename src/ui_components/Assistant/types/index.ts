@@ -1,3 +1,22 @@
+export interface Message {
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+    id: string;
+    status?: 'sending' | 'sent' | 'error';
+    feedback?: 'helpful' | 'not-helpful';
+}
+
+export interface ChatSession {
+    id: string;
+    title: string;
+    messages: Message[];
+    timestamp: Date;
+    isPinned?: boolean;
+    tags?: string[];
+    preview: string;
+}
+
 export type ComponentType = 
   | 'kpi-card'
   | 'stats-grid'
@@ -28,6 +47,7 @@ export type ComponentType =
 
 export interface BaseProps {
   className?: string;
+  _userPrompt?: string;
   [key: string]: any;
 }
 
@@ -46,9 +66,20 @@ export interface UIComponent {
   props?: BaseProps;
   layout?: GridLayout;
   children?: (UIComponent | string)[] | string;
+  _userPrompt?: string;
 }
 
 export interface UISchema {
   version: string;
   root: UIComponent;
+}
+
+export interface AssistantHistory {
+  sessions: ChatSession[];
+  isLoading: boolean;
+  error: string | null;
+  fetchHistory: () => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<boolean>;
+  renameSession: (sessionId: string, newTitle: string) => Promise<boolean>;
+  setSessions: (sessions: ChatSession[] | ((prev: ChatSession[]) => ChatSession[])) => void;
 }

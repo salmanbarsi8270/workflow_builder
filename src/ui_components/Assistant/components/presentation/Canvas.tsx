@@ -1,5 +1,5 @@
 import { DynamicRenderer } from './DynamicRenderer';
-import type { UIComponent, GridLayout } from './types';
+import type { UIComponent, GridLayout } from '../../types';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
 import {
@@ -114,9 +114,9 @@ export function Canvas({ uiSchemas }: CanvasProps) {
                                 <TooltipTrigger asChild>
                                     <div
                                         className={cn(
-                                            "group relative bg-card/40 backdrop-blur-md border border-border/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 animate-in zoom-in-95 fade-in duration-700",
+                                            "group relative bg-card/40 backdrop-blur-md border border-border/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 animate-in zoom-in-95 fade-in",
                                             // Fallback for mobile if we want to collapse
-                                            "max-md:!col-span-12"
+                                            "max-md:col-span-12!"
                                         )}
                                         style={gridStyle}
                                     >

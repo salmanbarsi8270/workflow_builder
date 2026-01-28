@@ -3,10 +3,7 @@ import { Bot, Sparkles, Copy, Check, Code, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { extractAllJson } from './utils';
 
-interface Message {
-    role: 'user' | 'assistant';
-    content: string;
-}
+import { type Message } from '../../types';
 
 interface MessageHistorySidebarProps {
     isOpen: boolean;
@@ -151,7 +148,7 @@ export function MessageHistorySidebar({ isOpen, messages, className }: MessageHi
                                 </div>
                                 <div
                                     className={cn(
-                                        "max-w-[100%] w-full p-4 rounded-3xl text-[13px] leading-relaxed shadow-sm border transition-all",
+                                        "max-w-full w-full p-4 rounded-3xl text-[13px] leading-relaxed shadow-sm border transition-all",
                                         msg.role === 'user'
                                             ? "bg-primary/5 border-primary/20 rounded-tr-none"
                                             : "bg-muted/30 border-border rounded-tl-none text-foreground/90"

@@ -1,5 +1,5 @@
 import apiClient from '@/ui_components/api/auth';
-import type { UIComponent } from './types';
+import { type UIComponent } from '../../types';
 import { COMPONENT_DEFINITIONS } from './component-definitions';
 import aiClient from '@/ui_components/api/aiClient';
 
@@ -60,7 +60,7 @@ const DEBUG_SCHEMA: UIComponent = {
     ]
 };
 
-import { extractAllJson } from './utils';
+import { extractAllJson } from '../shared/utils';
 
 export const generateUI = async (prompt: string, userId: string, direct: boolean = true, currentSchemas: UIComponent[] = [], conversationId?: string): Promise<{ text: string, schemas: UIComponent[] }> => {
      const p = prompt.toLowerCase();
@@ -82,10 +82,10 @@ export const generateUI = async (prompt: string, userId: string, direct: boolean
 
         console.log(`Calling Presentation API (${direct ? 'Direct' : 'Proxy'})...`);
         const client = direct ? aiClient : apiClient;
-        const response = await client.post(`/api/v1/presentation/run`, {
-            input: fullInput,
+        const response = await client.post(`/api/v1/support/query`, {
+            query: fullInput,
             userId: userId || 'public-user',
-            conversationId: conversationId,
+            sessionId: conversationId,
             stream: false
         });
 

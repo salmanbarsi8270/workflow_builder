@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UIComponent } from './types';
+import type { UIComponent } from '../../types';
 import { componentRegistry } from './ComponentRegistry';
 
 interface DynamicRendererProps {

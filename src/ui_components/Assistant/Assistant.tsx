@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import Support from './support';
-import { Presentation } from './generative_ui';
+import Support from './components/support';
+import { Presentation } from './components/presentation';
+import { useAssistantHistory } from './hooks/useAssistantHistory';
+import { useUser } from '@/context/UserContext';
 
 export const Assistant = () => {
+  const { user } = useUser();
   const [activeView, setActiveView] = useState<'chat' | 'presentation'>('chat');
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  
+  const history = useAssistantHistory(user?.id);
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -31,15 +37,27 @@ export const Assistant = () => {
                                 : 'text-slate-500 dark:text-white/40 hover:text-slate-700 dark:hover:text-white/60'}
                         `}
                     >
-                        Presentation
+                        Canvas
                     </button>
                 </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
-        {activeView === 'chat' && <Support />}
-        {activeView === 'presentation' && <Presentation />}
+        {activeView === 'chat' && (
+            <Support 
+                activeSessionId={activeSessionId} 
+                onSessionSelect={setActiveSessionId}
+                history={history}
+            />
+        )}
+        {activeView === 'presentation' && (
+            <Presentation 
+                activeSessionId={activeSessionId} 
+                onSessionSelect={setActiveSessionId}
+                history={history}
+            />
+        )}
       </div>
     </div>
   );

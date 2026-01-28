@@ -26,7 +26,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, HandshakeIcon, ChevronRight, Search, Bell, SettingsIcon, BotIcon } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, ChevronRight, Search, Bell, BotIcon } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ApprovalsList } from '../Dashboard/ApprovalsList';
 import axios from 'axios';
 import { API_URL } from '../api/apiurl';
-import { GlobalSupport } from '../Assistant/support/GlobalSupport'
+import { GlobalSupport } from '../Assistant/components/support/GlobalSupport'
  
 export function SidebarIconExample() {
   const { theme, setTheme, accentColor } = useTheme()
