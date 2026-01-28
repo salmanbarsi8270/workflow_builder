@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OpenRouterModel } from "../Utility/openroutermodel"
+import { PostgresConnectionDialog } from "../Utility/PostgresConnectionDialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -45,6 +46,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'popular' | 'name' | 'recent'>('popular');
   const [openroutermodel, setOpenroutermodel] = useState(false)
+  const [postgresModalOpen, setPostgresModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -195,6 +197,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     else if (app.id === 'openrouter') {
       handleOpenRouterModel()
     }
+    else if (app.id === 'postgres') {
+      setPostgresModalOpen(true);
+      setConnectingApp(null);
+    }
     else if (app.id === 'mcp') {
       setMcpModalOpen(true);
     }
@@ -211,11 +217,11 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
   const handleShowDetails = async (app: IntegrationApp) => {
     setDetailOpen(true);
-    
+
     // If metadata not already available, we could fetch it here or just use what we have
     // For now, let's simulate a small delay or check if we need to show loading
     const hasMetadata = !!piecesMetadata[app.id];
-    
+
     if (!hasMetadata) {
       setIsLoadingMetadata(true);
       // Metadata is usually fetched on mount, but if it's missing, we wait
@@ -280,6 +286,29 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     }
   }
 
+  const [editConnectionData, setEditConnectionData] = useState<any>(null);
+
+  const handleEditConnection = (account: any) => {
+    setEditConnectionData(account);
+    setPostgresModalOpen(true);
+  };
+
+  const handleSyncCatalog = async (account: any) => {
+    try {
+      const promise = axios.post(`${API_URL}/api/connections/${account.id}/catalog/refresh`, {
+        userId: user?.id
+      });
+
+      toast.promise(promise, {
+        loading: 'Refreshing database schema...',
+        success: (data) => `Schema refreshed successfully: ${Object.keys(data.data.schema?.tables || {}).length} tables found`,
+        error: 'Failed to refresh schema'
+      });
+    } catch (error) {
+      console.error("Sync failed", error);
+    }
+  };
+
   return (
     <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
       {/* Grid Pattern */}
@@ -295,8 +324,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                   <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
                     Integrations Marketplace
                   </h1>
-                  <div 
-                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]" 
+                  <div
+                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
                     style={{ backgroundColor: accentColor }}
                   />
                 </div>
@@ -329,33 +358,33 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 animate-in fade-in slide-in-from-bottom duration-500">
           {[
-            { 
-              title: "Total Integrations", 
-              value: apps.length, 
-              icon: Globe, 
-              trend: "+12%", 
-              color: "text-blue-500 bg-blue-500/10" 
+            {
+              title: "Total Integrations",
+              value: apps.length,
+              icon: Globe,
+              trend: "+12%",
+              color: "text-blue-500 bg-blue-500/10"
             },
-            { 
-              title: "Connected", 
-              value: apps.filter(a => a.connected).length, 
-              icon: CheckCircle, 
-              trend: "+8%", 
-              color: "text-emerald-500 bg-emerald-500/10" 
+            {
+              title: "Connected",
+              value: apps.filter(a => a.connected).length,
+              icon: CheckCircle,
+              trend: "+8%",
+              color: "text-emerald-500 bg-emerald-500/10"
             },
-            { 
-              title: "Active Accounts", 
-              value: apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0), 
-              icon: UserCircle, 
-              trend: "+15%", 
-              color: "text-blue-500 bg-blue-500/10" 
+            {
+              title: "Active Accounts",
+              value: apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0),
+              icon: UserCircle,
+              trend: "+15%",
+              color: "text-blue-500 bg-blue-500/10"
             },
-            { 
-              title: "Synced Today", 
-              value: apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length, 
-              icon: RefreshCw, 
-              trend: "-3%", 
-              color: "text-orange-500 bg-orange-500/10" 
+            {
+              title: "Synced Today",
+              value: apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length,
+              icon: RefreshCw,
+              trend: "-3%",
+              color: "text-orange-500 bg-orange-500/10"
             }
           ].map((stat, idx) => (
             <div
@@ -575,6 +604,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                         onConnect={handleConnect}
                         connectingApp={connectingApp}
                         onShowDetails={handleShowDetails}
+                        onEditConnection={handleEditConnection}
+                        onSyncCatalog={handleSyncCatalog}
                       />
                     ))
                   )}
@@ -601,6 +632,20 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             toast.success("Provider added successfully");
           }}
         />
+
+        <PostgresConnectionDialog
+          open={postgresModalOpen}
+          onOpenChange={(open) => {
+            setPostgresModalOpen(open);
+            if (!open) setEditConnectionData(null);
+          }}
+          initialData={editConnectionData}
+          onSuccess={() => {
+            fetchConnections();
+            toast.success("Postgres connected successfully");
+          }}
+        />
+
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
         <CreateTriggerDialog
@@ -628,6 +673,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           onConnect={handleConnect}
           onAction={handleContextualAction}
           isLoading={isLoadingMetadata}
+          onEditConnection={handleEditConnection}
+          onSyncCatalog={handleSyncCatalog}
         />
       </div>
     </div>

@@ -13,6 +13,9 @@ import { ConnectionGridCard } from './components/ConnectionGridCard';
 import { ConnectionListCard } from './components/ConnectionListCard';
 import { ConnectionCardSkeleton } from './components/ConnectionCardSkeleton';
 import { useTheme } from "@/components/theme-provider";
+import axios from 'axios';
+import { API_URL } from '../api/apiurl';
+import { PostgresConnectionDialog } from '../Utility/PostgresConnectionDialog';
 
 type SortType = 'date' | 'name' | 'service';
 
@@ -31,6 +34,34 @@ export default function Connections() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+
+  // Edit/Sync State
+  const [postgresModalOpen, setPostgresModalOpen] = useState(false);
+  const [editConnectionData, setEditConnectionData] = useState<any>(null);
+
+  const handleEditConnection = (account: any) => {
+    setEditConnectionData(account);
+    setPostgresModalOpen(true);
+  };
+
+  const handleSyncCatalog = async (account: any) => {
+    try {
+      const promise = axios.post(`${API_URL}/api/connections/${account.id}/catalog/refresh`, {
+        userId: user?.id
+      });
+
+      toast.promise(promise, {
+        loading: 'Refreshing database schema...',
+        success: (data) => {
+          // Refresh list to update Last Synced possibly, but mainly it updates the backend
+          return `Schema refreshed successfully: ${Object.keys(data.data.schema?.tables || {}).length} tables found`;
+        },
+        error: 'Failed to refresh schema'
+      });
+    } catch (error) {
+      console.error("Sync failed", error);
+    }
+  };
 
   // Get unique services for filter
   const services = Array.from(new Set(accounts.map(acc => acc.serviceName)));
@@ -63,13 +94,13 @@ export default function Connections() {
         .then((data: any) => {
           const servicesList = data.data || [];
           const allAccounts: ConnectedAccount[] = [];
-          
+
           servicesList.forEach((service: any) => {
             if (service.accounts && Array.isArray(service.accounts)) {
               service.accounts.forEach((acc: any) => {
                 const statuses: Array<'active' | 'expired' | 'warning'> = ['active', 'expired', 'warning'];
                 const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-                
+
                 allAccounts.push({
                   ...acc,
                   serviceId: service.id,
@@ -85,7 +116,7 @@ export default function Connections() {
               });
             }
           });
-          
+
           setAccounts(allAccounts);
         })
         .catch(err => {
@@ -98,20 +129,20 @@ export default function Connections() {
 
   const filterAndSortAccounts = () => {
     let filtered = [...accounts];
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(acc => 
+      filtered = filtered.filter(acc =>
         acc.username.toLowerCase().includes(query) ||
         acc.serviceName.toLowerCase().includes(query) ||
         acc.externalId.toLowerCase().includes(query)
       );
     }
-    
+
     if (selectedService !== 'all') {
       filtered = filtered.filter(acc => acc.serviceName === selectedService);
     }
-    
+
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
@@ -123,7 +154,7 @@ export default function Connections() {
           return new Date(b.connectedAt).getTime() - new Date(a.connectedAt).getTime();
       }
     });
-    
+
     setFilteredAccounts(filtered);
   };
 
@@ -172,7 +203,7 @@ export default function Connections() {
                 Manage your individual credentials and platform integrations. Securely connect and maintain different account identities to use within your automated workflows.
               </p>
             </div>
-          
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button onClick={fetchAccounts} disabled={isLoading} className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 disabled:opacity-50">
                 <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
@@ -188,16 +219,16 @@ export default function Connections() {
 
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm shrink-0">
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="relative flex-1 sm:flex-none sm:w-80">
-                <Input placeholder="Search accounts, services, or IDs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500" />
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
+            <div className="relative flex-1 sm:flex-none sm:w-80">
+              <Input placeholder="Search accounts, services, or IDs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
               {searchQuery && (
                 <button className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg" onClick={() => setSearchQuery('')}>
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-            
+
             <Select value={selectedService} onValueChange={setSelectedService}>
               <SelectTrigger className="h-11 w-full sm:w-52 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
                 <div className="flex items-center gap-2">
@@ -212,7 +243,7 @@ export default function Connections() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortType)}>
               <SelectTrigger className="h-11 w-full sm:w-44 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10">
                 <div className="flex items-center gap-2">
@@ -227,7 +258,7 @@ export default function Connections() {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-500/20">
               <Shield className="h-3.5 w-3.5" />
@@ -247,60 +278,64 @@ export default function Connections() {
 
         <div className="flex-1 pr-2 -mr-2 scrollbar-none space-y-6">
           <AnimatePresence mode="wait">
-          {isLoading ? (
+            {isLoading ? (
               <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <ConnectionCardSkeleton key={i} viewMode={viewMode} />
                 ))}
               </motion.div>
             ) : filteredAccounts.length === 0 ? (
-            <motion.div key="empty" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center px-4">
-              <div className="relative mb-8">
-                <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
-                <div className="relative w-28 h-28 rounded-[2rem] bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 flex items-center justify-center shadow-2xl">
-                  <Shield className="h-14 w-14 text-blue-500/60" />
+              <motion.div key="empty" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center px-4">
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
+                  <div className="relative w-28 h-28 rounded-[2rem] bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 flex items-center justify-center shadow-2xl">
+                    <Shield className="h-14 w-14 text-blue-500/60" />
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No connections found</h3>
-              <p className="text-slate-500 dark:text-blue-200/70 max-w-md mb-8 font-medium">
-                {searchQuery ? "We couldn't find any accounts matching your search. Try broadening your criteria." : "Connect your first platform to unlock the full power of automated workflows."}
-              </p>
-              <div className="flex gap-4">
-                <button className="h-12 px-6 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 font-semibold inline-flex items-center justify-center" onClick={() => setSearchQuery('')}>
-                  <X className="h-4 w-4 mr-2" />
-                  Clear Search
-                </button>
-                <button className="h-12 px-8 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all inline-flex items-center justify-center">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Explore Hub
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"}>
-              {paginatedAccounts.map((account) => (
-                viewMode === 'list' ? (
-                  <ConnectionListCard 
-                    key={account.id} 
-                    account={account} 
-                    onDelete={handleDelete} 
-                    isDeleting={deletingId === account.id} 
-                  />
-                ) : (
-                  <ConnectionGridCard 
-                    key={account.id} 
-                    account={account} 
-                    onDelete={handleDelete} 
-                    isDeleting={deletingId === account.id} 
-                  />
-                )
-              ))}
-            </motion.div>
-          )}
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">No connections found</h3>
+                <p className="text-slate-500 dark:text-blue-200/70 max-w-md mb-8 font-medium">
+                  {searchQuery ? "We couldn't find any accounts matching your search. Try broadening your criteria." : "Connect your first platform to unlock the full power of automated workflows."}
+                </p>
+                <div className="flex gap-4">
+                  <button className="h-12 px-6 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 font-semibold inline-flex items-center justify-center" onClick={() => setSearchQuery('')}>
+                    <X className="h-4 w-4 mr-2" />
+                    Clear Search
+                  </button>
+                  <button className="h-12 px-8 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all inline-flex items-center justify-center">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Explore Hub
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key={viewMode} layout className={viewMode === 'list' ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"}>
+                {paginatedAccounts.map((account) => (
+                  viewMode === 'list' ? (
+                    <ConnectionListCard
+                      key={account.id}
+                      account={account}
+                      onDelete={handleDelete}
+                      isDeleting={deletingId === account.id}
+                      onEditConnection={handleEditConnection}
+                      onSyncCatalog={handleSyncCatalog}
+                    />
+                  ) : (
+                    <ConnectionGridCard
+                      key={account.id}
+                      account={account}
+                      onDelete={handleDelete}
+                      isDeleting={deletingId === account.id}
+                      onEditConnection={handleEditConnection}
+                      onSyncCatalog={handleSyncCatalog}
+                    />
+                  )
+                ))}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
-        <CustomPagination 
+        <CustomPagination
           currentPage={currentPage}
           totalItems={filteredAccounts.length}
           itemsPerPage={itemsPerPage}
@@ -308,6 +343,13 @@ export default function Connections() {
           onItemsPerPageChange={setItemsPerPage}
         />
       </div>
+
+      <PostgresConnectionDialog
+        open={postgresModalOpen}
+        onOpenChange={setPostgresModalOpen}
+        onSuccess={fetchAccounts}
+        initialData={editConnectionData}
+      />
     </div>
   );
 }

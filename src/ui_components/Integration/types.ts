@@ -4,6 +4,8 @@ export interface ConnectedAccount {
   username: string;
   avatarUrl: string;
   connectedAt: string;
+  meta?: any;
+  accessToken?: string;
 }
 
 export interface IntegrationApp {
