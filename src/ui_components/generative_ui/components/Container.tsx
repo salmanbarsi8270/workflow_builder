@@ -33,16 +33,22 @@ export const Container = ({
         <div className={cn("w-full h-full", layoutClasses)}>
             {Array.isArray(children) ? (
                 children.map((child: any, index: number) => (
-                    // If child is an object (component definition), render it via DynamicRenderer
-                    // If it's a string, render directly
-                    typeof child === 'object' && child !== null ? (
-                        <DynamicRenderer key={child.id || index} component={child} />
-                    ) : (
+                    // 1. Check if child is a valid React element
+                    React.isValidElement(child) ? (
                         <React.Fragment key={index}>{child}</React.Fragment>
-                    )
+                    ) :
+                        // 2. Check if child is an object (component definition)
+                        typeof child === 'object' && child !== null ? (
+                            <DynamicRenderer key={child.id || index} component={child} />
+                        ) : (
+                            // 3. Fallback for strings/other
+                            <React.Fragment key={index}>{child}</React.Fragment>
+                        )
                 ))
             ) : (
-                typeof children === 'object' && children !== null ? (
+                React.isValidElement(children) ? (
+                    children
+                ) : typeof children === 'object' && children !== null ? (
                     <DynamicRenderer component={children} />
                 ) : children
             )}

@@ -12,18 +12,34 @@ STRUCTURE YOUR RESPONSE:
 3. Use MARKDOWN code blocks ( \`\`\`json ... \`\`\` ) for all JSON output.
 
 DESIGN RULES:
-    1. Use 'colSpan: 12' ONLY for large data-tables or complex dashboards.
-    2. Favor 'colSpan: 4' or 'colSpan: 6' for summary-cards and stats-grids.
-    3. ICONS: ONLY use valid Lucide-React icon names (PascalCase, e.g., 'Activity', 'Shield', 'LineChart', 'Coins', 'Users', 'Zap', 'Box'). 
-    4. Prohibited Icon Names: 'Tokens', 'ArrowRightOnRectangle', 'RectangleStack' (these are invalid).
-    5. Always provide 2-3 sentences of context BEFORE any JSON block to explain your design reasoning.
-    6. Ensure every UI component has a unique 'id'.
-- Use 'colSpan: 3' (1/4 width) for single KPI cards or status tags.
-- DENSITY: Try to fill rows effectively. If you have 3 small metrics, use 'colSpan: 4' for each so they sit in one row.
-- Avoid large empty spaces by matching component width to content depth.
+    1. GRID LAYOUT: The canvas uses a 12-column grid. 
+       - Use 'layout': { 'colSpan': 12 } for large items (width: 100%).
+       - Use 'layout': { 'colSpan': 6 } for medium items (width: 50%).
+       - Use 'layout': { 'colSpan': 4 } for small items (width: 33%).
+       - Use 'layout': { 'colSpan': 3 } for mini items (width: 25%).
+       - You can also use 'rowSpan' (default 1) to make taller items.
+       - You can use 'colStart' or 'rowStart' to force positioning (e.g. 'colStart': 1 to start a new row).
 
-AVAILABLE COMPONENTS:
-<COMPONENT_DEFINITIONS_JSON>
+    2. UI RULES:
+       - Icons: PascalCase Lucide-React names only.
+       - IDs: Ensure every UI component has a unique 'id'.
+       - Context: Provide 2-3 sentences of context BEFORE any JSON block.
+
+    3. DENSITY: 
+       - Try to fill rows effectively. If you have 3 small metrics, use 'colSpan: 4' for each so they sit in one row.
+       - Avoid large empty spaces.
+
+    4. EXAMPLE:
+       \`\`\`json
+       {
+         "type": "kpi-card",
+         "props": { "label": "Revenue", "value": "$10k" },
+         "layout": { "colSpan": 4 }
+       }
+       \`\`\`
+
+    AVAILABLE COMPONENTS:
+    <COMPONENT_DEFINITIONS_JSON>
 `;
 
 const DEBUG_SCHEMA: UIComponent = {

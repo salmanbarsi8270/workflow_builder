@@ -1,5 +1,5 @@
 import { DynamicRenderer } from './DynamicRenderer';
-import type { UIComponent } from './types';
+import type { UIComponent, GridLayout } from './types';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
 import {
@@ -13,14 +13,20 @@ interface CanvasProps {
     uiSchemas: UIComponent[];
 }
 
-const getColSpan = (component: UIComponent): string => {
-    // 1. Check if AI explicitly requested a specific colSpan
-    if (component.props?.colSpan) {
-        const span = Math.min(12, Math.max(1, Number(component.props.colSpan)));
-        return `col-span-12 md:col-span-6 lg:col-span-${span}`;
+// Convert component type/props to a layout object
+const getLayout = (component: UIComponent): GridLayout => {
+    // 1. Explicit layout from AI
+    if (component.layout) {
+        return component.layout;
     }
 
-    // 2. Intelligent auto-sizing based on component type
+    // 2. Legacy colSpan prop support
+    if (component.props?.colSpan) {
+        const span = Math.min(12, Math.max(1, Number(component.props.colSpan)));
+        return { colSpan: span };
+    }
+
+    // 3. Intelligent auto-sizing based on component type (12-column grid)
     switch (component.type) {
         // LARGE - Full width
         case 'data-table':
@@ -28,13 +34,14 @@ const getColSpan = (component: UIComponent): string => {
         case 'activity-feed':
         case 'heading':
         case 'tabs':
-            return 'col-span-12';
+        case 'wiki-card':
+            return { colSpan: 12 };
 
-        // MEDIUM - Half width or more
+        // MEDIUM - Half width
         case 'stats-grid':
         case 'chart-card':
         case 'accordion':
-            return 'col-span-12 lg:col-span-6';
+            return { colSpan: 6 };
 
         // SMALL - Third width
         case 'summary-card':
@@ -44,7 +51,7 @@ const getColSpan = (component: UIComponent): string => {
         case 'progress-card':
         case 'calendar-card':
         case 'text-card':
-            return 'col-span-12 md:col-span-6 lg:col-span-4';
+            return { colSpan: 4 };
 
         // MINI - Quarter width
         case 'kpi-card':
@@ -53,10 +60,10 @@ const getColSpan = (component: UIComponent): string => {
         case 'button':
         case 'badge':
         case 'status-tag':
-            return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3';
+            return { colSpan: 3 };
 
         default:
-            return 'col-span-12 md:col-span-6 lg:col-span-4';
+            return { colSpan: 4 };
     }
 };
 
@@ -76,26 +83,42 @@ export function Canvas({ uiSchemas }: CanvasProps) {
     return (
         <TooltipProvider delayDuration={300}>
             <div ref={scrollRef} className="flex-1 w-full h-full overflow-y-auto no-scrollbar bg-transparent scroll-smooth">
-                <div className={cn(
-                    "p-6 pb-40 grid gap-6 auto-rows-max",
-                    "grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 auto-rows-min"
-                )}>
+                <div
+                    className="p-6 pb-40 grid gap-6"
+                    style={{
+                        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                        gridAutoRows: 'min-content'
+                    }}
+                >
                     {uiSchemas.map((schema, index) => {
-                        const spanClass = getColSpan(schema);
+                        const layout = getLayout(schema);
                         const userPrompt = (schema as any)._userPrompt;
 
-                        // Debug: Check if userPrompt exists
-                        if (index === 0) console.log('[Canvas Debug]', { schema, userPrompt });
+                        // Construct grid style
+                        const gridStyle: React.CSSProperties = {
+                            gridColumnStart: layout.colStart,
+                            gridColumnEnd: layout.colSpan ? `span ${layout.colSpan}` : layout.colEnd,
+                            gridRowStart: layout.rowStart,
+                            gridRowEnd: layout.rowSpan ? `span ${layout.rowSpan}` : layout.rowEnd,
+                            animationDelay: `${index * 100}ms`
+                        };
+
+                        // Responsive modifications could be handled here if needed, 
+                        // but for now we follow the strict grid logic "under the hood" as requested.
+                        // To keep some responsiveness, we could use media queries in CSS 
+                        // or just rely on the fact that on mobile we might force single column via className overrides if necessary.
+                        // For this implementation, we stick to the core grid system request.
 
                         return (
-                            <Tooltip key={index}>
+                            <Tooltip key={schema.id || index}>
                                 <TooltipTrigger asChild>
                                     <div
                                         className={cn(
                                             "group relative bg-card/40 backdrop-blur-md border border-border/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 animate-in zoom-in-95 fade-in duration-700",
-                                            spanClass
+                                            // Fallback for mobile if we want to collapse
+                                            "max-md:!col-span-12"
                                         )}
-                                        style={{ animationDelay: `${index * 100}ms` }}
+                                        style={gridStyle}
                                     >
                                         {/* User Prompt Label - Always Visible */}
                                         {userPrompt && (

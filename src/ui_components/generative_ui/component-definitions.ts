@@ -267,7 +267,7 @@ export const COMPONENT_DEFINITIONS: Record<string, ComponentDefinition> = {
         description: 'Wikipedia-style explanatory card. Use this when the user needs a detailed, text-heavy explanation of a concept or flow. It supports a title, subtitle, main content paragraph, optional image, citations, and related links.',
         category: 'feedback',
         props: {
-            title: { type: 'string', description: 'Article title', required: true },
+            title: { type: 'string', description: 'Article Article', required: true },
             subtitle: { type: 'string', description: 'Subtitle or short description', required: false },
             content: { type: 'string', description: 'Main explanatory text. Use \\n for paragraph breaks.', required: true },
             imageUrl: { type: 'string', description: 'URL for a side image (infobox style)', required: false },
@@ -275,5 +275,18 @@ export const COMPONENT_DEFINITIONS: Record<string, ComponentDefinition> = {
             relatedLinks: { type: 'array', description: 'List of {label, url} objects', required: false }
         },
         example: '{"type": "wiki-card", "props": {"title": "Flow Architecture", "subtitle": "System Design", "content": "The flow begins with an event trigger...", "citations": [" System docs v1"], "relatedLinks": [{"label": "Docs", "url": "#"}]}}'
+    },
+    'grid-container': {
+        type: 'grid-container',
+        description: 'CSS Grid container for advanced layouts. Supports creating a grid with specific rows and columns, and placing children into specific cells using row/col start/end/span properties.',
+        category: 'visualization',
+        props: {
+            rows: { type: 'number', description: 'Number of rows (equal height) or grid-template-rows string (e.g. "100px 1fr")', defaultValue: 2 },
+            cols: { type: 'number', description: 'Number of columns (equal width) or grid-template-columns string', defaultValue: 4 },
+            gap: { type: 'string', description: 'Gap between cells (0-12)', defaultValue: '4' },
+            padding: { type: 'string', description: 'Container padding (0-12)', defaultValue: '4' },
+            height: { type: 'string', description: 'Height class (e.g. min-h-screen, h-full)', defaultValue: 'min-h-[400px]' }
+        },
+        example: '{"type": "grid-container", "props": {"rows": 2, "cols": 4}, "children": [{"type": "kpi-card", "props": {"label": "Revenue", "value": "$10k"}, "layout": {"colSpan": 2, "rowSpan": 1}}]}'
     }
 };

@@ -23,17 +23,28 @@ export type ComponentType =
   | 'avatar'
   | 'tabs'
   | 'wiki-card'
-  | 'container';
+  | 'container'
+  | 'grid-container';
 
 export interface BaseProps {
   className?: string;
   [key: string]: any;
 }
 
+export interface GridLayout {
+  colStart?: number | string;
+  colEnd?: number | string;
+  rowStart?: number | string;
+  rowEnd?: number | string;
+  colSpan?: number | string;
+  rowSpan?: number | string;
+}
+
 export interface UIComponent {
   id?: string;
   type: ComponentType | string;
   props?: BaseProps;
+  layout?: GridLayout;
   children?: (UIComponent | string)[] | string;
 }
 

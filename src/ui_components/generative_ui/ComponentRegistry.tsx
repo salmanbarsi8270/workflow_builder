@@ -2,6 +2,7 @@ import React from 'react';
 import { KPICard } from './components/KPICard';
 import { WikiCard } from './components/WikiCard';
 import { Container } from './components/Container';
+import { GridContainer } from './components/GridContainer';
 import { StatsGrid } from './components/StatsGrid';
 import { DataTable } from './components/DataTable';
 import { StatsList } from './components/StatsList';
@@ -21,8 +22,15 @@ import { TextCard } from './components/TextCard';
 import { CalendarCard } from './components/CalendarCard';
 import { GenButton, GenBadge, GenAccordion, GenAvatar, GenTabs } from './components/ShadcnPrimitives';
 
+// Internal Text Component
+const Text = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <span className={className}>{children}</span>
+);
+
 // Registry Map
 export const componentRegistry: Record<string, React.ComponentType<any>> = {
+    'text': Text,
+    'grid-container': GridContainer,
     'container': Container,
     'wiki-card': WikiCard,
     'kpi-card': KPICard,
