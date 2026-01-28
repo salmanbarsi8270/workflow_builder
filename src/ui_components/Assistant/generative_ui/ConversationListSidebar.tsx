@@ -1,10 +1,10 @@
 import { MessageSquare, Folder, Plus, MoreHorizontal, Pencil, Trash2, Check, X } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
-import aiClient from '../api/aiClient';
 import { useUser } from '@/context/UserContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import aiClient from '@/ui_components/api/aiClient';
 
 interface Conversation {
     id: string;

@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { API_URL } from '../../ui_components/api/apiurl';
+import { useState, useEffect, useRef } from 'react';
+import { API_URL } from '@/ui_components/api/apiurl';
 import { SupportHeader } from './components/SupportHeader';
 import { SupportBody } from './components/SupportBody';
 import { SupportInput } from './components/SupportInput';
 import { HistorySlider } from './components/HistorySlider';
-import { SidebarProvider, SidebarInset } from '@/components/sidebar';
 
 export interface Message {
     role: 'user' | 'assistant';
@@ -179,27 +178,6 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [currentSession.messages]);
-
-    const simulateTyping = useCallback(async (text: string): Promise<string> => {
-        setIsTyping(true);
-        const characters = text.split('');
-        let displayedText = '';
-        
-        for (let i = 0; i < characters.length; i++) {
-            displayedText += characters[i];
-            setCurrentSession(prev => ({
-                ...prev,
-                messages: prev.messages.map((msg, idx, arr) => 
-                    idx === arr.length - 1 
-                        ? { ...msg, content: displayedText }
-                        : msg
-                )
-            }));
-            await new Promise(resolve => setTimeout(resolve, 1000 / typingSpeed));
-        }
-        setIsTyping(false);
-        return displayedText;
-    }, [typingSpeed]);
 
     const handleSendMessage = async (overrideInput?: string) => {
         const userMessage = overrideInput || input.trim();
@@ -455,16 +433,16 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
     };
 
     const suggestions = [
-        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📋' },
+        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '�' },
         { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Show and manage your configured AI assistants in real-time.', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: '🤖', popular: true },
         { title: 'Execution Logs', badge: 'Recent', desc: 'Review the latest flow executions and performance metrics.', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: '🕒' },
+        { title: 'User Roles', badge: 'Access', desc: 'Manage user permissions and organizational access controls.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
     ];
 
     return (
-        <SidebarProvider open={showHistorySlider} onOpenChange={setShowHistorySlider} className="h-full min-h-0 relative">
+        <div className="flex h-full w-full bg-[#f8f9fa] dark:bg-[#050505] text-foreground relative font-inter overflow-hidden">
             <HistorySlider 
                 sessions={chatSessions}
-                currentSession={currentSession}
                 selectedSessionId={selectedSessionId}
                 onSelectSession={handleLoadSession}
                 onDeleteSession={handleDeleteSession}
@@ -473,9 +451,10 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                 onClearHistory={handleClearHistory}
                 onExportSession={handleExportSession}
                 onCreateNew={() => handleLoadSession('current')}
+                isOpen={showHistorySlider}
             />
 
-            <SidebarInset className="flex flex-col h-full max-w-full md:max-w-[90%] mx-auto bg-[#f8f9fa] dark:bg-[#050505] text-foreground relative font-inter border-l border-border/50 dark:border-white/5">
+            <div className="flex-1 flex flex-col h-full min-w-0 relative">
                 <SupportHeader 
                     messageCount={currentSession.messages.length}
                     isTyping={isTyping}
@@ -483,32 +462,35 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                     onTypingSpeedChange={setTypingSpeed}
                     currentSessionTitle={currentSession.title}
                     onToggleHistory={() => setShowHistorySlider(!showHistorySlider)}
+                    isHistoryOpen={showHistorySlider}
                     onSaveSession={handleSaveCurrentSession}
                 />
                 
                 <div className="flex-1 min-h-0 relative flex flex-col overflow-hidden">
-                    <SupportBody 
-                        messages={currentSession.messages}
-                        userName={userName}
-                        loading={loading}
-                        isTyping={isTyping}
-                        suggestions={suggestions}
-                        onSendMessage={handleSendMessage}
-                        scrollAreaRef={scrollAreaRef}
-                        messagesEndRef={messagesEndRef}
-                        sessionTitle={currentSession.title}
-                        onRenameSession={(title) => handleRenameSession(selectedSessionId, title)}
-                    />
+                    <>
+                            <SupportBody 
+                                messages={currentSession.messages}
+                                userName={userName}
+                                loading={loading}
+                                isTyping={isTyping}
+                                onSendMessage={handleSendMessage}
+                                scrollAreaRef={scrollAreaRef}
+                                messagesEndRef={messagesEndRef}
+                                sessionTitle={currentSession.title}
+                                onRenameSession={(title) => handleRenameSession(selectedSessionId, title)}
+                            />
+                            <div className="shrink-0">
+                                <SupportInput 
+                                    input={input}
+                                    setInput={setInput}
+                                    onSendMessage={handleSendMessage}
+                                    loading={loading || isTyping}
+                                    suggestions={suggestions}
+                                />
+                            </div>
+                        </>
                 </div>
-
-                <SupportInput 
-                    input={input}
-                    setInput={setInput}
-                    onSendMessage={() => handleSendMessage()}
-                    loading={loading || isTyping}
-                    suggestions={suggestions.slice(0, 2)}
-                />
-            </SidebarInset>
-        </SidebarProvider>
+            </div>
+        </div>
     );
 }

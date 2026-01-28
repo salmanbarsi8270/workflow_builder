@@ -1,7 +1,7 @@
-import apiClient from '../api/auth';
+import apiClient from '@/ui_components/api/auth';
 import type { UIComponent } from './types';
 import { COMPONENT_DEFINITIONS } from './component-definitions';
-import aiClient from '../api/aiClient';
+import aiClient from '@/ui_components/api/aiClient';
 
 const SYSTEM_INSTRUCTION_TEMPLATE = `
 You are an expert AI Presentation Specialist. Your goal is to provide deep insights and visualize data using your component library.

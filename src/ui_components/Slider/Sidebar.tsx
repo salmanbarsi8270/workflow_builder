@@ -26,7 +26,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, HandshakeIcon, ChevronRight, Search, Bell, SettingsIcon } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, HandshakeIcon, ChevronRight, Search, Bell, SettingsIcon, BotIcon } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -34,11 +34,11 @@ import { useState, useEffect } from 'react';
  
 import { motion } from 'framer-motion';
 import { ColorPickerModal } from './ColorPickerModal';
-import { GlobalSupport } from '../support/GlobalSupport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ApprovalsList } from '../Dashboard/ApprovalsList';
 import axios from 'axios';
 import { API_URL } from '../api/apiurl';
+import { GlobalSupport } from '../Assistant/support/GlobalSupport'
  
 export function SidebarIconExample() {
   const { theme, setTheme, accentColor } = useTheme()
@@ -124,14 +124,9 @@ export function SidebarIconExample() {
       icon: <UserCircle size={18} />,
     },
     {
-      title: "Support",
-      url: "/support",
-      icon: <HandshakeIcon size={18} />,
-    },
-    {
-      title: "presentation",
-      url: "/presentation",
-      icon: <SettingsIcon size={18} />,
+      title: "Assistant",
+      url: "/assistant",
+      icon: <BotIcon size={18} />,
     }
   ]
  

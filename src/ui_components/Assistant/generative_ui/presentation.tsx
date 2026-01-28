@@ -8,8 +8,8 @@ import { ConversationListSidebar } from './ConversationListSidebar';
 import { MessageHistorySidebar } from './MessageHistorySidebar';
 import { MessageSquare, History, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import aiClient from '../api/aiClient';
 import { extractAllJson, generateComponentId } from './utils';
+import aiClient from '@/ui_components/api/aiClient';
 
 const PRESENTATION_AGENT_ID = 'e8cd753a-7a7e-4aba-8795-1cfdafee333e';
 
@@ -149,7 +149,7 @@ export const Presentation = () => {
     };
 
     return (
-        <div className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans relative">
+        <div className="flex h-full w-full   mx-auto bg-background text-foreground overflow-hidden font-sans relative">
 
             {/* Loading Overlay */}
             {isLoadingHistory && (
