@@ -26,7 +26,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, HandshakeIcon, ChevronRight, Search, Bell } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutGrid, Zap, Globe, Monitor, Wrench, FolderOpen, UserCircle, HandshakeIcon, ChevronRight, Search, Bell, SettingsIcon } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -128,6 +128,11 @@ export function SidebarIconExample() {
       url: "/support",
       icon: <HandshakeIcon size={18} />,
     },
+    {
+      title: "presentation",
+      url: "/presentation",
+      icon: <SettingsIcon size={18} />,
+    }
   ]
  
   const getPageTitle = (pathname: string) => {

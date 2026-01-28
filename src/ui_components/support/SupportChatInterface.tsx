@@ -475,7 +475,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                 onCreateNew={() => handleLoadSession('current')}
             />
 
-            <SidebarInset className="flex flex-col h-full max-w-[90%] mx-auto bg-[#f8f9fa] dark:bg-[#050505] text-foreground relative font-inter border-l border-border/50 dark:border-white/5">
+            <SidebarInset className="flex flex-col h-full max-w-full md:max-w-[90%] mx-auto bg-[#f8f9fa] dark:bg-[#050505] text-foreground relative font-inter border-l border-border/50 dark:border-white/5">
                 <SupportHeader 
                     messageCount={currentSession.messages.length}
                     isTyping={isTyping}

@@ -73,9 +73,9 @@ export const SupportBody: React.FC<SupportBodyProps> = ({
     return (
         <div className="flex-1 flex flex-col relative z-20 w-full h-full overflow-hidden">
             <ScrollArea className="flex-1 h-full w-full" ref={scrollAreaRef}>
-                <div className="flex flex-col w-[90%] mx-auto py-2">
+                <div className="flex flex-col w-full px-4 md:w-[90%] md:px-0 mx-auto py-2">
                     {messages.length === 0 ? (
-                        <div className="flex flex-col justify-center items-start px-8 animate-fade-in">
+                        <div className="flex flex-col justify-center items-start px-2 md:px-8 animate-fade-in">
                             <div className="mb-6">
                                 <h1 className="text-3xl md:text-4xl font-light text-foreground/90 animate-slide-up">
                                     Hey! <span className="text-primary">{userName}</span>
@@ -138,7 +138,7 @@ export const SupportBody: React.FC<SupportBodyProps> = ({
                                     <button 
                                         key={i} 
                                         onClick={() => onSendMessage(s.desc)}
-                                        className="relative flex flex-col items-start p-6 rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 transition-all text-left group hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] hover:scale-[1.02] active:scale-[0.98] transform-gpu duration-300 animate-slide-up shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
+                                        className="relative flex flex-col items-start p-4 md:p-6 rounded-3xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 transition-all text-left group hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] hover:scale-[1.02] active:scale-[0.98] transform-gpu duration-300 animate-slide-up shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
                                         style={{ animationDelay: `${i * 100}ms` }}
                                     >
                                         <div className="w-full flex items-start justify-between mb-6">
@@ -205,8 +205,9 @@ export const SupportBody: React.FC<SupportBodyProps> = ({
                                             </div>
                                         )}
                                     </Avatar>
+
                                     
-                                    <div className={`flex flex-col gap-2 max-w-[85%] md:max-w-[75%] ${m.role === 'user' ? 'items-end' : ''}`}>
+                                    <div className={`flex flex-col gap-2 max-w-[90%] md:max-w-[85%] lg:max-w-[75%] ${m.role === 'user' ? 'items-end' : ''}`}>
                                         <MessageBubble 
                                             message={m}
                                             role={m.role}
