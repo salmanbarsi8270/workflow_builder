@@ -1,17 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import type { ActivityChartData } from './types';
+import { useTheme } from "@/components/theme-provider";
 
 interface ActivityChartProps {
     data: ActivityChartData[];
 }
 
 export function ActivityChart({ data }: ActivityChartProps) {
+    const { accentColor } = useTheme();
+
     return (
         <Card className="col-span-4 lg:col-span-5 bg-white/70 dark:bg-white/5 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-none rounded-2xl">
             <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                    <div 
+                        className="h-2 w-2 rounded-full animate-pulse" 
+                        style={{ backgroundColor: accentColor }}
+                    />
                     <CardTitle className="text-[10px] uppercase tracking-widest text-slate-400 dark:text-blue-300/50 font-black">Activity Overview</CardTitle>
                 </div>
                 <CardDescription className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Executions History</CardDescription>
@@ -21,8 +27,8 @@ export function ActivityChart({ data }: ActivityChartProps) {
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient id="colorRuns" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                <stop offset="5%" stopColor={accentColor} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={accentColor} stopOpacity={0}/>
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
@@ -47,18 +53,18 @@ export function ActivityChart({ data }: ActivityChartProps) {
                                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                                 padding: '12px'
                             }}
-                            itemStyle={{ color: '#3b82f6', fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}
+                            itemStyle={{ color: accentColor, fontWeight: 900, fontSize: '12px', textTransform: 'uppercase' }}
                             labelStyle={{ color: '#64748b', fontWeight: 700, fontSize: '10px', marginBottom: '4px', textTransform: 'uppercase' }}
                         />
                         <Area 
                             type="monotone" 
                             dataKey="runs" 
-                            stroke="#3b82f6" 
+                            stroke={accentColor} 
                             fillOpacity={1} 
                             fill="url(#colorRuns)" 
                             strokeWidth={4}
-                            dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                            activeDot={{ r: 6, fill: '#2563eb', strokeWidth: 0 }}
+                            dot={{ r: 4, fill: accentColor, strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 6, fill: accentColor, strokeWidth: 0 }}
                         />
                     </AreaChart>
                 </ResponsiveContainer>

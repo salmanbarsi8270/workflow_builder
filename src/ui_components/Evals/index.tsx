@@ -6,8 +6,8 @@ import { CustomPagination } from '../Shared/CustomPagination';
 import {
   Play, Trash2, BarChart3,
   RefreshCcw, Loader2,
-  Brain, Zap, Eye,
-  RefreshCw, ChevronDown, X, Sparkles,
+  Zap, Eye,
+  RefreshCw, ChevronDown, X,
   Search, Filter,
   TrendingUp, Clock,
   User,
@@ -16,8 +16,8 @@ import {
 import { getServices } from '../api/connectionlist';
 import { AI_URL } from '../api/apiurl';
 import { useUser } from '@/context/UserContext';
-import { cn } from "@/lib/utils";
 import { Toaster, toast } from 'sonner';
+import { useTheme } from "@/components/theme-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 interface Evaluation {
   eval_id: string;
@@ -55,6 +56,7 @@ interface Evaluation {
 
 export default function Evals() {
   const { user } = useUser();
+  const { accentColor } = useTheme();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [filteredEvaluations, setFilteredEvaluations] = useState<Evaluation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -311,31 +313,30 @@ export default function Evals() {
   const uniqueAgentNames = Array.from(new Set(evaluations.map(item => item.agent_name)));
 
   return (
-    <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
+    <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
 
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.01)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
-      <div className="relative z-10 container mx-auto px-4 py-8 w-full flex flex-col min-h-full">
+      <div className="relative w-full max-w-[90%] mx-auto z-10 p-8 h-full flex flex-col gap-8">
 
         {/* Header Section - Improved with better spacing */}
-        <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20" />
-                <div className="relative bg-linear-to-br from-blue-600 to-indigo-600 p-3 rounded-2xl shadow-xl">
-                  <Brain className="h-8 w-8 text-white" />
+        <div className="mb-4 animate-in fade-in slide-in-from-top duration-500">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+            <div className="flex-1">
+              <div className="mb-6">
+                <div className="items-center gap-4 mb-3">
+                  <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                    Live Evals
+                  </h1>
+                  <div
+                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                    style={{ backgroundColor: accentColor }}
+                  />
                 </div>
               </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-linear-to-r from-slate-900 via-blue-800 to-indigo-800 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-1">
-                  Agent Evaluations
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-blue-200/70 flex items-center gap-2">
-                  <Sparkles className="h-3 w-3" />
-                  Evaluate, benchmark, and score your AI agents
-                </p>
-              </div>
+              <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                Evaluate, benchmark, and score your AI agents with automated test runs and real-world scenarios. Track performance over time using clear metrics like accuracy, latency, and cost to continuously optimize agent quality.
+              </p>
             </div>
 
             {/* Header Stats & Button */}

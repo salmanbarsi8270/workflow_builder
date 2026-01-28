@@ -1,13 +1,13 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, Plus, Search, X, RefreshCw,} from "lucide-react"
+import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, CalendarIcon, Workflow, Layers, ArrowUpDown, Plus, Search, X, RefreshCw,} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
+import { useTheme } from "@/components/theme-provider"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { CustomPagination } from "../../Shared/CustomPagination"
@@ -45,6 +45,7 @@ interface AutomationListProps {
 type SortType = 'name' | 'date' | 'recent' | 'runs';
 
 export default function AutomationList({ automations, search, setSearch, onToggleStatus, onDelete, onEditName, onOpenEditor, onCreate, isLoading = false, onRefresh }: AutomationListProps) {
+    const { accentColor } = useTheme();
     const [sortBy, setSortBy] = useState<SortType>('name');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -75,90 +76,89 @@ export default function AutomationList({ automations, search, setSearch, onToggl
     );
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.01)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
-        <Card className="flex flex-col h-[calc(100vh-4rem)] bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Workflow className="h-6 w-6 text-blue-500" />
-                  Automation Workflows
-                </CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  <Sparkles className="h-3 w-3" />
-                  Manage and monitor your automated workflows
-                </CardDescription>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex items-center gap-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <ArrowUpDown className="h-3.5 w-3.5" />
-                        Sort
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setSortBy('name')}>
-                        By Name
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('date')}>
-                        By Date Created
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('recent')}>
-                        By Recent Activity
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setSortBy('runs')}>
-                        By Run Count
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            <div className="relative w-full max-w-[90%] mx-auto z-10 p-8 h-full flex flex-col gap-8">
+                <div className="mb-4 animate-in fade-in slide-in-from-top duration-500">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+                        <div className="flex-1">
+                            <div className="mb-6">
+                                <div className="items-center gap-4 mb-3">
+                                    <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                                        Automation Workflows
+                                    </h1>
+                                    <div 
+                                        className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]" 
+                                        style={{ backgroundColor: accentColor }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                                Manage and monitor your automated workflows. Connect different applications and services to create seamless data flows.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex items-center gap-3">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md gap-2">
+                                            <ArrowUpDown className="h-4 w-4" />
+                                            <span className="font-semibold">Sort</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 rounded-xl border-slate-200 dark:border-white/10">
+                                        <DropdownMenuItem onClick={() => setSortBy('name')}>By Name</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSortBy('date')}>By Date Created</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSortBy('recent')}>By Recent Activity</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setSortBy('runs')}>By Run Count</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-11 w-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md"
+                                    onClick={onRefresh}
+                                    disabled={isLoading}
+                                >
+                                    <RefreshCw className={cn("h-4 w-4 text-slate-500", isLoading && "animate-spin")} />
+                                </Button>
+                            </div>
+
+                            <Button 
+                                className="h-11 px-6 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] flex items-center gap-2"
+                                onClick={onCreate}
+                            >
+                                <Plus className="h-5 w-5" />
+                                Create New
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="relative group max-w-md">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                        <Input 
+                            placeholder="SEARCH AUTOMATIONS..." 
+                            value={search} 
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full h-11 pl-12 pr-10 bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        />
+                        {search && (
+                            <button 
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                onClick={() => setSearch('')}
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                  <div className="relative flex-1 sm:flex-none sm:w-80">
-                    <Input 
-                      placeholder="Search automations..." 
-                      value={search} 
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10 h-11 bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 rounded-xl focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10 pointer-events-none" />
-                    {search && (
-                      <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-slate-100 dark:hover:bg-white/5" onClick={() => setSearch('')}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-11 w-11 rounded-xl bg-white/70 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                    onClick={onRefresh}
-                    disabled={isLoading}
-                  >
-                    <RefreshCw className={cn("h-4 w-4 text-slate-500", isLoading && "animate-spin")} />
-                  </Button>
-                </div>
-                
-                <Button 
-                  className="group relative px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-                  onClick={onCreate}
-                >
-                  <div className="absolute inset-0 bg-linear-to-r from-indigo-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="relative flex items-center gap-2 text-white">
-                    <Plus className="h-5 w-5" />
-                    Create New
-                  </div>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="flex-1 overflow-y-auto p-0">
-            <AnimatePresence mode="wait">
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    <div className="p-0">
+                        <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
                   key="loading"
@@ -366,18 +366,19 @@ export default function AutomationList({ automations, search, setSearch, onToggl
                 </motion.div>
               )}
             </AnimatePresence>
-          </CardContent>
+          </div>
+        </div>
 
-          {/* Footer */}
-          <CustomPagination 
-            currentPage={currentPage}
-            totalItems={filteredAutomations.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-
-        </Card>
+        <div className="mt-8">
+            <CustomPagination 
+                currentPage={currentPage}
+                totalItems={filteredAutomations.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+            />
+        </div>
       </div>
-    );
+    </div>
+  );
 }

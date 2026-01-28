@@ -3,10 +3,19 @@ import { useUser } from '../../context/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
-import { FileIcon, Trash2, Upload, Download, Loader2, Image as ImageIcon, FileText, Database, Search, Edit3, X as CloseIcon } from 'lucide-react';
+import { FileIcon, Trash2, Upload, Download, Loader2, Image as ImageIcon, FileText, Database, Search, Edit3, LayoutGrid, Plus, Lightbulb, Save } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { API_URL } from '@/ui_components/api/apiurl';
+import { useTheme } from '@/components/theme-provider';
+import { 
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
 
 interface AppFile {
     id: string;
@@ -30,9 +39,11 @@ interface Chunk {
 
 export default function FileManager() {
     const { user } = useUser();
+    const { accentColor } = useTheme();
     const [files, setFiles] = useState<AppFile[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
     // State for Dialogs
     const [previewFile, setPreviewFile] = useState<AppFile | null>(null);
@@ -55,14 +66,15 @@ export default function FileManager() {
         fetchFiles();
     }, [fetchFiles]);
 
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        if (!user?.id) return;
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('userId', user.id);
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        setSelectedFiles(acceptedFiles);
+    }, []);
 
-        // Upload one by one for now to handle errors individually
-        for (const file of acceptedFiles) {
+    const handleConfirmUpload = async () => {
+        if (!user?.id || selectedFiles.length === 0) return;
+        setUploading(true);
+
+        for (const file of selectedFiles) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('userId', user.id);
@@ -84,8 +96,13 @@ export default function FileManager() {
         }
 
         setUploading(false);
+        setSelectedFiles([]);
         fetchFiles();
-    }, [user?.id, fetchFiles]);
+    };
+
+    const handleCancelUpload = () => {
+        setSelectedFiles([]);
+    };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
@@ -128,136 +145,291 @@ export default function FileManager() {
     };
 
     return (
-        <div className="p-8 h-full flex flex-col gap-6 w-full max-w-7xl mx-auto">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">FILE MANAGER</h1>
-                <p className="text-slate-500 dark:text-slate-400">Manage your uploaded assets and documents.</p>
-            </div>
+        <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.01)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
-            <div
-                {...getRootProps()}
-                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-colors cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
-            >
-                <input {...getInputProps()} />
-                <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                </div>
-                <div className="text-center">
-                    <p className="font-bold text-slate-900 dark:text-white">Click to upload or drag and drop</p>
-                    <p className="text-sm text-slate-500">SVG, PNG, JPG or PDF (max. 10MB)</p>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
-            ) : files.length === 0 ? (
-                <div className="text-center p-12 text-slate-400 font-medium">No files uploaded yet.</div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
-                    {files.map(file => (
-                        <Card key={file.id} className="group overflow-hidden hover:shadow-lg transition-all dark:bg-slate-900/50 dark:border-slate-800">
-                            <CardContent className="p-4 flex items-start gap-4">
-                                <div className="shrink-0 pt-1 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setPreviewFile(file)}>
-                                    {getFileIcon(file.mime_type)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-sm truncate cursor-pointer hover:text-blue-500 transition-colors" title={file.original_name} onClick={() => setPreviewFile(file)}>{file.original_name}</p>
-                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                                        <span>{formatSize(file.size)}</span>
-                                        <span>•</span>
-                                        <span title={new Date(file.created_at).toLocaleString()}>{new Date(file.created_at).toLocaleString(undefined, {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}</span>
-                                        {file.chunk_count > 0 && (
-                                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-[4px] font-bold text-[10px]">
-                                                CHUNKS: {file.chunk_count}
-                                            </span>
-                                        )}
-                                    </p>
-
-                                    <div className="flex items-center gap-1 mt-4 flex-wrap">
-                                        <Button size="icon-sm" variant="ghost" className="h-7 w-7 text-blue-500 ml-auto" onClick={() => downloadFile(file.id, file.original_name)}>
-                                            <Download className="h-3.5 w-3.5" />
-                                        </Button>
-                                        {file.chunk_count > 0 && (
-                                            <Button size="icon-sm" variant="ghost" className="h-7 w-7 text-amber-500" onClick={() => setExploringFile(file)} title="Explore RAG Chunks">
-                                                <Database className="h-3.5 w-3.5" />
-                                            </Button>
-                                        )}
-                                        <Button size="icon-sm" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => deleteFile(file.id, file.original_name)}>
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
-
-            {/* PREVIEW DIALOG */}
-            {previewFile && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setPreviewFile(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <h3 className="font-bold truncate">{previewFile.original_name}</h3>
-                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Read Only Preview</p>
+            <div className="relative w-full max-w-[90%] mx-auto z-10 p-8 h-full flex flex-col gap-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top duration-500">
+                    <div className="flex-1">
+                        <div className="mb-6">
+                            <div className="items-center gap-4 mb-3">
+                                <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                                    File Manager
+                                </h1>
+                                <div 
+                                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                                    style={{ backgroundColor: accentColor }}
+                                />
                             </div>
-                            <Button size="sm" variant="ghost" onClick={() => setPreviewFile(null)}><CloseIcon className="h-4 w-4" /></Button>
                         </div>
-                        {/* Block Right Click to discourage saving */}
-                        <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-4 flex items-center justify-center relative" onContextMenu={(e) => e.preventDefault()}>
-                            {previewFile.mime_type.startsWith('image/') ? (
-                                <img src={`${API_URL}/api/v1/files/${previewFile.id}/content`} alt={previewFile.original_name} className="max-w-full max-h-full object-contain shadow-lg pointer-events-none select-none" />
-                            ) : previewFile.mime_type === 'application/pdf' ? (
+                        <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                            Manage your uploaded assets and documents. These files are processed into vector chunks for your AI agents to use for precise context retrieval.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Upload Area */}
+                {selectedFiles.length > 0 ? (
+                    <div className="relative group border-2 border-dashed border-blue-500/30 bg-blue-50/50 dark:bg-blue-900/10 rounded-[32px] p-8 md:p-10 flex flex-col items-center justify-center gap-6 transition-all duration-500">
+                        <div className="text-center space-y-4">
+                            <div className="mx-auto h-16 w-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                <FileIcon className="h-8 w-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                    {selectedFiles.length} File{selectedFiles.length > 1 ? 's' : ''} Selected
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ready to upload</p>
+                            </div>
+                            
+                            <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">
+                                {selectedFiles.map((f, i) => (
+                                    <span key={i} className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 shadow-sm">
+                                        {f.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 mt-2">
+                             <Button 
+                                onClick={handleCancelUpload}
+                                variant="ghost"
+                                className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[11px] text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={handleConfirmUpload}
+                                disabled={uploading}
+                                className="h-12 px-10 rounded-xl font-black uppercase tracking-widest text-[11px] text-white shadow-xl hover:scale-105 transition-all"
+                                style={{ backgroundColor: accentColor, boxShadow: `${accentColor}40 0px 10px 20px` }}
+                            >
+                                {uploading ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Upload className="h-5 w-5 mr-2" />}
+                                {uploading ? 'Uploading...' : 'Confirm Upload'}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        {...getRootProps()}
+                        className={cn(
+                            "relative group border-2 border-dashed rounded-[32px] p-8 md:p-10 flex flex-col items-center justify-center gap-4 transition-all duration-500 cursor-pointer",
+                            isDragActive 
+                            ? "border-primary-color bg-primary-color/5" 
+                            : "border-slate-200 dark:border-white/10"
+                        )}
+                        >
+                        <input {...getInputProps()} />
+                        
+                        <div 
+                            className="h-14 w-14 rounded-[18px] flex items-center justify-center transition-transform group-hover:scale-110 duration-500"
+                            style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                        >
+                            {uploading ? <Loader2 className="animate-spin h-6 w-6" /> : <Upload className="h-5 w-5" />}
+                        </div>
+
+                        <div className="text-center space-y-1">
+                            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Click to upload or drag and drop</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                SVG, PNG, JPG or PDF <span className="mx-2">•</span> Max. 10MB
+                            </p>
+                        </div>
+
+                        <Button 
+                            className="h-10 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg transition-all active:scale-95 mt-2"
+                            style={{ 
+                                backgroundColor: accentColor,
+                                boxShadow: `${accentColor}40 0px 8px 24px`
+                            }}
+                        >
+                            Browse Files
+                        </Button>
+                    </div>
+                )}
+
+                {/* Files Grid */}
+                <div className="space-y-6">
+                    {loading ? (
+                        <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-slate-300" /></div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full items-stretch">
+                            {files.map(file => (
+                                <Card key={file.id} className="group relative overflow-hidden rounded-[24px] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/40 hover:shadow-2xl transition-all duration-500 flex flex-col justify-between">
+                                    <CardContent className="p-6 flex flex-col gap-6 h-full">
+                                        {/* Action Buttons & Icon */}
+                                        <div className="flex items-center justify-between">
+                                            <div 
+                                                className="h-11 w-11 rounded-[12px] flex items-center justify-center shadow-sm"
+                                                style={{ backgroundColor: file.mime_type === 'application/pdf' ? '#fff1f1' : '#f1f5ff' }}
+                                            >
+                                                {getFileIcon(file.mime_type)}
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20" onClick={() => downloadFile(file.id, file.original_name)}>
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                                {file.chunk_count > 0 && (
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => setExploringFile(file)}>
+                                                        <LayoutGrid className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => deleteFile(file.id, file.original_name)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* File Info */}
+                                        <div className="space-y-3 flex-1">
+                                            <h3 className="font-black text-slate-900 dark:text-white truncate text-lg tracking-tight" title={file.original_name}>
+                                                {file.original_name}
+                                            </h3>
+                                            
+                                            <div>
+                                                {file.chunk_count > 0 ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest">
+                                                        <div className="h-1 w-1 rounded-full bg-current" />
+                                                        PROCESSED
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-black uppercase tracking-widest">
+                                                        <div className="h-1 w-1 rounded-full bg-current animate-pulse" />
+                                                        INDEXING
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Retrieval Data Stats */}
+                                        <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Retrieval Data</span>
+                                                <span 
+                                                    className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter"
+                                                    style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                                                >
+                                                    {file.chunk_count} Chunks
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size</p>
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{formatSize(file.size)}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Uploaded</p>
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                        {new Date(file.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Bottom Decorative Underline */}
+                                        <div 
+                                            className="absolute bottom-0 left-0 h-1 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                                            style={{ backgroundColor: accentColor }}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            ))}
+
+                            {/* Upload New Asset Card */}
+                            <div 
+                                {...getRootProps()}
+                                className="group relative h-full min-h-[300px] rounded-[24px] border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-slate-50/50 dark:bg-white/2 flex flex-col items-center justify-center gap-4 transition-all duration-500 cursor-pointer"
+                            >
+                                <input {...getInputProps()} />
+                                <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10 transition-colors shadow-sm">
+                                    <Plus className="h-6 w-6" />
+                                </div>
+                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Upload New Asset</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Help Callout */}
+                <div className="mt-12 p-6 rounded-[24px] bg-slate-50 dark:bg-white/2 border border-slate-200 dark:border-white/5 flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center text-amber-500 shadow-sm">
+                            <Lightbulb className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-black text-slate-900 dark:text-white tracking-tight">Need help organizing?</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Read our documentation on how to optimize PDF structure for better AI chunking.</p>
+                        </div>
+                    </div>
+                    <Button variant="link" className="font-black uppercase tracking-widest text-[11px] h-auto p-0 group-hover:translate-x-1 transition-transform" style={{ color: accentColor }}>
+                        Learn more
+                    </Button>
+                </div>
+
+                {/* PREVIEW DIALOG */}
+                <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+                    <DialogContent className="w-full max-w-5xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden rounded-[24px] border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900">
+                        <DialogHeader className="p-6 border-b border-slate-100 dark:border-white/5 space-y-1">
+                            <div className="flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                <DialogTitle className="text-xl font-black text-slate-900 dark:text-white truncate">
+                                    {previewFile?.original_name}
+                                </DialogTitle>
+                            </div>
+                            <DialogDescription className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-5">
+                                Read Only Preview
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-950/50 p-6 flex items-center justify-center relative" onContextMenu={(e) => e.preventDefault()}>
+                            {previewFile?.mime_type.startsWith('image/') ? (
+                                <img src={`${API_URL}/api/v1/files/${previewFile.id}/content`} alt={previewFile.original_name} className="max-w-full max-h-full object-contain shadow-2xl pointer-events-none select-none rounded-xl" />
+                            ) : previewFile?.mime_type === 'application/pdf' ? (
                                 <iframe
                                     src={`${API_URL}/api/v1/files/${previewFile.id}/content#toolbar=0&navpanes=0&scrollbar=0`}
-                                    className="w-full h-full bg-white border-none shadow-lg rounded-md"
+                                    className="w-full h-full bg-white border-none shadow-2xl rounded-xl"
                                     title="File Preview"
                                 />
-                            ) : (
-                                /* Text/Code Preview - Fetch and Render */
+                            ) : previewFile ? (
                                 <FileContentPreview file={previewFile} />
-                            )}
+                            ) : null}
                         </div>
-                    </div>
-                </div>
-            )}
+                    </DialogContent>
+                </Dialog>
 
-            {/* RAG EXPLORER DIALOG */}
-            {exploringFile && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setExploringFile(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg text-amber-600 dark:text-amber-400">
-                                    <Database className="h-5 w-5" />
+                {/* RAG EXPLORER DIALOG */}
+                <Dialog open={!!exploringFile} onOpenChange={(open) => !open && setExploringFile(null)}>
+                    <DialogContent className="w-full max-w-[95vw] lg:max-w-7xl h-[90vh] p-0 gap-0 flex flex-col overflow-hidden rounded-[32px] border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900">
+                        <DialogHeader className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-row items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-2xl text-amber-600 dark:text-amber-400 shadow-sm">
+                                    <Database className="h-6 w-6" />
                                 </div>
-                                <div className="flex flex-col">
-                                    <h3 className="font-bold truncate">RAG EXPLORER: {exploringFile.original_name}</h3>
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Semantic Debugger & Chunk Manager</p>
+                                <div className="space-y-1">
+                                    <DialogTitle className="text-xl font-black text-slate-900 dark:text-white truncate uppercase tracking-tight">
+                                        RAG Explorer: {exploringFile?.original_name}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                                        Semantic Debugger & Chunk Manager
+                                    </DialogDescription>
                                 </div>
                             </div>
-                            <Button size="sm" variant="ghost" onClick={() => setExploringFile(null)}><CloseIcon className="h-4 w-4" /></Button>
-                        </div>
+                        </DialogHeader>
                         <div className="flex-1 overflow-hidden">
-                            <RAGExplorer file={exploringFile} onClose={() => setExploringFile(null)} />
+                            {exploringFile && <RAGExplorer file={exploringFile} onClose={() => setExploringFile(null)} />}
                         </div>
-                    </div>
-                </div>
-            )}
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 }
 
-function RAGExplorer({ file, onClose }: { file: AppFile, onClose: () => void }) {
+function RAGExplorer({ file }: { file: AppFile, onClose: () => void }) {
     const { user } = useUser();
+    const { accentColor } = useTheme();
     const [chunks, setChunks] = useState<Chunk[]>([]);
     const [loading, setLoading] = useState(true);
     const [testQuery, setTestQuery] = useState('');
@@ -395,27 +567,52 @@ function RAGExplorer({ file, onClose }: { file: AppFile, onClose: () => void }) 
             </div>
 
             {/* CHUNK EDITOR MODAL */}
-            {editingChunk && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between">
-                            <h3 className="font-bold">Edit Chunk #{editingChunk.chunk_index}</h3>
-                            <Button size="sm" variant="ghost" onClick={() => setEditingChunk(null)}><CloseIcon className="h-4 w-4" /></Button>
-                        </div>
-                        <div className="p-6">
+            <Dialog open={!!editingChunk} onOpenChange={(open) => !open && setEditingChunk(null)}>
+                <DialogContent className="w-full max-w-2xl rounded-[32px] border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900 p-0 overflow-hidden">
+                    <div className="p-10 space-y-8">
+                        <DialogHeader className="space-y-1.5 text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+                                    Edit Chunk #{editingChunk?.chunk_index}
+                                </DialogTitle>
+                            </div>
+                            <DialogDescription className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-5">
+                                Modify vector memory content directly
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-3">
                             <textarea
-                                className="w-full h-64 p-4 text-sm bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 rounded-lg outline-none focus:ring-2 ring-blue-500/20 resize-none font-mono"
-                                value={editingChunk.content}
-                                onChange={(e) => setEditingChunk({ ...editingChunk, content: e.target.value })}
+                                className="w-full h-80 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 p-6 font-mono text-sm leading-relaxed resize-none focus:ring-2 focus:ring-primary-color/20 transition-all outline-none"
+                                value={editingChunk?.content || ''}
+                                onChange={(e) => editingChunk && setEditingChunk({ ...editingChunk, content: e.target.value })}
                             />
                         </div>
-                        <div className="p-4 border-t dark:border-slate-800 flex justify-end gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                            <Button variant="outline" onClick={() => setEditingChunk(null)}>Cancel</Button>
-                            <Button onClick={saveChunk}>Save Changes</Button>
+
+                        <div className="flex items-center justify-end gap-4 pt-4">
+                            <Button 
+                                variant="ghost" 
+                                className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 dark:hover:bg-white/5 transition-all text-slate-600 dark:text-slate-400" 
+                                onClick={() => setEditingChunk(null)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all text-white border-none"
+                                style={{ 
+                                    backgroundColor: accentColor, 
+                                    boxShadow: `${accentColor}40 0px 12px 32px` 
+                                }}
+                                onClick={saveChunk}
+                            >
+                                <Save className="h-5 w-5 mr-2" />
+                                Save Changes
+                            </Button>
                         </div>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
