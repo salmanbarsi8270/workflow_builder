@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Info, Eye, EyeOff, Loader2, Database } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { API_URL } from "../api/apiurl"
 import { useUser } from "../../context/UserContext"
 
@@ -12,9 +12,10 @@ interface PostgresConnectionDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onSuccess?: () => void
+    initialData?: any // Added initialData
 }
 
-export function PostgresConnectionDialog({ open, onOpenChange, onSuccess }: PostgresConnectionDialogProps) {
+export function PostgresConnectionDialog({ open, onOpenChange, onSuccess, initialData }: PostgresConnectionDialogProps) {
     const { user } = useUser();
     const [connectionString, setConnectionString] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,6 +23,24 @@ export function PostgresConnectionDialog({ open, onOpenChange, onSuccess }: Post
     const [name, setName] = useState('');
     const [showString, setShowString] = useState(false);
     const [isReadOnly, setIsReadOnly] = useState(false);
+
+    useEffect(() => {
+        if (open && initialData) {
+            setName(initialData.username || '');
+            let cs = initialData.accessToken || '';
+            const isRO = cs.includes('_force_read_only=true');
+            setIsReadOnly(isRO);
+            // Remove the flag for display (global replace)
+            cs = cs.replace(/[\?&]_force_read_only=true/g, '');
+            if (cs.endsWith('?')) cs = cs.slice(0, -1);
+            setConnectionString(cs);
+        } else if (open && !initialData) {
+            // Reset for new connection
+            setName('');
+            setConnectionString('');
+            setIsReadOnly(false);
+        }
+    }, [open, initialData]);
 
     const handleSave = async () => {
         if (!user) {
@@ -36,23 +55,35 @@ export function PostgresConnectionDialog({ open, onOpenChange, onSuccess }: Post
         setLoading(true);
         setError('');
 
+        // Strip flag from input to avoid duplication or persistence when unchecked
+        let finalConnectionString = connectionString.replace(/[\?&]_force_read_only=true/g, '');
+        if (finalConnectionString.endsWith('?')) finalConnectionString = finalConnectionString.slice(0, -1);
+
+        if (isReadOnly) {
+            finalConnectionString = finalConnectionString.includes('?')
+                ? `${finalConnectionString}&_force_read_only=true`
+                : `${finalConnectionString}?_force_read_only=true`;
+        }
+
         try {
-            const response = await fetch(`${API_URL}/api/connections/key`, {
-                method: 'POST',
+            const url = initialData
+                ? `${API_URL}/api/connections/${initialData.id}`
+                : `${API_URL}/api/connections/key`;
+
+            const method = initialData ? 'PATCH' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: user.id,
                     service: 'postgres',
-                    apiKey: isReadOnly
-                        ? (connectionString.includes('?')
-                            ? `${connectionString}&options=-c%20default_transaction_read_only%3Don`
-                            : `${connectionString}?options=-c%20default_transaction_read_only%3Don`)
-                        : connectionString,
+                    apiKey: finalConnectionString,
                     name: name
                 })
             });
             const data = await response.json();
-            if (data.success) {
+            if (data.success || (initialData && data.message)) { // PATCH might return message
                 setLoading(false);
                 setConnectionString('');
                 setName('');
@@ -73,7 +104,7 @@ export function PostgresConnectionDialog({ open, onOpenChange, onSuccess }: Post
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Connect PostgreSQL</DialogTitle>
+                    <DialogTitle>{initialData ? 'Edit PostgreSQL Connection' : 'Connect PostgreSQL'}</DialogTitle>
                     <DialogDescription className="sr-only">
                         Enter your PostgreSQL connection string.
                     </DialogDescription>

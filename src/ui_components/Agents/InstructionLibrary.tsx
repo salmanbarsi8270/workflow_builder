@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     Trash2, Plus, Edit3, Loader2, Save,
     Search, Clock, Cpu,
-    Sparkles, Terminal, FileText, Code2, MessageSquare
+    Sparkles, Terminal, FileText, Code2, MessageSquare, Database,
+    Brain, Layout, Zap, Activity
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -28,6 +29,11 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Instruction {
     id: string;
@@ -54,7 +60,8 @@ IMPORTANT: You are RESTRICTED to Read-Only access.
 - You CAN execute SELECT queries to retrieve data.
 - You CANNOT execute INSERT, UPDATE, DELETE, or DROP queries.
 - If you try to write to the database, the tool will reject your request.
-- Always verify your schema using 'get_schema' before querying.`
+- Always verify your schema using 'get_schema' before querying.
+- If the schema catalog is missing or unavailable, use 'get_schema' or 'query_database' to explore the database tables manually.`
         },
         {
             name: "Senior Code Reviewer",
@@ -65,6 +72,46 @@ IMPORTANT: You are RESTRICTED to Read-Only access.
     // Form State
     const [formData, setFormData] = useState({ name: '', system_prompt: '' });
     const [saving, setSaving] = useState(false);
+    const [catalogs, setCatalogs] = useState<any[]>([]);
+    const [showCatalogSelect, setShowCatalogSelect] = useState(false);
+
+    const fetchCatalogs = async () => {
+        if (!user?.id) return;
+        try {
+            const { data } = await axios.get(`${API_URL}/api/catalogs?userId=${user.id}`);
+            setCatalogs(data);
+        } catch (e) {
+            toast.error("Failed to load catalogs");
+        }
+    };
+
+    const insertCatalog = (catalog: any) => {
+        const roText = catalog.is_readonly ? ' [READ-ONLY]' : '';
+        const placeholder = `{{DB_CATALOG:${catalog.connection_id}}}`;
+
+        // Robust Naming Logic:
+        // Use the connection_name directly if it's "my db" or similar.
+        // Only split by underscore if it looks like a technical service name (postgres_..., openrouter_...).
+        let cleanName = catalog.connection_name;
+        const low = cleanName.toLowerCase();
+
+        if (low.startsWith('postgres') || low.startsWith('openrouter')) {
+            cleanName = cleanName
+                .split('_')[0]
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/-/g, ' ')
+                .split(' ')
+                .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1))
+                .join(' ');
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            system_prompt: prev.system_prompt + `\n\n# Database Schema (${cleanName}${roText})\n${placeholder}`
+        }));
+        setShowCatalogSelect(false);
+        toast.success(`Injected schema placeholder for ${cleanName}`);
+    };
 
     const fetchInstructions = useCallback(async () => {
         if (!user?.id) return;
@@ -138,7 +185,17 @@ IMPORTANT: You are RESTRICTED to Read-Only access.
     );
 
     const getIcon = (idx: number) => {
-        const icons = [<Sparkles />, <Terminal />, <Code2 />, <MessageSquare />, <FileText />];
+        const icons = [
+            <Sparkles className="h-5 w-5" />,
+            <Terminal className="h-5 w-5" />,
+            <Code2 className="h-5 w-5" />,
+            <MessageSquare className="h-5 w-5" />,
+            <FileText className="h-5 w-5" />,
+            <Brain className="h-5 w-5" />,
+            <Layout className="h-5 w-5" />,
+            <Zap className="h-5 w-5" />,
+            <Activity className="h-5 w-5" />
+        ];
         return icons[idx % icons.length];
     };
 
@@ -216,8 +273,8 @@ IMPORTANT: You are RESTRICTED to Read-Only access.
 
                 {/* shadcn/ui Dialog */}
                 <Dialog open={isAdding} onOpenChange={(open) => !open && resetForm()}>
-                    <DialogContent className="w-full max-w-3xl rounded-[40px] border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900 p-0 overflow-hidden">
-                        <div className="p-10 space-y-10">
+                    <DialogContent className="w-full max-w-7xl rounded-[40px] border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900 p-0 overflow-hidden max-h-[95vh] flex flex-col">
+                        <div className="p-10 space-y-10 overflow-y-auto">
                             <DialogHeader className="space-y-1.5 text-left">
                                 <div className="flex items-center gap-3">
                                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: accentColor }} />
@@ -258,10 +315,64 @@ IMPORTANT: You are RESTRICTED to Read-Only access.
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-3">
+                                <div className="flex items-center justify-between mb-2">
                                     <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">
                                         System Instructions
                                     </label>
+                                    <div className="flex items-center gap-2">
+                                        <Popover open={showCatalogSelect} onOpenChange={async (open) => {
+                                            setShowCatalogSelect(open);
+                                            if (open && catalogs.length === 0) await fetchCatalogs();
+                                        }}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 text-[10px] font-bold uppercase tracking-wider border-slate-200 dark:border-white/10"
+                                                >
+                                                    <Database className="h-3 w-3 mr-1.5 text-blue-500" />
+                                                    Insert Schema
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-96 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/10" align="end">
+                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 py-1.5">
+                                                    Select Database
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {catalogs.length === 0 ? (
+                                                        <div className="px-3 py-2 text-xs text-slate-500 text-center italic">No catalogs found</div>
+                                                    ) : (
+                                                        catalogs.map(cat => (
+                                                            <button
+                                                                key={cat.id}
+                                                                type="button"
+                                                                className="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center gap-2 group"
+                                                                onClick={() => insertCatalog(cat)}
+                                                            >
+                                                                <div className={`p-1.5 rounded-md ${cat.is_readonly ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-emerald-100 dark:bg-emerald-900/40'} group-hover:bg-opacity-80 transition-all`}>
+                                                                    <Database className={`h-3.5 w-3.5 ${cat.is_readonly ? 'text-amber-600 dark:text-amber-500' : 'text-emerald-600 dark:text-emerald-500'}`} />
+                                                                </div>
+                                                                <span className="flex-1 truncate font-bold text-slate-700 dark:text-slate-200">
+                                                                    {(() => {
+                                                                        const name = cat.connection_name;
+                                                                        const low = name.toLowerCase();
+                                                                        if (low.startsWith('postgres') || low.startsWith('openrouter')) {
+                                                                            return name.split('_')[0].replace(/([a-z])([A-Z])/g, '$1 $2').charAt(0).toUpperCase() + name.split('_')[0].replace(/([a-z])([A-Z])/g, '$1 $2').slice(1);
+                                                                        }
+                                                                        return name;
+                                                                    })()}
+                                                                </span>
+                                                                {cat.is_readonly && <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">ReadOnly</span>}
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </div>
+                                <div className="relative">
                                     <Textarea
                                         placeholder="Describe exactly how the AI should behave..."
                                         className="min-h-[240px] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 p-6 font-mono text-sm leading-relaxed resize-none focus:ring-2 focus:ring-primary-color/20 transition-all outline-none"

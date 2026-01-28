@@ -286,6 +286,29 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     }
   }
 
+  const [editConnectionData, setEditConnectionData] = useState<any>(null);
+
+  const handleEditConnection = (account: any) => {
+    setEditConnectionData(account);
+    setPostgresModalOpen(true);
+  };
+
+  const handleSyncCatalog = async (account: any) => {
+    try {
+      const promise = axios.post(`${API_URL}/api/connections/${account.id}/catalog/refresh`, {
+        userId: user?.id
+      });
+
+      toast.promise(promise, {
+        loading: 'Refreshing database schema...',
+        success: (data) => `Schema refreshed successfully: ${Object.keys(data.data.schema?.tables || {}).length} tables found`,
+        error: 'Failed to refresh schema'
+      });
+    } catch (error) {
+      console.error("Sync failed", error);
+    }
+  };
+
   return (
     <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
       {/* Grid Pattern */}
@@ -581,6 +604,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
                         onConnect={handleConnect}
                         connectingApp={connectingApp}
                         onShowDetails={handleShowDetails}
+                        onEditConnection={handleEditConnection}
+                        onSyncCatalog={handleSyncCatalog}
                       />
                     ))
                   )}
@@ -610,7 +635,11 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
         <PostgresConnectionDialog
           open={postgresModalOpen}
-          onOpenChange={setPostgresModalOpen}
+          onOpenChange={(open) => {
+            setPostgresModalOpen(open);
+            if (!open) setEditConnectionData(null);
+          }}
+          initialData={editConnectionData}
           onSuccess={() => {
             fetchConnections();
             toast.success("Postgres connected successfully");
@@ -644,6 +673,8 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           onConnect={handleConnect}
           onAction={handleContextualAction}
           isLoading={isLoadingMetadata}
+          onEditConnection={handleEditConnection}
+          onSyncCatalog={handleSyncCatalog}
         />
       </div>
     </div>

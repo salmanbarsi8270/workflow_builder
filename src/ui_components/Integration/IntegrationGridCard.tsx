@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,9 +15,11 @@ interface IntegrationGridCardProps {
   onConnect: (app: IntegrationApp) => void;
   connectingApp: string | null;
   onShowDetails: (app: IntegrationApp) => void;
+  onEditConnection?: (account: any) => void;
+  onSyncCatalog?: (account: any) => void;
 }
 
-export const IntegrationGridCard = ({ app, onConnect, connectingApp, onShowDetails }: IntegrationGridCardProps) => {
+export const IntegrationGridCard = ({ app, onConnect, connectingApp, onShowDetails, onEditConnection, onSyncCatalog }: IntegrationGridCardProps) => {
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
@@ -138,18 +140,52 @@ export const IntegrationGridCard = ({ app, onConnect, connectingApp, onShowDetai
       <CardFooter className="px-6 py-6 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/2 mt-auto">
         <div className="flex flex-col gap-3 w-full">
           {app.connected && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-11 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest"
-              asChild
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Link to={`/connections?search=${encodeURIComponent(app.name)}`}>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-11 flex-1 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShowDetails(app);
+                }}
+              >
                 <UserCircle className="h-4 w-4 mr-2 text-blue-500" />
-                Manage Accounts
-              </Link>
-            </Button>
+                Manage
+              </Button>
+              {onSyncCatalog && (app.id === 'postgres' || app.service === 'postgres' || app.id === 'mysql' || app.service === 'mysql') && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (app.accounts && app.accounts.length > 0) {
+                      onSyncCatalog(app.accounts[0]);
+                    }
+                  }}
+                  title="Refresh Schema"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
+              {onEditConnection && (app.id === 'postgres' || app.service === 'postgres' || app.id === 'mysql' || app.service === 'mysql') && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (app.accounts && app.accounts.length > 0) {
+                      onEditConnection(app.accounts[0]);
+                    }
+                  }}
+                  title="Edit Connection"
+                >
+                  <UserCircle className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           )}
 
           <Button

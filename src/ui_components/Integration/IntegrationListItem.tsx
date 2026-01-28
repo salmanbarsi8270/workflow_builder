@@ -14,9 +14,11 @@ interface IntegrationListItemProps {
   onConnect: (app: IntegrationApp) => void;
   connectingApp: string | null;
   onShowDetails: (app: IntegrationApp) => void;
+  onEditConnection?: (account: any) => void;
+  onSyncCatalog?: (account: any) => void;
 }
 
-export const IntegrationListItem = ({ app, onConnect, connectingApp, onShowDetails }: IntegrationListItemProps) => {
+export const IntegrationListItem = ({ app, onConnect, connectingApp, onShowDetails, onEditConnection, onSyncCatalog }: IntegrationListItemProps) => {
   const colors = categoryColors[app.category || 'default'] || categoryColors.default;
 
   return (
@@ -138,10 +140,32 @@ export const IntegrationListItem = ({ app, onConnect, connectingApp, onShowDetai
                     <Info className="h-4 w-4 mr-2 text-blue-500" />
                     View Details
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5">
-                    <RefreshCw className="h-4 w-4 mr-2 text-blue-500" />
-                    Sync Now
-                  </DropdownMenuItem>
+                  {onSyncCatalog && (app.id === 'postgres' || app.service === 'postgres' || app.id === 'mysql' || app.service === 'mysql') && (
+                    <DropdownMenuItem
+                      className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5"
+                      onClick={() => {
+                        if (app.accounts && app.accounts.length > 0) {
+                          onSyncCatalog(app.accounts[0]);
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2 text-emerald-500" />
+                      Refresh Schema
+                    </DropdownMenuItem>
+                  )}
+                  {onEditConnection && (app.id === 'postgres' || app.service === 'postgres' || app.id === 'mysql' || app.service === 'mysql') && (
+                    <DropdownMenuItem
+                      className="rounded-lg font-bold text-[10px] uppercase tracking-wider py-2.5"
+                      onClick={() => {
+                        if (app.accounts && app.accounts.length > 0) {
+                          onEditConnection(app.accounts[0]);
+                        }
+                      }}
+                    >
+                      <UserCircle className="h-4 w-4 mr-2 text-blue-500" />
+                      Edit Connection
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
