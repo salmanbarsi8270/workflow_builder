@@ -1,69 +1,52 @@
 import { Button } from "@/components/ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Refresh01Icon, PlusSignIcon, Layout01Icon, Notification03Icon } from "@hugeicons/core-free-icons";
+import { useTheme } from "@/components/theme-provider"
+import { Plus, RefreshCcw } from "lucide-react";
 
 interface DashboardHeaderProps {
     onRefresh: () => void;
     onNewWorkflow: () => void;
-    approvalCount: number;
-    onOpenApprovals: () => void;
 }
 
-export function DashboardHeader({ onRefresh, onNewWorkflow, approvalCount, onOpenApprovals }: DashboardHeaderProps) {
+export function DashboardHeader({ onRefresh, onNewWorkflow }: DashboardHeaderProps) {
+    const { accentColor } = useTheme();
     return (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 shrink-0">
-            <div className="flex items-center gap-4">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                    <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10">
-                        <HugeiconsIcon icon={Layout01Icon} className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                </div>
-                <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-                        Workflow Dashboard
-                        <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-500/30">
-                            Live
+        <div className="mb-4 animate-in fade-in slide-in-from-top duration-500">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+                <div className="flex-1">
+                    <div className="mb-6">
+                        <div className="items-center gap-4 mb-3">
+                            <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                                Workflow Dashboard
+                            </h1>
+                            <div 
+                                className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]" 
+                                style={{ backgroundColor: accentColor }}
+                            />
                         </div>
-                    </h2>
-                    <p className="text-slate-500 dark:text-blue-200/70 text-sm font-medium">
-                        Monitor and manage your automations in real-time
+                    </div>
+                    <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                        Monitor and manage your automations in real-time. Track performance, health, and recent activities.
                     </p>
                 </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-                <div className="relative">
+
+                <div className="flex flex-col sm:flex-row gap-3">
                     <Button 
                         variant="outline" 
                         size="icon" 
-                        onClick={onOpenApprovals}
-                        className="h-11 w-11 cursor-pointer rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 shadow-sm"
+                        onClick={onRefresh}
+                        className="h-14 w-14 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
                     >
-                        <HugeiconsIcon icon={Notification03Icon} className="h-4 w-4 text-slate-600 dark:text-blue-100" />
+                        <RefreshCcw className="h-5 w-5" />
                     </Button>
-                    {approvalCount > 0 && (
-                        <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 flex items-center justify-center animate-bounce">
-                            <span className="text-[10px] font-black text-white">{approvalCount}</span>
-                        </div>
-                    )}
+                    <Button 
+                        onClick={onNewWorkflow} 
+                        className="h-14 px-8 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2"
+                        style={{ backgroundColor: accentColor }}
+                    >
+                        <Plus className="h-5 w-5" />
+                        New Workflow
+                    </Button>
                 </div>
-
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={onRefresh}
-                    className="h-11 w-11 cursor-pointer rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 shadow-sm"
-                >
-                    <HugeiconsIcon icon={Refresh01Icon} className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </Button>
-                <Button 
-                    onClick={onNewWorkflow} 
-                    className="h-11 px-6 cursor-pointer rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] transition-all duration-300"
-                >
-                    <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
-                    New Workflow
-                </Button>
             </div>
         </div>
     );

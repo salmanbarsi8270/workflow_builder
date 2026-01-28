@@ -16,9 +16,10 @@ import Agents from './ui_components/Agents';
 import LiveEvals from './ui_components/Evals';
 import UIDesigner from './ui_components/UIDesigner';
 import FileManager from './ui_components/Files/FileManager';
-import InstructionLibrary from './ui_components/Agents/InstructionLibrary';
 import { PublicChat } from './ui_components/PublicChat/PublicChat';
 import { Presentation } from './ui_components/generative_ui/presentation';
+import Support from './ui_components/support';
+import InstructionLibrary from './ui_components/Agents/InstructionLibrary';
 
 function UIDesignerWrapper() {
     const { user } = useUser();
@@ -71,6 +72,7 @@ export function App() {
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
                             <Route path="/presentation" element={<Presentation />} />
+                            <Route path="/support" element={<Support />} />
                         </Route>
 
                         <Route path="/chat/:slug" element={<PublicChat />} />

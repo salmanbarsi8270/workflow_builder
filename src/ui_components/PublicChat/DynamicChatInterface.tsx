@@ -57,8 +57,8 @@ export function DynamicChatInterface({ agent, userId }: DynamicChatInterfaceProp
     const showHistory = (uiConfig.show_history !== undefined ? uiConfig.show_history : agent.show_history) !== false;
     
     // Theme Colors
-    const themeColor = uiConfig.theme_color || agent.theme_color || '#2563EB';
-    const secondaryColor = uiConfig.secondary_color || agent.secondary_color || '#7950f2';
+    const themeColor = uiConfig.theme_color || agent.theme_color;
+    const secondaryColor = uiConfig.secondary_color || agent.secondary_color;
     const backgroundColor = uiConfig.background_color || agent.background_color || 'hsl(var(--background))';
     const textColor = uiConfig.text_color || agent.text_color || 'hsl(var(--foreground))';
     const historyColor = componentStyles.history_panel_color;
