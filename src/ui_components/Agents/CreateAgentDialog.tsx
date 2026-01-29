@@ -14,6 +14,7 @@ import ConnectionSelector from "@/ui_components/Connections/ConnectionSelector";
 import { usePieces } from "@/context/PieceContext";
 import { McpToolConfig } from './McpToolConfig';
 import { API_URL, AI_URL } from '../api/apiurl';
+import apiClient from '../api/auth';
 import type { Agent, ConnectionOption, MCPConfig } from './types';
 import type { AutomationItem } from '../Automation/components/AutomationList';
 import { OpenRouterModel } from '../Utility/openroutermodel';
@@ -111,11 +112,10 @@ export function CreateAgentDialog({
     // Fetch UI Designs
     useEffect(() => {
         if (open && userId) {
-            fetch(`${API_URL}/api/v1/ui-designs?userId=${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        setUiDesigns(data);
+            apiClient.get(`/api/v1/ui-designs`)
+                .then(res => {
+                    if (Array.isArray(res.data)) {
+                        setUiDesigns(res.data);
                     }
                 })
                 .catch(err => console.error("Error fetching UI designs:", err));
@@ -125,11 +125,10 @@ export function CreateAgentDialog({
     // Fetch Instructions from Library
     useEffect(() => {
         if (open && userId) {
-            fetch(`${API_URL}/api/v1/ai/personas?userId=${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        setInstructionsLibrary(data);
+            apiClient.get(`/api/v1/ai/personas`)
+                .then(res => {
+                    if (Array.isArray(res.data)) {
+                        setInstructionsLibrary(res.data);
                     }
                 })
                 .catch(err => console.error("Error fetching instructions library:", err));
@@ -142,11 +141,10 @@ export function CreateAgentDialog({
 
     useEffect(() => {
         if (open && userId) {
-            fetch(`${API_URL}/api/v1/files?userId=${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        setAvailableFiles(data);
+            apiClient.get(`/api/v1/files`)
+                .then(res => {
+                    if (Array.isArray(res.data)) {
+                        setAvailableFiles(res.data);
                     }
                 })
                 .catch(err => console.error("Error fetching available files:", err));
@@ -203,9 +201,9 @@ export function CreateAgentDialog({
                     .catch(err => console.error("Error fetching knowledge:", err));
 
                 // Fetch Guardrails
-                fetch(`${API_URL}/api/guardrails?agentId=${initialAgent.id}&userId=${userId}`)
-                    .then(res => res.json())
-                    .then(data => {
+                apiClient.get(`/api/guardrails?agentId=${initialAgent.id}`)
+                    .then(res => {
+                        const data = res.data;
                         const hasBannedWords = data.inputGuardrails?.bannedWords?.length > 0;
                         const list = data.outputGuardrails?.list || [];
                         if (data.outputGuardrails?.emailRedaction && !list.find((i: any) => i.type === 'email')) {
@@ -284,7 +282,10 @@ export function CreateAgentDialog({
         try {
             const response = await fetch(`${AI_URL}/knowledge/delete`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
                 body: JSON.stringify({
                     agentId: initialAgent.id,
                     userId: userId || initialAgent.userId,
@@ -383,38 +384,25 @@ export function CreateAgentDialog({
             let response;
             if (initialAgent) {
                 // Update existing agent
-                response = await fetch(`${API_URL}/api/v1/agents/${initialAgent.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                response = await apiClient.patch(`/api/v1/agents/${initialAgent.id}`, payload);
             } else {
                 // Create new agent
-                response = await fetch(`${API_URL}/api/v1/agents`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                response = await apiClient.post(`/api/v1/agents`, payload);
             }
 
-            if (response.ok) {
-                const savedAgent = await response.json();
+            if (response.status === 200 || response.status === 201) {
+                const savedAgent = response.data;
 
                 // Handle Guardrails Save
                 try {
-
-                    await fetch(`${API_URL}/api/guardrails`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            agentId: savedAgent.id,
-                            userId: userId,
-                            inputGuardrails: {
-                                bannedWords: bannedWords,
-                                list: inputGuardrails
-                            },
-                            outputGuardrails: { list: outputGuardrails, emailRedaction: false }
-                        })
+                    await apiClient.post(`/api/guardrails`, {
+                        agentId: savedAgent.id,
+                        userId: userId,
+                        inputGuardrails: {
+                            bannedWords: bannedWords,
+                            list: inputGuardrails
+                        },
+                        outputGuardrails: { list: outputGuardrails, emailRedaction: false }
                     });
                 } catch (grError) {
                     console.error("Error saving guardrails:", grError);
@@ -428,8 +416,7 @@ export function CreateAgentDialog({
                 onOpenChange(false);
                 resetForm();
             } else {
-                const err = await response.json();
-                toast.error(err.error || "Failed to save agent");
+                toast.error("Failed to save agent");
                 return; // Stop here if agent save failed
             }
 

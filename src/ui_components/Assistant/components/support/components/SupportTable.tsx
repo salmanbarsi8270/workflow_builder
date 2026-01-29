@@ -6,14 +6,17 @@ interface SupportTableProps {
     data: any[];
     title?: string;
     className?: string;
+    columns?: { key: string; label: string }[];
 }
 
-export const SupportTable: React.FC<SupportTableProps> = ({ data, title, className }) => {
+export const SupportTable: React.FC<SupportTableProps> = ({ data, title, className, columns }) => {
     const [searchTerm, setSearchTerm] = React.useState('');
     
     if (!Array.isArray(data) || data.length === 0) return null;
 
-    const headers = Object.keys(data[0]);
+    // Use provided columns or infer from first row
+    const headers = columns ? columns.map(c => c.key) : Object.keys(data[0]);
+    const headerLabels = columns ? columns.reduce((acc, c) => ({ ...acc, [c.key]: c.label }), {} as Record<string, string>) : null;
 
     // Filter data based on search term
     const filteredData = data.filter(row => 
@@ -98,7 +101,7 @@ export const SupportTable: React.FC<SupportTableProps> = ({ data, title, classNa
                                     key={header} 
                                     className="px-6 py-4 font-black text-[10px] text-slate-500 dark:text-white/40 uppercase tracking-widest"
                                 >
-                                    {header.replace(/_/g, ' ')}
+                                    {headerLabels ? headerLabels[header] : header.replace(/_/g, ' ')}
                                 </th>
                             ))}
                         </tr>
@@ -163,11 +166,22 @@ export const SupportTable: React.FC<SupportTableProps> = ({ data, title, classNa
                                         );
                                     }
 
+                                    const safeStringify = (obj: any) => {
+                                        const cache = new Set();
+                                        return JSON.stringify(obj, (_key, value) => {
+                                            if (typeof value === 'object' && value !== null) {
+                                                if (cache.has(value)) return '[Circular]';
+                                                cache.add(value);
+                                            }
+                                            return value;
+                                        });
+                                    };
+
                                     return (
                                         <td key={header} className="px-6 py-4 font-bold text-slate-700 dark:text-white/80 min-w-[150px] max-w-[400px]">
                                             <div className="line-clamp-6 text-[12px] leading-relaxed wrap-break-word">
                                                 {typeof value === 'object' ? 
-                                                    <span className="text-[10px] font-mono text-primary/60">{JSON.stringify(value).substring(0, 50)}...</span> : 
+                                                    <span className="text-[10px] font-mono text-primary/60">{safeStringify(value).substring(0, 50)}...</span> : 
                                                     String(value)
                                                 }
                                             </div>

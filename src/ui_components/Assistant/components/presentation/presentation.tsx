@@ -49,7 +49,7 @@ export const Presentation: React.FC<PresentationProps> = ({
 
         try {
             // Ensure we have a conversation ID
-            const convoId = activeConversationId || crypto.randomUUID();
+            const convoId = activeConversationId || `canvas_${crypto.randomUUID()}`;
             if (!activeConversationId) {
                 setActiveConversationId(convoId);
                 onSessionSelect?.(convoId);

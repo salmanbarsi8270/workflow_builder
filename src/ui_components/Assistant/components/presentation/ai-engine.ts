@@ -86,7 +86,8 @@ export const generateUI = async (prompt: string, userId: string, direct: boolean
             query: fullInput,
             userId: userId || 'public-user',
             sessionId: conversationId,
-            stream: false
+            stream: true,
+            mode: 'canvas'
         });
 
         const output = response.data?.output || "";

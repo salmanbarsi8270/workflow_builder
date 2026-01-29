@@ -276,7 +276,7 @@ export function SidebarIconExample() {
                   >
                     <div className="flex items-center gap-3 w-full">
                       <div className="relative">
-                        <div className="p-2 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5">
+                        <div className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5">
                           {user?.name ? user.name[0].toUpperCase() : 'U'}
                         </div>
                         <div className="absolute bottom-0 right-0 h-3 w-3 bg-emerald-500 border-2 border-white dark:border-[#0b1222] rounded-full" />

@@ -39,22 +39,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
             );
         }
 
+        let displayContent = message.content;
+        
+        // Scrub system-wrapped user prompt (e.g., from Thinking Agent orchestration)
+        if (role === 'user' && displayContent.includes("### User's Automations Context:")) {
+            const queryMatch = displayContent.match(/### User's Query:\s*\n?"?([\s\S]+?)"?$/i);
+            if (queryMatch) {
+                displayContent = queryMatch[1].trim();
+            }
+        }
+
         // Parse content for JSON blocks
-        // We use a more sophisticated split to handle partial blocks during streaming
         const parts: string[] = [];
         let lastIndex = 0;
         const blockRegex = /(```(?:json)?[\s\S]*?(?:```|$))/g;
         let match;
 
-        while ((match = blockRegex.exec(message.content)) !== null) {
+        while ((match = blockRegex.exec(displayContent)) !== null) {
             if (match.index > lastIndex) {
-                parts.push(message.content.substring(lastIndex, match.index));
+                parts.push(displayContent.substring(lastIndex, match.index));
             }
             parts.push(match[0]);
             lastIndex = blockRegex.lastIndex;
         }
-        if (lastIndex < message.content.length) {
-            parts.push(message.content.substring(lastIndex));
+        if (lastIndex < displayContent.length) {
+            parts.push(displayContent.substring(lastIndex));
         }
         
         return parts.map((part, index) => {
@@ -75,7 +84,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
                             // Check for common data list keys
                             const listData = data.data || data.agents || data.flows || data.users || data.runs || data.rows;
                             if (Array.isArray(listData)) {
-                                return <SupportTable key={index} data={listData} title={data.explanation || data.message} />;
+                                return <SupportTable key={index} data={listData} title={data.title || data.explanation || data.message} columns={data.columns} />;
                             }
                             
                             // Single record detail view

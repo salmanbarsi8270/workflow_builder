@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import { API_URL } from '../api/apiurl';
+import apiClient from '../api/auth';
 import { getServices } from '../api/connectionlist';
 import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, RefreshCw, Loader2, Globe } from "lucide-react";
 import { CustomPagination } from "../Shared/CustomPagination"
@@ -176,13 +177,8 @@ export default function Agents() {
   const fetchAgents = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/v1/agents?userId=${user?.id}&tree=true`);
-      if (response.ok) {
-        const data = await response.json();
-        setAgents(Array.isArray(data) ? data : []);
-      } else {
-        console.error("Failed to fetch agents");
-      }
+      const response = await apiClient.get(`/api/v1/agents?tree=true`);
+      setAgents(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching agents:", error);
       toast.error("Failed to load agents");
@@ -260,24 +256,12 @@ export default function Agents() {
 
     setDeletingId(agentId);
     try {
-      const response = await fetch(`${API_URL}/api/v1/agents/${agentId}?userId=${user?.id}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ userId: user?.id }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        toast.success("Agent deleted successfully");
-        await fetchAgents();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.message || "Failed to delete agent");
-      }
-    } catch (error) {
+      await apiClient.delete(`/api/v1/agents/${agentId}`);
+      toast.success("Agent deleted successfully");
+      await fetchAgents();
+    } catch (error: any) {
       console.error("Error deleting agent:", error);
-      toast.error("Something went wrong");
+      toast.error(error.response?.data?.error || "Failed to delete agent");
     } finally {
       setDeletingId(null);
     }
@@ -287,25 +271,16 @@ export default function Agents() {
     if (!selectedInfoAgent) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/v1/agents/${selectedInfoAgent.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...updates, userId: user?.id })
-      });
-
-      if (response.ok) {
-        const updatedAgent = await response.json();
-        // Update local state
-        setAgents(agents.map(a => a.id === updatedAgent.id ? updatedAgent : a));
-        setSelectedInfoAgent(updatedAgent);
-        toast.success("Agent updated");
-      } else {
-        const err = await response.json();
-        toast.error(err.error || "Failed to update agent");
-      }
-    } catch (error) {
+      const response = await apiClient.patch(`/api/v1/agents/${selectedInfoAgent.id}`, updates);
+      
+      const updatedAgent = response.data;
+      // Update local state
+      setAgents(agents.map(a => a.id === updatedAgent.id ? updatedAgent : a));
+      setSelectedInfoAgent(updatedAgent);
+      toast.success("Agent updated");
+    } catch (error: any) {
       console.error("Error updating agent:", error);
-      toast.error("Failed to update agent");
+      toast.error(error.response?.data?.error || "Failed to update agent");
     }
   };
 

@@ -7,9 +7,11 @@ import { useUser } from '@/context/UserContext';
 export const Assistant = () => {
   const { user } = useUser();
   const [activeView, setActiveView] = useState<'chat' | 'presentation'>('chat');
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [canvasSessionId, setCanvasSessionId] = useState<string | null>(null);
   
-  const history = useAssistantHistory(user?.id);
+  const chatHistory = useAssistantHistory(user?.id, 'chat');
+  const canvasHistory = useAssistantHistory(user?.id, 'canvas');
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -46,16 +48,16 @@ export const Assistant = () => {
       <div className="flex-1 overflow-hidden">
         {activeView === 'chat' && (
             <Support 
-                activeSessionId={activeSessionId} 
-                onSessionSelect={setActiveSessionId}
-                history={history}
+                activeSessionId={chatSessionId} 
+                onSessionSelect={setChatSessionId}
+                history={chatHistory}
             />
         )}
         {activeView === 'presentation' && (
             <Presentation 
-                activeSessionId={activeSessionId} 
-                onSessionSelect={setActiveSessionId}
-                history={history}
+                activeSessionId={canvasSessionId} 
+                onSessionSelect={setCanvasSessionId}
+                history={canvasHistory}
             />
         )}
       </div>

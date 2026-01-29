@@ -12,8 +12,21 @@ export const SupportDetails: React.FC<SupportDetailsProps> = ({ data, title, cla
     const [showRawJson, setShowRawJson] = React.useState(false);
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
 
+    const safeStringify = (obj: any, space: number = 2) => {
+        const cache = new Set();
+        return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (cache.has(value)) {
+                    return '[Circular]';
+                }
+                cache.add(value);
+            }
+            return value;
+        }, space);
+    };
+
     const handleCopy = () => {
-        navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        navigator.clipboard.writeText(safeStringify(data));
     };
 
     const isStatusKey = (key: string) => 
@@ -55,7 +68,7 @@ export const SupportDetails: React.FC<SupportDetailsProps> = ({ data, title, cla
                                         {typeof v === 'number' 
                                             ? v.toLocaleString() 
                                             : typeof v === 'object' 
-                                                ? JSON.stringify(v) 
+                                                ? safeStringify(v, 2) 
                                                 : String(v)}
                                     </td>
                                 </tr>
@@ -78,7 +91,7 @@ export const SupportDetails: React.FC<SupportDetailsProps> = ({ data, title, cla
                 return (
                     <div className="mt-1 p-3 rounded-xl bg-slate-50/50 dark:bg-white/2 border border-slate-100 dark:border-white/5 overflow-x-auto max-h-48 overflow-y-auto">
                         <pre className="text-[11px] font-mono whitespace-pre-wrap break-all text-slate-500 dark:text-white/40">
-                            {JSON.stringify(value, null, 2)}
+                            {safeStringify(value, 2)}
                         </pre>
                     </div>
                 );
@@ -164,7 +177,7 @@ export const SupportDetails: React.FC<SupportDetailsProps> = ({ data, title, cla
                 {showRawJson ? (
                     <div className="p-8 bg-slate-50/30 dark:bg-black/20">
                         <pre className="text-[12px] font-mono whitespace-pre-wrap break-all text-slate-600 dark:text-white/50 leading-relaxed">
-                            {JSON.stringify(data, null, 2)}
+                            {safeStringify(data, 2)}
                         </pre>
                     </div>
                 ) : (

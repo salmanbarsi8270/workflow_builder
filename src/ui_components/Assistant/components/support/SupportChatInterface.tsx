@@ -141,7 +141,7 @@ export const SupportChatInterface: React.FC<SupportChatInterfaceProps> = ({
 
         const updateTimer = setTimeout(() => {
             if (currentSession.id === 'current') {
-                const newId = `session_${Date.now()}`;
+                const newId = `chat_${crypto.randomUUID()}`;
                 const newSession: ChatSession = {
                     ...currentSession,
                     id: newId,
@@ -192,15 +192,35 @@ export const SupportChatInterface: React.FC<SupportChatInterfaceProps> = ({
         setMessages(updatedMessages);
         setLoading(true);
 
+        let sessionIdToUse = selectedSessionId;
+        
+        // Generate robust ID immediately if new session
+        if (sessionIdToUse === 'current') {
+            sessionIdToUse = `chat_${crypto.randomUUID()}`;
+            setSelectedSessionId(sessionIdToUse);
+            
+            // Update local state immediately to reflect new ID
+            if (currentSession) {
+                const newSession = { ...currentSession, id: sessionIdToUse };
+                setCurrentSession(newSession);
+                setChatSessions((prev: ChatSession[]) => [newSession, ...prev]);
+            }
+        }
+
         try {
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_URL}/api/v1/support/query`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     query: userMessage,
                     userId: userId,
-                    sessionId: selectedSessionId === 'current' ? undefined : selectedSessionId,
-                    stream: true
+                    sessionId: sessionIdToUse,
+                    stream: true,
+                    mode: 'chat'
                 })
             });
 
@@ -379,10 +399,10 @@ export const SupportChatInterface: React.FC<SupportChatInterfaceProps> = ({
     };
 
     const suggestions = [
-        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📊' },
-        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Manage your AI assistants.', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: '🤖', popular: true },
+        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List my all automation flows.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📊' },
+        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Manage my AI assistants.', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: '🤖', popular: true },
         { title: 'Execution Logs', badge: 'Recent', desc: 'Review latest flow executions.', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: '🕒' },
-        { title: 'User Roles', badge: 'Access', desc: 'Manage user permissions.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
+        { title: 'User Roles', badge: 'Access', desc: 'Manage my connections.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
     ];
 
     if (!currentSession) return null;
