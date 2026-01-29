@@ -19,7 +19,12 @@ export type ComponentType =
   | 'table-head'
   | 'table-body'
   | 'table-cell'
-  | 'chart-placeholder';
+  | 'chart'
+  | 'chart-placeholder'
+  | 'streaming-text'
+  | 'error-state'
+  | 'section'
+  | 'status-badge';
 
 export interface BaseProps {
   className?: string;
@@ -69,6 +74,36 @@ export interface BadgeProps extends BaseProps {
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
 }
 
+export interface ChartProps extends BaseProps {
+  type?: 'bar' | 'line' | 'area' | 'pie';
+  data?: any[];
+  xAxisKey?: string;
+  series?: { key: string; color?: string; name?: string }[];
+  title?: string;
+  description?: string;
+}
+
+export interface StreamingTextProps extends BaseProps {
+  text: string;
+  speed?: number;
+}
+
+export interface ErrorStateProps extends BaseProps {
+  title: string;
+  message?: string;
+  retryAction?: () => void;
+}
+
+export interface SectionProps extends BaseProps {
+  title?: string;
+  description?: string;
+}
+
+export interface StatusBadgeProps extends BaseProps {
+  status: 'success' | 'warning' | 'error' | 'neutral' | 'info';
+  dot?: boolean;
+}
+
 export type AnyComponentProps = 
   | ContainerProps 
   | StackProps 
@@ -79,6 +114,11 @@ export type AnyComponentProps =
   | MetricProps 
   | AvatarProps 
   | BadgeProps 
+  | ChartProps
+  | StreamingTextProps
+  | ErrorStateProps
+  | SectionProps
+  | StatusBadgeProps
   | BaseProps;
 
 export interface UIComponent {

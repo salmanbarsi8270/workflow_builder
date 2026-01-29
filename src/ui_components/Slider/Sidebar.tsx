@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen, UserCircle } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen, UserCircle, LayoutGrid } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -72,6 +72,8 @@ export function SidebarIconExample() {
         return "INSTRUCTION LIBRARY";
       case "/presentation":
         return "PRESENTATION";
+      case "/canvas":
+        return "CANVAS";
       default:
         return "Workflow Builder";
     }
@@ -130,10 +132,11 @@ export function SidebarIconExample() {
       url: "/personas",
       icon: <UserCircle size={20} />,
     },
-     {
-      title: "Presentation",
-      url: "/presentation",
-      icon: <UserCircle size={20} />,
+
+    {
+      title: "Canvas",
+      url: "/canvas",
+      icon: <LayoutGrid size={20} />,
     },
   ]
 
@@ -146,11 +149,11 @@ export function SidebarIconExample() {
               <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
                 <Link to="/" className="flex items-center gap-3">
                   <div className="relative group">
-                    <div 
-                      className="absolute inset-0 blur-lg rounded-xl opacity-20 transition-all group-hover:opacity-30" 
+                    <div
+                      className="absolute inset-0 blur-lg rounded-xl opacity-20 transition-all group-hover:opacity-30"
                       style={{ backgroundColor: accentColor }}
                     />
-                    <div 
+                    <div
                       className="relative p-2 rounded-xl flex items-center justify-center text-white shadow-lg transition-all"
                       style={{ backgroundColor: accentColor, boxShadow: `${accentColor}33 0px 8px 24px` }}
                     >
@@ -159,7 +162,7 @@ export function SidebarIconExample() {
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="truncate font-black text-slate-900 dark:text-white tracking-tighter text-base">WORKFLOW</span>
-                    <span 
+                    <span
                       className="truncate text-[10px] font-bold uppercase tracking-widest"
                       style={{ color: accentColor }}
                     >
@@ -267,7 +270,7 @@ export function SidebarIconExample() {
                         className="data-[state=checked]:bg-blue-600"
                       />
                     </div>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer"
                       onClick={() => setIsColorPickerOpen(true)}
                     >
