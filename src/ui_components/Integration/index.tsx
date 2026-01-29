@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, Sparkles, ArrowUpDown, ListCollapse, Plus } from "lucide-react"
+import { RefreshCw, Search, X, Grid, List, Globe, CheckCircle, UserCircle, ArrowUpDown, ListCollapse, Plus } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { CustomPagination } from "../Shared/CustomPagination"
 import { getServices } from "../api/connectionlist"
@@ -16,7 +18,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { motion, AnimatePresence } from "framer-motion"
 
 import type { IntegrationApp } from './types';
-import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
@@ -32,6 +33,7 @@ interface IntegrationProps {
 
 export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const { user } = useUser();
+  const { accentColor } = useTheme();
   const [apps, setApps] = useState<IntegrationApp[]>([]);
   const [filteredApps, setFilteredApps] = useState<IntegrationApp[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -279,99 +281,98 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
       {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.01)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
-      <div className="relative z-10 container mx-auto p-8 w-full flex flex-col h-full gap-8">
+      <div className="relative w-full max-w-[90%] mx-auto z-10 p-8 h-full flex flex-col gap-8">
         {/* Header Section */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 shrink-0"
-        >
-          <div className="space-y-1">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10">
-                  <Globe className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        <div className="mb-4 animate-in fade-in slide-in-from-top duration-500">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+            <div className="flex-1">
+              <div className="mb-6">
+                <div className="items-center gap-4 mb-3">
+                  <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                    Integrations Marketplace
+                  </h1>
+                  <div 
+                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]" 
+                    style={{ backgroundColor: accentColor }}
+                  />
                 </div>
               </div>
-              <div>
-                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-                  Integrations Marketplace
-                  <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-500/30">
-                    Discover
-                  </div>
-                </h2>
-                <p className="text-slate-500 dark:text-blue-200/70 text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                  Connect and manage your favorite apps and services to power your workflows
-                </p>
-              </div>
+              <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                Connect and manage your favorite apps and services to power your workflows. Discover new connectors, triggers, and actions.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={fetchConnections}
+                disabled={isLoading}
+                className="h-14 w-14 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
+              >
+                <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
+              </button>
+              <button
+                onClick={() => setCreateConnectorOpen(true)}
+                className="h-14 px-8 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2"
+                style={{ backgroundColor: accentColor }}
+              >
+                <Plus className="h-5 w-5" />
+                Create Connector
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchConnections}
-              disabled={isLoading}
-              className="gap-2 h-11 px-5 rounded-xl border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300"
-            >
-              <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="font-semibold">Refresh</span>
-            </Button>
-
-            <Button
-              onClick={() => setCreateConnectorOpen(true)}
-              className="gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
-            >
-              <Plus className="h-4 w-4 text-white" />
-              Create Connector
-            </Button>
-
-          </div>
-        </motion.div>
+        </div>
 
         {/* Stats Overview */}
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          <StatsCard
-            title="Total Integrations"
-            value={apps.length}
-            icon={Globe}
-            trend={12}
-            color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-          />
-          <StatsCard
-            title="Connected"
-            value={apps.filter(a => a.connected).length}
-            icon={CheckCircle}
-            trend={8}
-            color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          />
-          <StatsCard
-            title="Active Accounts"
-            value={apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0)}
-            icon={UserCircle}
-            trend={15}
-            color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-          />
-          <StatsCard
-            title="Synced Today"
-            value={apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length}
-            icon={RefreshCw}
-            trend={-3}
-            color="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          />
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 animate-in fade-in slide-in-from-bottom duration-500">
+          {[
+            { 
+              title: "Total Integrations", 
+              value: apps.length, 
+              icon: Globe, 
+              trend: "+12%", 
+              color: "text-blue-500 bg-blue-500/10" 
+            },
+            { 
+              title: "Connected", 
+              value: apps.filter(a => a.connected).length, 
+              icon: CheckCircle, 
+              trend: "+8%", 
+              color: "text-emerald-500 bg-emerald-500/10" 
+            },
+            { 
+              title: "Active Accounts", 
+              value: apps.reduce((acc, app) => acc + (app.accounts?.length || 0), 0), 
+              icon: UserCircle, 
+              trend: "+15%", 
+              color: "text-blue-500 bg-blue-500/10" 
+            },
+            { 
+              title: "Synced Today", 
+              value: apps.filter(a => a.lastSynced && new Date(a.lastSynced).toDateString() === new Date().toDateString()).length, 
+              icon: RefreshCw, 
+              trend: "-3%", 
+              color: "text-orange-500 bg-orange-500/10" 
+            }
+          ].map((stat, idx) => (
+            <div
+              key={idx}
+              className="relative bg-white dark:bg-white/2 border border-slate-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm group hover:border-slate-300 dark:hover:border-white/10 transition-all font-medium"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.title}</span>
+                <div className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5", stat.color)}>
+                  <stat.icon className="h-3 w-3" />
+                  {stat.trend}
+                </div>
+              </div>
+              <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{stat.value}</div>
+            </div>
+          ))}
+        </div>
 
         {/* Controls Bar */}
         <motion.div
