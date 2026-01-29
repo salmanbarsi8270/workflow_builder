@@ -5,7 +5,7 @@ import apiClient from '../api/auth';
 import { getServices } from '../api/connectionlist';
 import { Bot, Plus, Play, Settings2, Trash2, Terminal, Sparkles, Zap, RefreshCw, Loader2, Globe } from "lucide-react";
 import { CustomPagination } from "../Shared/CustomPagination"
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 
 
@@ -512,7 +512,7 @@ export default function Agents() {
           userId={user?.id}
         />
 
-        <AgentInfoSheet
+      <AgentInfoSheet
           agent={selectedInfoAgent}
           open={isInfoSheetOpen}
           onOpenChange={setIsInfoSheetOpen}
@@ -525,8 +525,6 @@ export default function Agents() {
           onUpdate={handleUpdateAgent}
         />
       </div>
-
-      <Toaster />
     </div>
   );
 }

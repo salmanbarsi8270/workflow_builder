@@ -420,9 +420,10 @@ export function CreateAgentDialog({
                 return; // Stop here if agent save failed
             }
 
-        } catch (error) {
+        } catch (error:any) {
             console.error("Error saving agent:", error);
-            toast.error("Something went wrong");
+            const errorMessage = error.response?.data?.error || error.message || "Something went wrong";
+            toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }

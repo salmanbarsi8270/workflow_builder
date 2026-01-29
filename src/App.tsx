@@ -78,7 +78,7 @@ export function App() {
                         <Route path="*" element={<ErrorPage />} />
                     </Routes>
                 </BrowserRouter>
-                <Toaster />
+                <Toaster richColors position="bottom-right" closeButton visibleToasts={5} />
             </PieceProvider>
         </UserProvider>
     );
