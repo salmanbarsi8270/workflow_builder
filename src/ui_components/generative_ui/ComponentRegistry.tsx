@@ -317,7 +317,6 @@ const ThinkingBlock = ({ children, className, finished, ...props }: any) => {
             open={isOpen}
             onOpenChange={setIsOpen}
             className={cn("w-full transition-all duration-300", className)}
-            {...props}
         >
             <CollapsibleTrigger asChild>
                 <div className="flex items-center gap-2 py-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity group w-fit">

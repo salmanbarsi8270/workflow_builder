@@ -71,10 +71,11 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
-                            <Route path="/presentation" element={<Presentation />} />
                             <Route path="/canvas" element={<CanvasPage />} />
+                            <Route path="/presentation" element={<Presentation />} />
                         </Route>
 
+                        {/* Full-screen routes without sidebar */}
                         <Route path="/chat/:slug" element={<PublicChat />} />
 
                         <Route path="*" element={<ErrorPage />} />

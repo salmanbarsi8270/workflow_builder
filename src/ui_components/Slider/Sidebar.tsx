@@ -133,9 +133,14 @@ export function SidebarIconExample() {
       icon: <UserCircle size={20} />,
     },
 
-    {
-      title: "Canvas",
-      url: "/canvas",
+    // {
+    //   title: "Canvas",
+    //   url: "/canvas",
+    //   icon: <LayoutGrid size={20} />,
+    // },
+     {
+      title: "presentaion",
+      url: "/presentation",
       icon: <LayoutGrid size={20} />,
     },
   ]
