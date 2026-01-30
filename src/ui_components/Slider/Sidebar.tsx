@@ -128,6 +128,11 @@ export function SidebarIconExample() {
       url: "/assistant",
       icon: <HandshakeIcon size={18} />,
     },
+    {
+      title: "Canvas",
+      url: "/canvas",
+      icon: <HandshakeIcon size={18} />,
+    },
   ]
  
   const getPageTitle = (pathname: string) => {
@@ -144,6 +149,7 @@ export function SidebarIconExample() {
       case "/files": return "FILE MANAGER";
       case "/personas": return "INSTRUCTION LIBRARY";
       case "/assistant": return "ASSISTANT";
+      case "/canvas": return "CANVAS";
       default: return "Workflow Builder";
     }
   };
