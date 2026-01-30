@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { RefreshCw, Search, X, Shield, Filter, Globe, Plus, LayoutGrid, List, ArrowUpDown, ExternalLink, Sparkles } from "lucide-react"
+import { RefreshCw, Search, X, Shield, Filter, Plus, LayoutGrid, List, ArrowUpDown, ExternalLink } from "lucide-react"
 import { getServices, deleteConnection } from "../api/connectionlist"
 import { CustomPagination } from "../Shared/CustomPagination"
 import { useUser } from '@/context/UserContext';
@@ -12,11 +12,13 @@ import type { ConnectedAccount } from './types';
 import { ConnectionGridCard } from './components/ConnectionGridCard';
 import { ConnectionListCard } from './components/ConnectionListCard';
 import { ConnectionCardSkeleton } from './components/ConnectionCardSkeleton';
+import { useTheme } from "@/components/theme-provider";
 
 type SortType = 'date' | 'name' | 'service';
 
 export default function Connections() {
   const { user } = useUser();
+  const { accentColor } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
@@ -148,45 +150,41 @@ export default function Connections() {
   };
 
   return (
-    <div className="min-h-full bg-linear-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-white overflow-y-scroll relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+    <div className="min-h-full bg-transparent text-slate-900 dark:text-white overflow-y-auto relative animate-in fade-in duration-500">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.01)_1px,transparent_1px)] bg-size-[50px_50px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)] pointer-events-none" />
 
-      <div className="relative z-10 container mx-auto p-8 w-full space-y-8 flex flex-col h-full">
-        <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                <div className="relative p-3 rounded-2xl bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl shadow-blue-500/10">
-                  <Globe className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+      <div className="relative w-full max-w-[90%] mx-auto z-10 p-8 h-full flex flex-col gap-8">
+        <div className="mb-4 animate-in fade-in slide-in-from-top duration-500">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-4">
+            <div className="flex-1">
+              <div className="mb-6">
+                <div className="items-center gap-4 mb-3">
+                  <h1 className="text-[36px] font-bold text-slate-900 dark:text-white tracking-tight leading-none uppercase">
+                    Connections
+                  </h1>
+                  <div
+                    className="h-1.5 w-12 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.3)]"
+                    style={{ backgroundColor: accentColor }}
+                  />
                 </div>
               </div>
-              <div>
-                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-                  Connected Accounts
-                  <div className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest border border-blue-200 dark:border-blue-500/30">
-                    Secure
-                  </div>
-                </h2>
-                <p className="text-slate-500 dark:text-blue-200/70 text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                  Manage your individual credentials and platform integrations
-                </p>
-              </div>
+              <p className="text-slate-500 dark:text-white/40 text-[14px] max-w-[750px] leading-relaxed font-medium">
+                Manage your individual credentials and platform integrations. Securely connect and maintain different account identities to use within your automated workflows.
+              </p>
+            </div>
+          
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={fetchAccounts} disabled={isLoading} className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 disabled:opacity-50">
+                <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="font-semibold">Refresh</span>
+              </button>
+              <button onClick={() => navigate('/connectors')} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]">
+                <Plus className="h-4 w-4" />
+                Add Connector
+              </button>
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={fetchAccounts} disabled={isLoading} className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 disabled:opacity-50">
-              <RefreshCw className={`h-4 w-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
-              <span className="font-semibold">Refresh</span>
-            </button>
-            <button onClick={() => navigate('/connectors')} className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]">
-              <Plus className="h-4 w-4" />
-              Add Connector
-            </button>
-          </div>
-        </motion.div>
+        </div>
 
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between p-4 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm shrink-0">
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">

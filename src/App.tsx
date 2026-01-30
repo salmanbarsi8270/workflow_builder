@@ -20,6 +20,7 @@ import InstructionLibrary from './ui_components/Agents/InstructionLibrary';
 import { PublicChat } from './ui_components/PublicChat/PublicChat';
 import { Presentation } from './ui_components/generative_ui/presentation';
 import CanvasPage from './ui_components/Canvas/CanvasPage';
+import Support from './ui_components/support';
 
 function UIDesignerWrapper() {
     const { user } = useUser();
@@ -73,6 +74,7 @@ export function App() {
                             <Route path="/personas" element={<InstructionLibrary />} />
                             <Route path="/canvas" element={<CanvasPage />} />
                             <Route path="/presentation" element={<Presentation />} />
+                            <Route path="/support" element={<Support />} />
                         </Route>
 
                         {/* Full-screen routes without sidebar */}
