@@ -124,8 +124,8 @@ export function SidebarIconExample() {
       icon: <UserCircle size={18} />,
     },
     {
-      title: "Support",
-      url: "/support",
+      title: "Assistant",
+      url: "/assistant",
       icon: <HandshakeIcon size={18} />,
     },
   ]
@@ -143,7 +143,7 @@ export function SidebarIconExample() {
       case "/ui-designer": return "UI Designer";
       case "/files": return "FILE MANAGER";
       case "/personas": return "INSTRUCTION LIBRARY";
-      case "/support": return "SUPPORT";
+      case "/assistant": return "ASSISTANT";
       default: return "Workflow Builder";
     }
   };

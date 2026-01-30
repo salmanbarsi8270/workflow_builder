@@ -112,7 +112,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
         </div>
       </div>
 
-      {hasSubagents && (
+      {/* {hasSubagents && (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
           {subagentsList.map((sub, sidx) => (
             <AgentTreeNode
@@ -129,7 +129,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
             />
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { API_URL } from '../../ui_components/api/apiurl';
+import { useState, useEffect, useRef } from 'react';
+import { API_URL, AI_URL } from '../../ui_components/api/apiurl';
 import { SupportHeader } from './components/SupportHeader';
 import { SupportBody } from './components/SupportBody';
 import { SupportInput } from './components/SupportInput';
@@ -75,7 +75,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
 
             // 2. Fetch from Backend and Merge
             try {
-                const response = await fetch(`${API_URL}/memory/conversations?userId=${userId}`);
+                const response = await fetch(`${AI_URL}/memory/conversations?userId=${userId}`);
                 const data = await response.json();
                 
                 if (data.conversations) {
@@ -180,27 +180,6 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [currentSession.messages]);
 
-    const simulateTyping = useCallback(async (text: string): Promise<string> => {
-        setIsTyping(true);
-        const characters = text.split('');
-        let displayedText = '';
-        
-        for (let i = 0; i < characters.length; i++) {
-            displayedText += characters[i];
-            setCurrentSession(prev => ({
-                ...prev,
-                messages: prev.messages.map((msg, idx, arr) => 
-                    idx === arr.length - 1 
-                        ? { ...msg, content: displayedText }
-                        : msg
-                )
-            }));
-            await new Promise(resolve => setTimeout(resolve, 1000 / typingSpeed));
-        }
-        setIsTyping(false);
-        return displayedText;
-    }, [typingSpeed]);
-
     const handleSendMessage = async (overrideInput?: string) => {
         const userMessage = overrideInput || input.trim();
         if (!userMessage || loading) return;
@@ -224,7 +203,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/v1/support/query`, {
+            const response = await fetch(`${AI_URL}/api/v1/support/query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -373,7 +352,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
             if (session.messages.length === 0 || (session.messages.length === 1 && session.messages[0].id === 'welcome')) {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_URL}/memory/conversation/${sessionId}?userId=${userId}`);
+                    const res = await fetch(`${AI_URL}/memory/conversation/${sessionId}?userId=${userId}`);
                     const data = await res.json();
                     if (data.messages) {
                         const messages = data.messages.map((m: any, idx: number) => ({
@@ -455,9 +434,10 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
     };
 
     const suggestions = [
-        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📋' },
-        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Show and manage your configured AI assistants in real-time.', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: '🤖', popular: true },
-        { title: 'Execution Logs', badge: 'Recent', desc: 'Review the latest flow executions and performance metrics.', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: '🕒' },
+        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📊' },
+        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Show and manage your configured AI assistants in real-time.', color: 'bg-primary/10 text-primary border-primary/20', icon: '🤖', popular: true },
+        { title: 'Execution Logs', badge: 'Recent', desc: 'Review the latest flow executions and performance metrics.', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: '⏱️' },
+        { title: 'User Roles', badge: 'Security', desc: 'Manage user permissions and access control for your workflows.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
     ];
 
     return (
@@ -492,12 +472,8 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                         userName={userName}
                         loading={loading}
                         isTyping={isTyping}
-                        suggestions={suggestions}
-                        onSendMessage={handleSendMessage}
                         scrollAreaRef={scrollAreaRef}
                         messagesEndRef={messagesEndRef}
-                        sessionTitle={currentSession.title}
-                        onRenameSession={(title) => handleRenameSession(selectedSessionId, title)}
                     />
                 </div>
 
@@ -506,7 +482,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                     setInput={setInput}
                     onSendMessage={() => handleSendMessage()}
                     loading={loading || isTyping}
-                    suggestions={suggestions.slice(0, 2)}
+                    suggestions={suggestions}
                 />
             </SidebarInset>
         </SidebarProvider>
