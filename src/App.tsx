@@ -50,6 +50,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 import { PieceProvider } from './context/PieceContext';
 
 import { Toaster } from 'sonner';
+import Assistant from './ui_components/Assistant';
 
 export function App() {
     return (
@@ -72,6 +73,7 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
+                            <Route path="/assistant" element={<Assistant />} />
                             <Route path="/canvas" element={<CanvasPage />} />
                             <Route path="/presentation" element={<Presentation />} />
                             <Route path="/support" element={<Support />} />
