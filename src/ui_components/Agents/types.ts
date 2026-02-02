@@ -28,6 +28,7 @@ export interface Agent {
   guardrails_enabled?: boolean;
   rag_enabled?: boolean;
   evals_enabled?: boolean;
+  ui_enabled?: boolean;
   api_key?: string;
   connectionId?: string;
   connection_id?: string;
@@ -60,6 +61,7 @@ export interface Agent {
   visibility?: 'public' | 'private';
   db_connection_id?: string;
   database_connection_string?: string;
+  catalogs?: string[];
 }
 
 export interface ConnectionOption {
