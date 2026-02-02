@@ -133,6 +133,11 @@ export function SidebarIconExample() {
       url: "/canvas",
       icon: <HandshakeIcon size={18} />,
     },
+    {
+      title: "Presentations",
+      url: "/presentations",
+      icon: <HandshakeIcon size={18} />,
+    }
   ]
  
   const getPageTitle = (pathname: string) => {

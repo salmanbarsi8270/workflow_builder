@@ -6,8 +6,9 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart, PieChart, Pie, Cell } from 'recharts';
+import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
 import { Input } from '@/components/ui/input';
+import { DatabaseCard } from './DatabaseCard';
 
 // Card Wrapper with Grid Span Support
 const CardWrapper = ({ span = 6, className, children, ...props }: any) => {
@@ -288,11 +289,9 @@ import {
     Table,
     TableHeader,
     TableBody,
-    TableFooter,
     TableHead,
     TableRow,
     TableCell,
-    TableCaption,
 } from "@/components/ui/table"
 
 import {
@@ -307,9 +306,9 @@ const DivWrapper = ({ className, children, ...props }: any) => (
 );
 
 // Thinking Block Component with Animation
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
-const ThinkingBlock = ({ children, className, finished, ...props }: any) => {
+const ThinkingBlock = ({ children, className, finished }: any) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -385,4 +384,5 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
     'chart-placeholder': ChartPlaceholder,
     'error-state': ErrorState,
     'thinking-block': ThinkingBlock,
+    'database-card': DatabaseCard,
 };

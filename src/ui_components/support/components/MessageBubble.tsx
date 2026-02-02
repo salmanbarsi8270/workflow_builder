@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { SupportTable } from './SupportTable';
 import { SupportForm } from './SupportForm';
 import { SupportDetails } from './SupportDetails';
+import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 
 interface MessageBubbleProps {
     message: {
         content: string;
         role: 'user' | 'assistant';
-        status?: 'sending' | 'sent' | 'error';
+        status?: 'sending' | 'sent' | 'error' | 'thinking';
+        metadata?: {
+            currentTool?: string;
+            toolCalls?: any[];
+            toolResults?: any[];
+        };
     };
     role: 'user' | 'assistant';
     isTyping?: boolean;
@@ -25,8 +32,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
         setHighlighted(false);
     };
 
+    // User requested "only result.text" and "did not send ui" otherwise.
+    // We strictly hide the bubble if there is no content yet, suppressing the "thinking" dots.
+    if (role === 'assistant' && !message.content) {
+        return null;
+    }
+
     const renderContent = () => {
-        if (isTyping && role === 'assistant') {
+        if ((isTyping || message.status === 'thinking') && role === 'assistant' && !message.content) {
+            // User requested "only result.text to show". Hiding "Thinking..." labels.
             return (
                 <div className="flex items-center gap-2 py-1">
                     <div className="flex gap-1">
@@ -34,216 +48,201 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
                         <div className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                         <div className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground dark:text-white/40 italic">Thinking...</span>
                 </div>
             );
         }
 
-        // Parse content for JSON blocks
-        // We use a more sophisticated split to handle partial blocks during streaming
+        // Identify reasoning/thought sections (e.g., <think>...</think>)
+        let processedContent = message.content;
+        
+        // Handle unclosed <think> tag during streaming (DeepSeek/Thinking models)
+        if (processedContent.includes('<think>') && !processedContent.toLowerCase().includes('</think>')) {
+            processedContent = processedContent.replace(/<think>/gi, ':::thought\n');
+            processedContent += '\n:::';
+        }
+
+        const thoughtRegex = /<think>([\s\S]*?)<\/think>/gi;
+        processedContent = processedContent.replace(thoughtRegex, (_, thought) => {
+            return `:::thought\n${thought}\n:::`;
+        });
+
+        // Use more sophisticated split to handle partial blocks and thought sections
         const parts: string[] = [];
         let lastIndex = 0;
-        const blockRegex = /(```(?:json)?[\s\S]*?(?:```|$))/g;
+        const blockRegex = /(```(?:json)?[\s\S]*?(?:```|$))|(:::thought[\s\S]*?(?::::|$))/g;
         let match;
 
-        while ((match = blockRegex.exec(message.content)) !== null) {
+        while ((match = blockRegex.exec(processedContent)) !== null) {
             if (match.index > lastIndex) {
-                parts.push(message.content.substring(lastIndex, match.index));
+                parts.push(processedContent.substring(lastIndex, match.index));
             }
             parts.push(match[0]);
             lastIndex = blockRegex.lastIndex;
         }
-        if (lastIndex < message.content.length) {
-            parts.push(message.content.substring(lastIndex));
+        if (lastIndex < processedContent.length) {
+            parts.push(processedContent.substring(lastIndex));
         }
+
+
+        const parsedNodes: { type: 'thought' | 'data' | 'text'; content: React.ReactNode }[] = [];
         
-        return parts.map((part, index) => {
+        // Helper function for text formatting (hoisted)
+        const renderFormattedLine = (line: string, i: number, partIndex: number) => {
+            const index = partIndex; // Closure for key generation
+            const trimmed = line.trim();
+            if (!trimmed) return <div key={`${index}-${i}`} className="h-1" />;
+
+            const renderBoldText = (text: string) => {
+                const parts = text.split(/(\*\*.*?\*\*)/g);
+                return parts.map((p, j) => {
+                    if (p.startsWith('**') && p.endsWith('**')) {
+                        return <strong key={j} className="font-bold text-slate-900 dark:text-white/90">{p.slice(2, -2)}</strong>;
+                    }
+                    return p;
+                });
+            };
+
+            if (trimmed.startsWith('###')) {
+                return <h3 key={`${index}-${i}`} className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-[0.2em] mt-6 mb-3 first:mt-0">{trimmed.replace(/^###\s*/, '')}</h3>;
+            }
+            if (trimmed.startsWith('**') && trimmed.endsWith('**') && !trimmed.slice(2, -2).includes('**')) {
+                return <h4 key={`${index}-${i}`} className="text-[14px] font-bold text-slate-800 dark:text-white mt-4 mb-2 first:mt-0 flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary" />{trimmed.replace(/\*\*/g, '')}</h4>;
+            }
+            if (trimmed.startsWith('- ')) {
+                return <div key={`${index}-${i}`} className="flex gap-3 mb-1.5 last:mb-0 ml-6"><div className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-slate-300 dark:bg-white/10" /><div className="text-[13.5px] text-slate-600 dark:text-white/70 leading-relaxed">{renderBoldText(trimmed.replace(/^- /, ''))}</div></div>;
+            }
+            if (/^\d+\.\s/.test(trimmed)) {
+                const numberStr = trimmed.match(/^\d+/)?.[0];
+                return <div key={`${index}-${i}`} className="flex gap-3 mt-6 mb-2 first:mt-0"><span className="text-[12px] font-black text-primary/60 mt-0.5 w-4">{numberStr}.</span><span className="text-[14px] font-bold text-slate-800 dark:text-white">{renderBoldText(trimmed.replace(/^\d+\.\s/, ''))}</span></div>;
+            }
+            return <p key={`${index}-${i}`} className="mb-2 last:mb-0 text-[13.5px] text-slate-600 dark:text-white/70 leading-relaxed">{renderBoldText(line)}</p>;
+        };
+
+        const metaTalkPatterns = [
+             /^the user says/i,
+             /^we need to respond/i,
+             /^we have executed/i,
+             /^now the user has asked/i,
+             /^based on the policy/i,
+             /^thus, if/i,
+             /^one nuance/i,
+             /^the output policy/i,
+             /^we need to consider/i,
+             /^this presumably/i,
+             /^thus final output/i,
+             /^internal thinking/i,
+             /^role:/i,
+             /^mandatory final json/i,
+             /^summary:/i,
+             /^thinking:/i,
+             /^text response:/i,
+             /^\[agent:result\]/i,
+             /^📊 \[agent:result\]/i
+        ];
+
+        // Process each part
+        parts.forEach((part, index) => {
+            // 1. Thought Sections
+            if (part.startsWith(':::thought')) {
+                const thought = part.replace(/:::thought/g, '').replace(/:::/g, '').trim();
+                parsedNodes.push({
+                    type: 'thought',
+                    content: <Reasoning key={`thought-${index}`} isStreaming={isTyping}><ReasoningTrigger /><ReasoningContent>{thought}</ReasoningContent></Reasoning>
+                });
+                return;
+            }
+
+            // 2. Code/Data Blocks
             if (part.startsWith('```')) {
                 const isComplete = part.endsWith('```');
                 const jsonStr = part.replace(/```(?:json)?/g, '').trim();
                 
                 if (isComplete) {
                     try {
-                        let data = JSON.parse(jsonStr);
+                        const data = JSON.parse(jsonStr);
+                        // Helper to traverse and find arrays
+                        const findArray = (obj: any, depth = 0): any[] | null => {
+                            if (!obj || typeof obj !== 'object' || depth > 3) return null;
+                            if (Array.isArray(obj)) return obj;
+                            const keys = ['data', 'result', 'agents', 'flows', 'users', 'runs', 'rows', 'output', 'items', 'templates'];
+                            for (const key of keys) if (obj[key] && Array.isArray(obj[key])) return obj[key];
+                            for (const k of Object.keys(obj)) if (obj[k] && typeof obj[k] === 'object') { const f = findArray(obj[k], depth + 1); if (f) return f; }
+                            return null;
+                        };
+
+                        let finalData = data;
+                        if (data?.output && typeof data.output === 'string') { try { finalData = JSON.parse(data.output); } catch(e){} }
                         
-                        // If it's the standard wrapper { success, data, ... }, extract data
-                        if (data && typeof data === 'object' && !Array.isArray(data)) {
-                            if (data.type === 'form') {
-                                return <SupportForm key={index} data={data} />;
-                            }
-                            
-                            // Check for common data list keys
-                            const listData = data.data || data.agents || data.flows || data.users || data.runs || data.rows;
-                            if (Array.isArray(listData)) {
-                                return <SupportTable key={index} data={listData} title={data.explanation || data.message} />;
-                            }
-                            
-                            // Single record detail view
-                            return <SupportDetails key={index} data={data} />;
+                        // Determine Format
+                        if (finalData?.type === 'form') {
+                             parsedNodes.push({ type: 'data', content: <SupportForm key={index} data={finalData} /> });
+                             return;
                         }
-
-                        if (Array.isArray(data)) {
-                            return <SupportTable key={index} data={data} />;
+                        
+                        const listData = findArray(finalData);
+                        if (listData) {
+                            parsedNodes.push({ type: 'data', content: <SupportTable key={index} data={listData} title={finalData.explanation || finalData.message || "Data Results"} /> });
+                            return;
                         }
-                    } catch (e) {
-                        // RECOVERY: If direct parse fails, try to extract JSON from a likely "dirty" block
-                        try {
-                            const firstBrace = jsonStr.indexOf('{');
-                            const firstBracket = jsonStr.indexOf('[');
-                            const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
-                            
-                            if (start !== -1) {
-                                const lastBrace = jsonStr.lastIndexOf('}');
-                                const lastBracket = jsonStr.lastIndexOf(']');
-                                const end = (lastBrace !== -1 && (lastBracket === -1 || lastBrace > lastBracket)) ? lastBrace : lastBracket;
-                                
-                                if (end !== -1 && end > start) {
-                                    const extracted = jsonStr.substring(start, end + 1);
-                                    let data = JSON.parse(extracted);
-                                    
-                                    if (data && typeof data === 'object') {
-                                        if (data.type === 'form') return <SupportForm key={index} data={data} />;
-                                        const listData = data.data || data.agents || data.flows || data.users || data.runs || data.rows || data.templates;
-                                        if (Array.isArray(listData)) return <SupportTable key={index} data={listData} title={data.explanation || data.message} />;
-                                        if (Array.isArray(data)) return <SupportTable key={index} data={data} />;
-                                        return <SupportDetails key={index} data={data} />;
-                                    }
-                                }
-                            }
-                        } catch (innerError) {
-                            // Still failed, fall back to pre
+                        
+                        if (finalData && typeof finalData === 'object') {
+                            parsedNodes.push({ type: 'data', content: <SupportDetails key={index} data={finalData} /> });
+                            return;
                         }
-
-                        // Not valid JSON or not an array, render as code block
-                        return (
-                            <pre key={index} className="my-2 p-3 rounded-lg bg-slate-100 dark:bg-white/5 overflow-x-auto text-[11px] font-mono">
-                                <code>{jsonStr}</code>
-                            </pre>
-                        );
-                    }
-                } else {
-                    // This is a partial block during streaming
-                    return (
-                        <div key={index} className="my-4 p-6 rounded-2xl border border-dashed border-primary/20 bg-primary/5 animate-pulse flex flex-col items-center gap-3">
-                            <div className="flex gap-1">
-                                <div className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="h-1.5 w-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Generating table...</span>
-                        </div>
-                    );
+                    } catch (e) { /* ignore parse error */ }
                 }
-            }
-
-            // Fallback: If no backticks but looks like JSON, try parsing the whole thing
-            if (index === 0 && !message.content.includes('```')) {
-                const trimmed = message.content.trim();
-                if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-                    try {
-                        let data = JSON.parse(trimmed);
-                        
-                        // Handle API wrappers: { success, output: "{...}" }
-                        if (data && typeof data === 'object' && !Array.isArray(data) && data.output && typeof data.output === 'string') {
-                            try {
-                                const unwrapped = JSON.parse(data.output.trim());
-                                if (unwrapped && typeof unwrapped === 'object') {
-                                    data = unwrapped;
-                                }
-                            } catch (e) {
-                                // output is not JSON, we'll just display it as an object or text
-                            }
-                        }
-
-                        // Try to find a list in the data
-                        const listData = Array.isArray(data) ? data : (data.data || data.agents || data.flows || data.users || data.runs || data.rows);
-                        
-                        if (Array.isArray(listData)) {
-                            return <SupportTable key={index} data={listData} title={data.explanation || data.message} />;
-                        } else if (data && typeof data === 'object') {
-                            // Check if this object contains any array (e.g., { "agents": [...] })
-                            const nestedArrayKey = Object.keys(data).find(key => Array.isArray(data[key]));
-                            if (nestedArrayKey) {
-                                return <SupportTable key={index} data={data[nestedArrayKey]} title={data.explanation || data.message || nestedArrayKey} />;
-                            }
-                            return <SupportDetails key={index} data={data} />;
-                        }
-                    } catch (e) {
-                        // Not valid JSON, continue to normal text rendering
-                    }
-                }
-            }
-
-            const renderBoldText = (text: string) => {
-                const parts = text.split(/(\*\*.*?\*\*)/g);
-                return parts.map((part, i) => {
-                    if (part.startsWith('**') && part.endsWith('**')) {
-                        return <strong key={i} className="font-bold text-slate-900 dark:text-white/90">{part.slice(2, -2)}</strong>;
-                    }
-                    return part;
+                
+                // Fallback: Render as Code Block (Text)
+                parsedNodes.push({
+                    type: 'text',
+                    content: <pre key={index} className="my-2 p-3 rounded-lg bg-slate-100 dark:bg-white/5 overflow-x-auto text-[11px] font-mono"><code>{jsonStr}</code></pre>
                 });
-            };
+                return;
+            }
 
-            const renderFormattedLine = (line: string, i: number) => {
-                const trimmed = line.trim();
-                if (!trimmed) return <div key={`${index}-${i}`} className="h-1" />;
-
-                // Header ###
-                if (trimmed.startsWith('###')) {
-                    return (
-                        <h3 key={`${index}-${i}`} className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-[0.2em] mt-6 mb-3 first:mt-0">
-                            {trimmed.replace(/^###\s*/, '')}
-                        </h3>
-                    );
-                }
-
-                // Title Line: **Text** (stand-alone title)
-                if (trimmed.startsWith('**') && trimmed.endsWith('**') && !trimmed.slice(2, -2).includes('**')) {
-                    return (
-                        <h4 key={`${index}-${i}`} className="text-[14px] font-bold text-slate-800 dark:text-white mt-4 mb-2 first:mt-0 flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                            {trimmed.replace(/\*\*/g, '')}
-                        </h4>
-                    );
-                }
-
-                // List Item: - **Key**: Value or - Text
-                if (trimmed.startsWith('- ')) {
-                    const content = trimmed.replace(/^- /, '');
-                    return (
-                        <div key={`${index}-${i}`} className="flex gap-3 mb-1.5 last:mb-0 ml-6">
-                            <div className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-slate-300 dark:bg-white/10" />
-                            <div className="text-[13.5px] text-slate-600 dark:text-white/70 leading-relaxed">
-                                {renderBoldText(content)}
-                            </div>
-                        </div>
-                    );
-                }
-
-                // Numbered Item: 1. **Text**
-                if (/^\d+\.\s/.test(trimmed)) {
-                    const content = trimmed.replace(/^\d+\.\s/, '');
-                    const number = trimmed.match(/^\d+/)?.[0];
-                    return (
-                        <div key={`${index}-${i}`} className="flex gap-3 mt-6 mb-2 first:mt-0">
-                            <span className="text-[12px] font-black text-primary/60 mt-0.5 w-4">{number}.</span>
-                            <span className="text-[14px] font-bold text-slate-800 dark:text-white">
-                                {renderBoldText(content)}
-                            </span>
-                        </div>
-                    );
-                }
-
-                // Default paragraph with bolding
-                return (
-                    <p key={`${index}-${i}`} className="mb-2 last:mb-0 text-[13.5px] text-slate-600 dark:text-white/70 leading-relaxed">
-                        {renderBoldText(line)}
-                    </p>
-                );
-            };
-
-            return part.split('\n').map((line, i) => renderFormattedLine(line, i));
+            // 3. Text Content
+            const isMetaTalk = metaTalkPatterns.some(pattern => pattern.test(part.trim()));
+            if (!isMetaTalk) {
+                parsedNodes.push({
+                    type: 'text',
+                    content: <div key={index}>{part.split('\n').map((line, i) => renderFormattedLine(line, i, index))}</div>
+                });
+            }
         });
+
+        // 4. Robust Fallback for Missing Backticks
+        if (parsedNodes.filter(n => n.type === 'data').length === 0 && !message.content.includes('```')) {
+             try {
+                 const cleanContent = message.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                 const firstBrace = cleanContent.indexOf('{');
+                 const firstBracket = cleanContent.indexOf('[');
+                 const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
+                 if (start !== -1) {
+                     const lastBrace = cleanContent.lastIndexOf('}');
+                     const lastBracket = cleanContent.lastIndexOf(']');
+                     const end = Math.max(lastBrace, lastBracket);
+                     if (end > start) {
+                         const jsonStr = cleanContent.substring(start, end + 1);
+                         const data = JSON.parse(jsonStr);
+                         // Quick check if valid data
+                         if (Array.isArray(data) || (data && typeof data === 'object')) {
+                             // It's valid JSON data. Since we are in robust fallback, we assume this is THE data.
+                             // We will construct a data node. Logic simplified for brevity, assuming SupportDetails/Table can handle it.
+                             const isList = Array.isArray(data) || (data.data && Array.isArray(data.data));
+                             parsedNodes.push({ 
+                                 type: 'data', 
+                                 content: isList ? <SupportTable key="fallback" data={Array.isArray(data) ? data : data.data} /> : <SupportDetails key="fallback" data={data} />
+                             });
+                         }
+                     }
+                 }
+             } catch (e) {}
+        }
+        
+        // --- FINAL RENDERING DECISION ---
+        // Return all nodes in order (Thoughts, Text, Data).
+        // This allows "Here is the list:" + Table to co-exist, while metaTalkPatterns filters out garbage.
+        return parsedNodes.map(n => n.content);
     };
 
     return (
@@ -268,29 +267,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
             )}
 
             {/* Bubble with gradient effect */}
-            <div className={`relative px-5 py-3 rounded-xl text-sm leading-relaxed backdrop-blur-sm 
-                transition-all duration-300 w-fit max-w-full ${isTyping ? 'animate-pulse-once' : ''}
-                ${role === 'user' 
-                    ? 'dark:bg-linear-to-br dark:from-primary/20 dark:via-primary/10 dark:to-transparent text-foreground dark:text-white border border-primary/30'
-                    : 'dark:bg-linear-to-br dark:from-[#111111]/90 dark:via-[#0a0a0a]/90 dark:to-transparent text-foreground dark:text-white/90 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none'
-                }
-                ${highlighted ? role === 'user' ? 'border-primary/50' : 'border-primary/30 dark:border-white/30' : ''}
-            `}>
+            <Message 
+                role={role} 
+                isTyping={isTyping}
+                className={highlighted ? (role === 'user' ? 'border-primary/50' : 'border-primary/30 dark:border-white/30') : ''}
+            >
                 {/* Glow effect on hover */}
                 {highlighted && role === 'assistant' && (
                     <div className="absolute inset-0 rounded-xl bg-primary/5 dark:bg-linear-to-r dark:from-primary/5 dark:to-transparent -z-10" />
                 )}
                 
-                {/* Assistant message decoration */}
-                {role === 'assistant' && !isTyping && (
-                    <Sparkles className="absolute -top-2 -right-2 h-4 w-4 text-primary/50" />
-                )}
-                
                 {/* Content */}
-                <div className="relative z-10 w-full overflow-hidden overflow-x-auto">
+                <MessageContent>
                     {renderContent()}
-                </div>
-            </div>
+                </MessageContent>
+            </Message>
         </div>
     );
 };

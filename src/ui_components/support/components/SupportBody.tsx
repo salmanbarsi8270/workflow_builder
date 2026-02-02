@@ -147,7 +147,16 @@ export const SupportBody: React.FC<SupportBodyProps> = ({
                                             <div className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                         </div>
                                         <span className="text-xs text-muted-foreground font-medium tracking-wide">
-                                            {isTyping ? 'Typing...' : 'Analysing...'}
+                                            {(() => {
+                                                const lastMsg = messages[messages.length - 1];
+                                                if (lastMsg?.status === 'thinking' && lastMsg.metadata?.currentTool) {
+                                                    const toolName = lastMsg.metadata.currentTool;
+                                                    return toolName === 'execute_smart_query' ? 'Searching Database' : 
+                                                           toolName === 'mainAgent' ? 'Computing' : 
+                                                           `Running ${toolName}`;
+                                                }
+                                                return isTyping ? 'Typing...' : 'Analysing...';
+                                            })()}
                                         </span>
                                     </div>
                                 </div>

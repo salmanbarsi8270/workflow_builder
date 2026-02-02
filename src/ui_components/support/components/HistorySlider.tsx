@@ -32,6 +32,7 @@ import React from 'react';
 import { cn } from "@/lib/utils";
 
 interface HistorySliderProps {
+    agentId: string;
     sessions: ChatSession[];
     currentSession: ChatSession;
     selectedSessionId: string;
@@ -60,6 +61,7 @@ interface SessionItemProps {
 }
 
 export const HistorySlider: React.FC<HistorySliderProps> = ({
+    agentId,
     sessions,
     currentSession,
     selectedSessionId,

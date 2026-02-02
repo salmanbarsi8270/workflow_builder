@@ -109,6 +109,36 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                         </div>
                                     )}
 
+                                    {agent.db_connection_id && agent.db_connection_id !== 'none' && (
+                                        <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm mt-2">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Database Connection</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                                                    <Terminal className="h-4 w-4 text-emerald-500" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                                        {connections.find(c => c.id === agent.db_connection_id)?.name || 'Linked DB Connection'}
+                                                    </span>
+                                                    <span className="text-[10px] font-mono text-slate-400 opacity-50 truncate">#{agent.db_connection_id.slice(0, 8)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {agent.database_connection_string && (
+                                        <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm mt-2">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Direct Connection String</span>
+                                            </div>
+                                            <div className="p-2 bg-slate-50 dark:bg-black/20 rounded font-mono text-[10px] text-slate-500 dark:text-slate-400 break-all border border-slate-100 dark:border-white/5">
+                                                {agent.database_connection_string}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm mt-2">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-[10px] uppercase text-blue-600 dark:text-blue-400 font-bold tracking-wider">Evaluation Monitoring</span>

@@ -58,6 +58,8 @@ export interface Agent {
   is_published?: boolean;
   public_url_slug?: string;
   visibility?: 'public' | 'private';
+  db_connection_id?: string;
+  database_connection_string?: string;
 }
 
 export interface ConnectionOption {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Support from '../support';
 import { Presentation } from '../generative_ui';
+import CanvasPage from '../Canvas/CanvasPage';
 
 export const Assistant = () => {
   const [activeView, setActiveView] = useState<'chat' | 'canvas'>('chat');
@@ -40,7 +41,7 @@ export const Assistant = () => {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeView === 'chat' && <Support />}
-        {activeView === 'canvas' && <Presentation />}
+        {activeView === 'canvas' && <CanvasPage />}
       </div>
     </div>
   );

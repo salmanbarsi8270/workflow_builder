@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { OpenRouterModel } from "../Utility/openroutermodel"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion, AnimatePresence } from "framer-motion"
+import { PostgresConnectionDialog } from '../generative_ui/PostgresConnectionDialog';
 
 import type { IntegrationApp } from './types';
 import { IntegrationGridCard } from './IntegrationGridCard';
@@ -56,6 +57,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const [createActionOpen, setCreateActionOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<IntegrationApp | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [postgresModalOpen, setPostgresModalOpen] = useState(false);
   const [piecesMetadata, setPiecesMetadata] = useState<Record<string, any>>({});
   const [initialTriggerData, setInitialTriggerData] = useState<any>(null);
   const [initialActionData, setInitialActionData] = useState<any>(null);
@@ -198,6 +200,9 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     else if (app.id === 'mcp') {
       setMcpModalOpen(true);
     }
+    else if (app.id === 'postgres') {
+        setPostgresModalOpen(true);
+    }
     else {
       window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user?.id}&callbackUrl=${returnPath}`;
     }
@@ -275,6 +280,13 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
   const handleOpenRouterChange = (open: boolean) => {
     setOpenroutermodel(open);
+    if (!open) {
+      setConnectingApp(null);
+    }
+  }
+
+  const handlePostgresChange = (open: boolean) => {
+    setPostgresModalOpen(open);
     if (!open) {
       setConnectingApp(null);
     }
@@ -489,7 +501,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
             {searchQuery && (
               <div className="text-sm font-medium text-slate-500 dark:text-blue-200/70">
-                Search results for <span className="text-blue-600 dark:text-blue-400 font-bold italic">"{searchQuery}"</span>
+                Search results for{" "}
+                <span className="text-blue-600 dark:text-blue-400 font-bold italic">
+                  "{searchQuery}"
+                </span>
               </div>
             )}
           </div>
@@ -600,6 +615,12 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
             fetchConnections();
             toast.success("Provider added successfully");
           }}
+        />
+
+        <PostgresConnectionDialog 
+          open={postgresModalOpen}
+          onOpenChange={handlePostgresChange}
+          onSuccess={fetchConnections}
         />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />

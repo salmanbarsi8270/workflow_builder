@@ -19,6 +19,7 @@ import type { AutomationItem } from '../Automation/components/AutomationList';
 import { OpenRouterModel } from '../Utility/openroutermodel';
 import { Switch } from "@/components/ui/switch";
 import { curatedModels, getOpenRouterModels } from '@/constants/models';
+import { PostgresConnectionDialog } from '../generative_ui/PostgresConnectionDialog';
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -62,6 +63,9 @@ export function CreateAgentDialog({
     const [selectedSubAgents, setSelectedSubAgents] = useState<string[]>([]);
     const [api_key, setApiKey] = useState<string>('');
     const [mcpTools, setMcpTools] = useState<MCPConfig[]>([]);
+    const [dbConnectionId, setDbConnectionId] = useState<string>('');
+    const [databaseConnectionString, setDatabaseConnectionString] = useState<string>('');
+    const [showPostgresDialog, setShowPostgresDialog] = useState(false);
 
     // ... previous code ...
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
@@ -184,6 +188,8 @@ export function CreateAgentDialog({
                 setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
                 setSelectedConnection(initialAgent.connectionId || initialAgent.connection_id || '');
+                setDbConnectionId(initialAgent.db_connection_id || '');
+                setDatabaseConnectionString(initialAgent.database_connection_string || '');
                 setSelectedUiDesign(initialAgent.ui_design_id || ''); // Load UI Design
 
                 // Load existing MCP tools if any
@@ -255,6 +261,8 @@ export function CreateAgentDialog({
         setEnableGuardrails(false);
         setEvalsEnabled(false);
         setSelectedInstructionId('');
+        setDbConnectionId('');
+        setDatabaseConnectionString('');
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -377,7 +385,9 @@ export function CreateAgentDialog({
                 ui_design_id: selectedUiDesign,
                 rag_enabled: ragEnabled,
                 rag_file_ids: selectedFileIds, // Send selected file IDs to backend
-                evals_enabled: evalsEnabled
+                evals_enabled: evalsEnabled,
+                db_connection_id: dbConnectionId,
+                database_connection_string: databaseConnectionString
             };
 
             let response;
@@ -676,6 +686,56 @@ export function CreateAgentDialog({
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        <div className="grid gap-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="db-connection" className="text-slate-700 dark:text-white font-medium">Database Connection (Optional)</Label>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => onRefreshConnections?.()} className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-blue-600" title="Refresh connections">
+                                        <RefreshCw className="h-2.5 w-2.5 mr-1" /> Refresh
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setShowPostgresDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
+                                        <Plus className="h-2.5 w-2.5 mr-1" /> New
+                                    </Button>
+                                </div>
+                            </div>
+                            <Select value={dbConnectionId} onValueChange={setDbConnectionId}>
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 h-10">
+                                    <SelectValue placeholder="Select Database Connection" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">
+                                        <span className="text-slate-500 italic">None (Default)</span>
+                                    </SelectItem>
+                                    {connections.filter(c => c.service === 'postgres').length === 0 ? (
+                                        <div className="p-2 text-sm text-muted-foreground text-center">No database connections found</div>
+                                    ) : (
+                                        connections.filter(c => c.service === 'postgres').map(conn => (
+                                            <SelectItem key={conn.id} value={conn.id}>
+                                                <div className="flex items-center gap-2">
+                                                    <Terminal className="h-3.5 w-3.5 text-blue-500" />
+                                                    <span className="truncate">{conn.name}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {(dbConnectionId === 'none' || !dbConnectionId) && (
+                            <div className="grid gap-2 animate-in fade-in duration-300">
+                                <Label htmlFor="db-connection-string" className="text-slate-700 dark:text-white font-medium text-xs opacity-70">Direct Connection String (Optional)</Label>
+                                <Textarea
+                                    id="db-connection-string"
+                                    placeholder="postgresql://user:password@host:port/database"
+                                    className="h-20 resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-mono text-[10px] leading-relaxed rounded-xl p-3"
+                                    value={databaseConnectionString}
+                                    onChange={(e) => setDatabaseConnectionString(e.target.value)}
+                                />
+                                <p className="text-[10px] text-slate-500 italic px-1">Use this if you don't want to create a permanent connector account.</p>
+                            </div>
+                        )}
 
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between">
@@ -1556,6 +1616,16 @@ export function CreateAgentDialog({
                         setTimeout(() => {
                             onRefreshConnections();
                         }, 500);
+                    }
+                }}
+            />
+            <PostgresConnectionDialog
+                open={showPostgresDialog}
+                onOpenChange={setShowPostgresDialog}
+                onSuccess={() => {
+                    toast.success("Database Connection added. Refreshing list...");
+                    if (onRefreshConnections) {
+                        onRefreshConnections();
                     }
                 }}
             />

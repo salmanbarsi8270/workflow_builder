@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { API_URL, AI_URL } from '../../ui_components/api/apiurl';
+import { AI_URL } from '../../ui_components/api/apiurl';
+import { parseSSEChunk } from '@/lib/sse-parser';
 import { SupportHeader } from './components/SupportHeader';
 import { SupportBody } from './components/SupportBody';
 import { SupportInput } from './components/SupportInput';
@@ -11,8 +12,13 @@ export interface Message {
     content: string;
     timestamp: Date;
     id: string;
-    status?: 'sending' | 'sent' | 'error';
+    status?: 'sending' | 'sent' | 'error' | 'thinking';
     feedback?: 'helpful' | 'not-helpful';
+    metadata?: {
+        toolCalls?: any[];
+        toolResults?: any[];
+        currentTool?: string;
+    };
 }
 
 export interface ChatSession {
@@ -46,9 +52,10 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
     const [isTyping, setIsTyping] = useState(false);
     const [typingSpeed, setTypingSpeed] = useState(20);
     const [showHistorySlider, setShowHistorySlider] = useState(false);
-    const [selectedSessionId, setSelectedSessionId] = useState<string>('current');
+    const [selectedSessionId, setSelectedSessionId] = useState<string>('chat_'+Date.now());
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const agentId = "2d6123b7-4149-4052-b60a-3306428497dc";
 
     // Load chat history from localStorage and Backend on mount
     useEffect(() => {
@@ -203,20 +210,25 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
         setLoading(true);
 
         try {
-            const response = await fetch(`${AI_URL}/api/v1/support/query`, {
+            const response = await fetch(`${AI_URL}/agents/${agentId}/stream`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
                 body: JSON.stringify({
-                    query: userMessage,
-                    userId: userId,
-                    sessionId: selectedSessionId,
-                    stream: true,
-                    context: {
-                        sessionId: selectedSessionId,
-                        previousMessages: currentSession.messages
-                            .filter(m => m.role === 'user')
-                            .map(m => m.content)
-                            .slice(-5)
+                    input: userMessage,
+                    options: {
+                        userId: userId,
+                        conversationId: selectedSessionId,
+                        uiMode: "chat",
+                        stream: true,
+                        context: {
+                            sessionId: selectedSessionId,
+                            previousMessages: currentSession.messages
+                                .filter(m => m.role === 'user')
+                                .map(m => m.content)
+                                .slice(-5)
+                        },
+                        temperature: 0.7,
+                        maxOutputTokens: 4000
                     }
                 })
             });
@@ -242,49 +254,154 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
 
             setIsTyping(true);
 
+            let fullStreamBuffer = '';
+            let isCollectingJson = false;
+            let currentLineBuffer = '';
+            let hasOpenedThink = false;
+            let currentToolName = '';
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                assistantContent += chunk;
 
-                setCurrentSession(prev => ({
-                    ...prev,
-                    messages: prev.messages.map(msg => 
-                        msg.id === assistantMessageId 
-                            ? { ...msg, content: assistantContent }
-                            : msg
-                    )
-                }));
-            }
-            
-            setIsTyping(false);
-            
-            // SECONDARY GUARD: If the response was a JSON wrapper, unwrap it for the UI
-            let finalContent = assistantContent.trim();
-            if (finalContent.startsWith('{') && finalContent.endsWith('}')) {
-                try {
-                    const parsed = JSON.parse(finalContent);
-                    if (parsed && typeof parsed === 'object' && parsed.output) {
-                        finalContent = parsed.output;
+                const chunk = decoder.decode(value, { stream: true });
+                const events = parseSSEChunk(chunk) as any[];
+
+                for (const event of events) {
+                    // 1. Handle Tool Activites (Keeping existing functionality)
+                    let metadataUpdate: any = {};
+                    if (event.toolCall || event.type === 'toolCall') {
+                        const toolCall = event.toolCall || event;
+                        currentToolName = toolCall.toolName;
+                        metadataUpdate = {
+                            currentTool: currentToolName,
+                            toolCalls: [toolCall]
+                        };
+                    } else if (event.toolResult || event.type === 'toolResult') {
+                        const toolResult = event.toolResult || event;
+                        currentToolName = '';
+                        metadataUpdate = {
+                            currentTool: '',
+                            toolResults: [toolResult]
+                        };
                     }
-                } catch (e) {
-                    // Not valid JSON or no output field, keep as is
+
+                    // 2. Handle Text & Reasoning Content
+                    const delta = event.reasoning || 
+                                 event.text || 
+                                 event['text-delta'] || 
+                                 event.content || 
+                                 (event.delta && (event.delta.content || event.delta['text-delta'] || event.delta.reasoning));
+
+                    if (delta && typeof delta === 'string') {
+                        // If it's explicitly reasoning from the backend, we treat it as thoughts
+                        const isExplicitReasoning = !!event.reasoning;
+                        
+                        fullStreamBuffer += delta;
+
+                        if (!isCollectingJson) {
+                            const jsonMarkerIndex = fullStreamBuffer.indexOf('```json');
+                            if (jsonMarkerIndex !== -1) {
+                                isCollectingJson = true;
+
+                                // Finalize current line if any
+                                if (currentLineBuffer.trim() || isExplicitReasoning) {
+                                    if (!hasOpenedThink) {
+                                        assistantContent += '<think>\n';
+                                        hasOpenedThink = true;
+                                    }
+                                    assistantContent += `• ${currentLineBuffer.trim() || delta.trim()}\n`;
+                                    currentLineBuffer = '';
+                                }
+
+                                if (hasOpenedThink) {
+                                    assistantContent += '</think>\n';
+                                    hasOpenedThink = false;
+                                }
+
+                                assistantContent += '• Constructing UI Component...\n';
+                                assistantContent += fullStreamBuffer.substring(jsonMarkerIndex);
+                            } else {
+                                // Still in thought mode
+                                if (delta.includes('\n') || isExplicitReasoning) {
+                                    const parts = (currentLineBuffer + delta).split('\n');
+                                    const completedLines = parts.slice(0, -1).filter(l => l.trim());
+                                    currentLineBuffer = parts[parts.length - 1];
+
+                                    if (completedLines.length > 0 || isExplicitReasoning) {
+                                        if (!hasOpenedThink) {
+                                            assistantContent += '<think>\n';
+                                            hasOpenedThink = true;
+                                        }
+                                        completedLines.forEach(line => {
+                                            assistantContent += `• ${line.trim()}\n`;
+                                        });
+                                        // If it's reasoning delta but no newline yet, we could still append it
+                                        // But to keep bullets clean, we only append to currentLineBuffer if no newline
+                                    }
+                                } else {
+                                    currentLineBuffer += delta;
+                                }
+                                
+                                // Update processed index
+                            }
+                        } else {
+                            // After JSON marker, we just append the delta
+                            assistantContent += delta;
+                        }
+                    }
+
+                    if (event.done) {
+                        console.log('Stream finished with conversationId:', event.conversationId);
+                    }
+
+                    setCurrentSession(prev => ({
+                        ...prev,
+                        messages: prev.messages.map(msg =>
+                            msg.id === assistantMessageId
+                                ? {
+                                    ...msg,
+                                    content: assistantContent,
+                                    status: currentToolName ? 'thinking' : msg.status,
+                                    metadata: {
+                                        ...msg.metadata,
+                                        ...metadataUpdate
+                                    }
+                                  }
+                                : msg
+                        )
+                    }));
                 }
             }
+            
+            // Finalize remaining buffer as a last bullet if not JSON
+            if (!isCollectingJson && currentLineBuffer.trim()) {
+                if (!hasOpenedThink) {
+                    assistantContent += '<think>\n';
+                    hasOpenedThink = true;
+                }
+                assistantContent += `• ${currentLineBuffer.trim()}\n`;
+                currentLineBuffer = '';
+            }
 
-            // Update with final unwrapped content
+            // Finalize thoughts if they were left open
+            if (hasOpenedThink) {
+                assistantContent += '</think>';
+            }
+            
+            // Final full sync
             setCurrentSession(prev => ({
                 ...prev,
                 messages: prev.messages.map(msg => 
                     msg.id === assistantMessageId 
-                        ? { ...msg, content: finalContent }
+                        ? { ...msg, content: assistantContent }
                         : msg
                 )
             }));
+
+            setIsTyping(false);
             
-            // Update user message status
+            // Update user message status to 'sent'
             setCurrentSession(prev => ({
                 ...prev,
                 messages: prev.messages.map(msg => 
@@ -434,15 +551,16 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
     };
 
     const suggestions = [
-        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all active automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📊' },
-        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Show and manage your configured AI assistants in real-time.', color: 'bg-primary/10 text-primary border-primary/20', icon: '🤖', popular: true },
+        { title: 'Workflow Analytics', badge: 'Automation', desc: 'List all automation flows and get status summaries.', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: '📊' },
+        { title: 'Agent Configurator', badge: 'AI Agents', desc: 'Show and manage my configured AI assistants in real-time.', color: 'bg-primary/10 text-primary border-primary/20', icon: '🤖', popular: true },
         { title: 'Execution Logs', badge: 'Recent', desc: 'Review the latest flow executions and performance metrics.', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: '⏱️' },
-        { title: 'User Roles', badge: 'Security', desc: 'Manage user permissions and access control for your workflows.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
+        { title: 'User Roles', badge: 'Security', desc: 'Manage user permissions and access control for my workflows.', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20', icon: '👥' },
     ];
 
     return (
         <SidebarProvider open={showHistorySlider} onOpenChange={setShowHistorySlider} className="h-full min-h-0 relative">
             <HistorySlider 
+                agentId={agentId}
                 sessions={chatSessions}
                 currentSession={currentSession}
                 selectedSessionId={selectedSessionId}
@@ -452,7 +570,7 @@ export function SupportChatInterface({ userId, userName = 'Guest' }: SupportChat
                 onRenameSession={handleRenameSession}
                 onClearHistory={handleClearHistory}
                 onExportSession={handleExportSession}
-                onCreateNew={() => handleLoadSession('current')}
+                onCreateNew={() => handleLoadSession('chat_'+Date.now())}
             />
 
             <SidebarInset className="flex flex-col h-full max-w-[90%] mx-auto bg-[#f8f9fa] dark:bg-[#050505] text-foreground relative font-inter border-l border-border/50 dark:border-white/5">

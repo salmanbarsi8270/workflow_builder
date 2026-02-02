@@ -75,8 +75,8 @@ export function App() {
                             <Route path="/personas" element={<InstructionLibrary />} />
                             <Route path="/assistant" element={<Assistant />} />
                             <Route path="/canvas" element={<CanvasPage />} />
-                            <Route path="/presentation" element={<Presentation />} />
                             <Route path="/support" element={<Support />} />
+                            <Route path="/presentations" element={<Presentation />} />
                         </Route>
 
                         {/* Full-screen routes without sidebar */}
