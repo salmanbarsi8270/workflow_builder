@@ -1,12 +1,20 @@
 import { useRef, useState, useEffect } from "react";
-import { Send, Bot, User, Trash2, Sparkles } from "lucide-react";
+import { 
+    Bot, Trash2, ChevronRight, Plus, History, 
+    MessageSquare, PanelLeftClose, PanelLeftOpen,
+    PanelRightClose, PanelRightOpen, Sparkles, Send,
+    Mic, Moon, Sun, Palette
+} from "lucide-react";
 import { Canvas } from "../generative_ui/Canvas";
 import type { UIComponent } from "../generative_ui/types";
 import { parseSSEChunk } from "@/lib/sse-parser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { ChevronRight, Code2 } from "lucide-react";
+import { useUser } from "../../context/UserContext";
+import { useTheme } from "../../components/theme-provider";
+import { AI_URL } from "../api/apiurl";
+import { cn } from "@/lib/utils";
 
 interface Message {
     id?: string;
@@ -19,7 +27,7 @@ interface Message {
 const initialSchema: UIComponent = {
     type: 'container',
     props: {
-        className: 'p-8 h-full overflow-y-auto',
+        className: 'p-8 h-full overflow-y-auto pb-48',
         layout: 'grid',
         gap: 6
     },
@@ -28,406 +36,598 @@ const initialSchema: UIComponent = {
 
 const cloneDeep = (obj: any) => JSON.parse(JSON.stringify(obj));
 
-export default function CanvasPage() {
-    const [uiSchema, setUiSchema] = useState<UIComponent>(initialSchema);
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: '1',
-            role: 'assistant',
-            content: "Welcome to your Canvas. I'll help you visualize data and build workflows. Try asking something like 'Show me a sales chart'.",
-            timestamp: new Date()
+const transformComponentData = (data: any): any => {
+    if (!data || typeof data !== 'object') return data;
+    if (Array.isArray(data)) return data.map(transformComponentData);
+    let transformed: any = { props: {} };
+    let sourceData = data;
+    const componentTypes = [
+        'container', 'text', 'button', 'card', 'card-header', 'card-content',
+        'card-footer', 'input', 'icon', 'grid', 'stack', 'metric', 'avatar',
+        'badge', 'table', 'table-header', 'table-row', 'table-head', 'table-body',
+        'table-cell', 'chart', 'chart-placeholder', 'streaming-text', 'error-state',
+        'section', 'status-badge'
+    ];
+    const keys = Object.keys(data);
+    const explicitType = data.type || data.component;
+    if (explicitType && typeof explicitType === 'string' && componentTypes.includes(explicitType)) {
+        transformed.type = explicitType;
+        sourceData = data;
+    } else if (keys.length === 1 && componentTypes.includes(keys[0])) {
+        transformed.type = keys[0];
+        sourceData = data[keys[0]];
+    } else if (keys.length === 1 && typeof data[keys[0]] === 'object' && (data[keys[0]].type || data[keys[0]].component)) {
+        return transformComponentData(data[keys[0]]);
+    } else {
+        transformed.type = explicitType || (keys.length === 1 ? keys[0] : 'container');
+        sourceData = (keys.length === 1 && !explicitType) ? data[keys[0]] : data;
+    }
+    if (typeof sourceData === 'object' && sourceData !== null) {
+        if (sourceData.props && typeof sourceData.props === 'object') {
+            transformed.props = { ...transformed.props, ...sourceData.props };
         }
-    ]);
+        Object.keys(sourceData).forEach(key => {
+            if (!['type', 'component', 'children', 'content', 'props'].includes(key)) {
+                transformed.props[key] = sourceData[key];
+            }
+        });
+        const childrenSource = sourceData.children || sourceData.content;
+        if (childrenSource !== undefined) {
+            if (Array.isArray(childrenSource)) {
+                transformed.children = childrenSource.map(transformComponentData);
+            } else if (typeof childrenSource === 'object' && childrenSource !== null) {
+                transformed.children = transformComponentData(childrenSource);
+            } else {
+                transformed.children = childrenSource;
+            }
+        }
+    } else {
+        transformed.children = sourceData;
+    }
+    return transformed;
+};
+
+export default function CanvasPage() {
+    const { user } = useUser();
+    const { theme, setTheme, accentColor, setAccentColor } = useTheme();
+    const [uiSchema, setUiSchema] = useState<UIComponent>(initialSchema);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [conversations, setConversations] = useState<any[]>([]);
+    const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [isNamingNewChat, setIsNamingNewChat] = useState(false);
+    const [newChatName, setNewChatName] = useState("");
+    const [isLeftOpen, setIsLeftOpen] = useState(true);
+    const [isRightOpen, setIsRightOpen] = useState(true);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const userId = user?.id || localStorage.getItem('userId') || 'guest';
+
+    const fetchConversations = async () => {
+        try {
+            const response = await fetch(`${AI_URL}/api/memory/conversations?userId=${userId}&limit=50&offset=0`);
+            const data = await response.json();
+            if (data.conversations) setConversations(data.conversations);
+        } catch (error) { console.error('Failed to fetch conversations:', error); }
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    useEffect(() => { if (userId) fetchConversations(); }, [userId]);
 
-    const handleSendMessage = (e?: React.FormEvent) => {
-        e?.preventDefault();
+    const handleNewChat = async () => {
+        setIsNamingNewChat(true);
+        setNewChatName(`New Chat ${new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' })}`);
+    };
+
+    const confirmCreateChat = async () => {
+        const title = newChatName.trim() || `New Chat ${new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' })}`;
+        setIsNamingNewChat(false);
+        try {
+            const response = await fetch(`${AI_URL}/api/memory/conversations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, title, metadata: { type: 'canvas' }, resourceId: 'assistant' })
+            });
+            const data = await response.json();
+            const newId = data.id || data.conversation?.id;
+            if (newId) {
+                setCurrentConversationId(newId);
+                setUiSchema(initialSchema);
+                setMessages([{ id: '1', role: 'assistant', content: `Welcome! I'm ready to help you in "${title}".`, timestamp: new Date() }]);
+                fetchConversations();
+            }
+        } catch (error) { console.error('Failed to create chat:', error); }
+    };
+
+    const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('Delete this conversation?')) return;
+        try {
+            await fetch(`${AI_URL}/api/memory/conversations/${id}?userId=${userId}`, { method: 'DELETE' });
+            fetchConversations();
+            if (currentConversationId === id) {
+                setCurrentConversationId(null);
+                setMessages([]);
+                setUiSchema(initialSchema);
+            }
+        } catch (error) { console.error('Failed to delete chat:', error); }
+    };
+
+    const handleClearAllHistory = async () => {
+        if (!confirm('Are you sure you want to clear ALL conversation history for this agent? This cannot be undone.')) return;
+        try {
+            await fetch(`${AI_URL}/api/memory/agent/assistant?userId=${userId}`, {
+                method: 'DELETE'
+            });
+            setConversations([]);
+            setCurrentConversationId(null);
+            setMessages([]);
+            setUiSchema(initialSchema);
+        } catch (error) {
+            console.error('Failed to clear agent memory:', error);
+        }
+    };
+
+    const handleLoadConversation = async (conv: any) => {
+        setIsLoading(true);
+        setCurrentConversationId(conv.conversation_id);
+        try {
+            const response = await fetch(`${AI_URL}/api/memory/conversations/${conv.conversation_id}?userId=${userId}`);
+            const data = await response.json();
+            if (data.messages) {
+                const loadedMessages = data.messages.map((m: any) => {
+                    let componentJson = m.metadata?.componentJson || null;
+                    const content = typeof m.parts === 'string' ? m.parts : (m.parts[0]?.text || '');
+                    if (!componentJson && content.includes('```json')) {
+                        const match = content.match(/```json\n([\s\S]*?)\n```/);
+                        if (match) componentJson = match[1];
+                    }
+                    return { id: Math.random().toString(36).substr(2, 9), role: m.role, content, timestamp: new Date(m.created_at), componentJson };
+                });
+                setMessages(loadedMessages);
+                const messagesWithUI = loadedMessages.filter((m: any) => m.role === 'assistant' && m.componentJson);
+                if (messagesWithUI.length > 0) {
+                    const canvasChildren = messagesWithUI.map((m: any) => {
+                        try {
+                            const msgIndex = loadedMessages.indexOf(m);
+                            const prevMessage = msgIndex > 0 ? loadedMessages[msgIndex - 1] : null;
+                            const userQuestion = prevMessage && prevMessage.role === 'user' ? prevMessage.content : "AI Response";
+
+                            const transformed = transformComponentData(JSON.parse(m.componentJson!));
+                            return {
+                                type: 'card',
+                                id: `wrapper-${m.id || Math.random()}`,
+                                props: { className: 'col-span-12 mb-8 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden' },
+                                children: [
+                                    {
+                                        type: 'div', props: { className: 'flex flex-col pt-2' },
+                                        children: [
+                                            {
+                                                type: 'div', props: { className: 'flex items-center justify-between px-6 py-4' },
+                                                children: [
+                                                    {
+                                                        type: 'stack', props: { direction: 'row', className: 'items-center gap-3' },
+                                                        children: [
+                                                            { type: 'div', props: { className: 'flex items-center justify-center w-10 h-10 rounded-full bg-primary/5 text-primary' }, children: [{ type: 'icon', props: { name: 'User', className: 'h-5 w-5' } }] },
+                                                            { type: 'div', props: { className: 'flex flex-col gap-0.5' }, children: [{ type: 'text', props: { className: 'text-[11px] uppercase tracking-widest font-bold text-muted-foreground/70' }, children: 'Request' }, { type: 'text', props: { className: 'text-base font-medium leading-none tracking-tight' }, children: userQuestion }] }
+                                                        ]
+                                                    },
+                                                    { type: 'icon', props: { name: 'Sparkles', className: 'h-4 w-4 text-amber-500/80' } }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    { type: 'card-content', props: { className: 'p-6 pt-2 bg-transparent' }, children: [transformed] }
+                                ]
+                            };
+                        } catch (e) { return null; }
+                    }).filter(Boolean);
+                    setUiSchema(prev => ({ ...prev, children: canvasChildren }));
+                } else {
+                    setUiSchema(initialSchema);
+                }
+            }
+        } catch (error) { console.error('Failed to load chat:', error); }
+        finally { setIsLoading(false); }
+    };
+
+    const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    useEffect(() => { scrollToBottom(); }, [messages]);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!inputValue.trim() || isLoading) return;
-
-        processAIResponse(inputValue);
+        if (!currentConversationId) { alert("Please select or create a conversation first."); return; }
+        processAIResponse(inputValue.trim());
     };
 
     const processAIResponse = async (text: string) => {
-        // 1. Add User Message immediately
         const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text, timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsLoading(true);
 
-        try {
-            // 2. Initial Setup: Create the Wrapper with Thinking Block immediately
-            const thinkingBlockId = `thinking-${Date.now()}`;
-            const contentBlockId = `content-${Date.now()}`;
-
-            const initialWrapper: UIComponent = {
-                type: 'card',
-                id: `wrapper-${Date.now()}`,
-                props: {
-                    className: 'col-span-12 mb-8 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500'
+        const initialWrapper: UIComponent = {
+            type: 'card',
+            id: `wrapper-${Date.now()}`,
+            props: { className: 'col-span-12 mb-8 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500' },
+            children: [
+                {
+                    type: 'div', props: { className: 'flex flex-col pt-2' },
+                    children: [
+                        {
+                            type: 'div', props: { className: 'flex items-center justify-between px-6 py-4' },
+                            children: [
+                                {
+                                    type: 'stack', props: { direction: 'row', className: 'items-center gap-3' },
+                                    children: [
+                                        { type: 'div', props: { className: 'flex items-center justify-center w-10 h-10 rounded-full bg-primary/5 text-primary' }, children: [{ type: 'icon', props: { name: 'User', className: 'h-5 w-5' } }] },
+                                        { type: 'div', props: { className: 'flex flex-col gap-0.5' }, children: [{ type: 'text', props: { className: 'text-[11px] uppercase tracking-widest font-bold text-muted-foreground/70' }, children: 'Request' }, { type: 'text', props: { className: 'text-base font-medium leading-none tracking-tight' }, children: text }] }
+                                    ]
+                                },
+                                { type: 'icon', props: { name: 'Sparkles', className: 'h-4 w-4 text-amber-500/80' } }
+                            ]
+                        },
+                        {
+                            type: 'thinking-block', id: `thinking-${Date.now()}`, props: { className: 'px-6 pb-2', finished: false },
+                            children: [{ type: 'text', props: { className: 'mb-1 block flex items-center gap-2 text-xs text-muted-foreground' }, children: '• Thinking...' }]
+                        }
+                    ]
                 },
-                children: [
-                    {
-                        type: 'div',
-                        props: { className: 'flex flex-col pt-2' },
-                        children: [
-                            {
-                                type: 'div',
-                                props: { className: 'flex items-center justify-between px-6 py-4' },
-                                children: [
-                                    {
-                                        type: 'stack',
-                                        props: { direction: 'row', className: 'items-center gap-3' },
-                                        children: [
-                                            {
-                                                type: 'div',
-                                                props: { className: 'flex items-center justify-center w-10 h-10 rounded-full bg-primary/5 text-primary' },
-                                                children: [
-                                                    { type: 'icon', props: { name: 'User', className: 'h-5 w-5' } }
-                                                ]
-                                            },
-                                            {
-                                                type: 'div',
-                                                props: { className: 'flex flex-col gap-0.5' },
-                                                children: [
-                                                    { type: 'text', props: { className: 'text-[11px] uppercase tracking-widest font-bold text-muted-foreground/70' }, children: 'Request' },
-                                                    { type: 'text', props: { className: 'text-base font-medium leading-none tracking-tight' }, children: text }
-                                                ]
-                                            }
-                                        ]
-                                    },
-                                    { type: 'icon', props: { name: 'Sparkles', className: 'h-4 w-4 text-amber-500/80' } }
-                                ]
-                            },
-                            {
-                                type: 'thinking-block',
-                                id: thinkingBlockId,
-                                props: { className: 'px-6 pb-2' },
-                                children: [
-                                    { type: 'text', props: { className: 'mb-1 block flex items-center gap-2' }, children: '• Initializing agent...' }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        type: 'card-content',
-                        id: contentBlockId,
-                        props: { className: 'p-6 pt-2 bg-transparent' },
-                        children: [
-                            { type: 'div', props: { className: 'h-32 w-full bg-muted/10 animate-pulse rounded-lg' }, children: [] }
-                        ]
-                    }
-                ]
-            };
+                { type: 'card-content', props: { className: 'p-6 pt-2 bg-transparent' }, children: [{ type: 'div', props: { className: 'h-32 w-full bg-muted/10 animate-pulse rounded-lg' }, children: [] }] }
+            ]
+        };
 
-            setUiSchema(prev => ({
-                ...prev,
-                children: [...(prev.children || []), initialWrapper]
-            }));
+        setUiSchema(prev => ({ ...prev, children: [...(prev.children || []), initialWrapper] }));
 
-            // 3. Start Stream
-            const response = await fetch('http://localhost:4000/agents/dc9b860c-8eda-4922-88e6-5fd01bdb9ceb/stream', {
+        try {
+            const response = await fetch(`${AI_URL}/agents/dc9b860c-8eda-4922-88e6-5fd01bdb9ceb/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-                body: JSON.stringify({ input: text })
+                body: JSON.stringify({ input: text, userId, conversationId: currentConversationId })
             });
-
-            if (!response.body) throw new Error("No response body");
-
+            if (!response.body) throw new Error("No body");
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-
-            let fullStreamBuffer = '';
-            let isCollectingJson = false;
-            let lastProcessedIndex = 0;
-            let jsonStartIndex = -1;
-            let currentLineBuffer = '';
+            let fullStreamBuffer = '', isCollectingJson = false, jsonStartIndex = -1, currentLineBuffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const events = parseSSEChunk(chunk);
-
+                const events = parseSSEChunk(decoder.decode(value, { stream: true }));
                 for (const event of events) {
                     if (event.type === 'text-delta') {
                         const delta = event.text || '';
                         fullStreamBuffer += delta;
-
-                        // Check for JSON start marker if not already collecting
                         if (!isCollectingJson) {
-                            const jsonMarkerIndex = fullStreamBuffer.indexOf('```json');
-                            if (jsonMarkerIndex !== -1) {
-                                isCollectingJson = true;
-                                jsonStartIndex = jsonMarkerIndex + 7; // Length of ```json
-
-                                // Take everything before the marker and process it as thoughts
-                                const preJsonText = fullStreamBuffer.substring(lastProcessedIndex, jsonMarkerIndex);
-                                if (preJsonText.trim()) {
-                                    const lines = preJsonText.split('\n').filter(l => l.trim());
-                                    if (lines.length > 0) {
-                                        setUiSchema(prev => {
-                                            const newChildren = cloneDeep(prev.children);
-                                            const lastWrapper = newChildren[newChildren.length - 1];
-                                            const thinkingBlock = lastWrapper.children[0].children[1];
-                                            lines.forEach(line => {
-                                                thinkingBlock.children.push({
-                                                    type: 'text',
-                                                    props: { className: 'mb-1 block flex items-center gap-2' },
-                                                    children: `• ${line}`
-                                                });
-                                            });
-                                            return { ...prev, children: newChildren };
-                                        });
-                                    }
-                                }
-
-                                // Update processed index
-                                lastProcessedIndex = jsonMarkerIndex + 7;
-
-                                // Visual feedback for component start
+                            const idx = fullStreamBuffer.indexOf('```json');
+                            if (idx !== -1) {
+                                isCollectingJson = true; jsonStartIndex = idx + 7;
                                 setUiSchema(prev => {
                                     const newChildren = cloneDeep(prev.children);
-                                    const lastWrapper = newChildren[newChildren.length - 1];
-                                    const thinkingBlock = lastWrapper.children[0].children[1];
-                                    thinkingBlock.children.push({ type: 'text', props: { className: 'block flex items-center gap-2 text-primary font-medium animate-pulse' }, children: '• Constructing UI Component...' });
+                                    const thinkingBlock = newChildren[newChildren.length - 1].children[0].children[1];
+                                    thinkingBlock.children.push({ type: 'text', props: { className: 'block flex items-center gap-2 text-primary font-medium animate-pulse text-xs' }, children: '• Generating UI...' });
                                     return { ...prev, children: newChildren };
                                 });
-                            } else {
-                                // Still in thought mode: check for newlines in the raw deltas to update UI
-                                // We use currentLineBuffer to avoid character-by-character bullets
-                                if (delta.includes('\n')) {
-                                    const parts = (currentLineBuffer + delta).split('\n');
-                                    const completedLines = parts.slice(0, -1).filter(l => l.trim());
-                                    currentLineBuffer = parts[parts.length - 1];
-
-                                    if (completedLines.length > 0) {
-                                        setUiSchema(prev => {
-                                            const newChildren = cloneDeep(prev.children);
-                                            const lastWrapper = newChildren[newChildren.length - 1];
-                                            const thinkingBlock = lastWrapper.children[0].children[1];
-                                            completedLines.forEach(line => {
-                                                thinkingBlock.children.push({
-                                                    type: 'text',
-                                                    props: { className: 'mb-1 block flex items-center gap-2' },
-                                                    children: `• ${line}`
-                                                });
-                                            });
-                                            return { ...prev, children: newChildren };
-                                        });
-                                    }
-                                } else {
-                                    currentLineBuffer += delta;
+                            } else if (delta.includes('\n')) {
+                                const parts = (currentLineBuffer + delta).split('\n');
+                                const completed = parts.slice(0, -1).filter(l => l.trim());
+                                currentLineBuffer = parts[parts.length - 1];
+                                if (completed.length > 0) {
+                                    setUiSchema(prev => {
+                                        const newChildren = cloneDeep(prev.children);
+                                        const thinkingBlock = newChildren[newChildren.length - 1].children[0].children[1];
+                                        completed.forEach(l => thinkingBlock.children.push({ type: 'text', props: { className: 'mb-1 block flex items-center gap-2 text-xs text-muted-foreground' }, children: `• ${l}` }));
+                                        return { ...prev, children: newChildren };
+                                    });
                                 }
-                                lastProcessedIndex = fullStreamBuffer.length;
-                            }
+                            } else currentLineBuffer += delta;
                         }
                     }
                 }
             }
 
-            // 4. Finalize
+            let assistantContent = fullStreamBuffer || "Processed", assistantMetadata: any = {};
             if (isCollectingJson) {
-                // Extract the JSON content between markers
                 let jsonText = fullStreamBuffer.substring(jsonStartIndex);
-                const closingMarkerIndex = jsonText.lastIndexOf('```');
-                if (closingMarkerIndex !== -1) {
-                    jsonText = jsonText.substring(0, closingMarkerIndex);
-                }
-
+                const closingIdx = jsonText.lastIndexOf('```');
+                if (closingIdx !== -1) jsonText = jsonText.substring(0, closingIdx);
                 try {
-                    const componentData = JSON.parse(jsonText);
-                    console.log('📊 [Canvas] Parsed Component Data:', componentData);
-                    console.log('📊 [Canvas] Component Type:', componentData.type);
+                    const parsed = JSON.parse(jsonText);
+                    const componentData = transformComponentData(parsed);
+                    assistantContent = "Generated component";
+                    assistantMetadata = { componentJson: JSON.stringify(parsed, null, 2) };
                     setUiSchema(prev => {
                         const newChildren = cloneDeep(prev.children);
-                        const lastWrapper = newChildren[newChildren.length - 1];
-                        const thinkingBlock = lastWrapper.children[0].children[1];
-
-                        // Set finished state and clean up status
-                        thinkingBlock.props = { ...thinkingBlock.props, finished: true };
-                        thinkingBlock.children = thinkingBlock.children.filter((c: any) =>
-                            !(c.props?.className?.includes('animate-pulse'))
-                        );
-
-                        thinkingBlock.children.push({
-                            type: 'text',
-                            props: { className: 'text-green-600 dark:text-green-400 font-semibold block flex items-center gap-2' },
-                            children: '• UI Component Successfully Generated'
-                        });
-
-                        const contentBlock = lastWrapper.children[1];
-                        contentBlock.children = [componentData];
-                        console.log('📊 [Canvas] Updated UI Schema:', newChildren);
+                        const last = newChildren[newChildren.length - 1];
+                        const tb = last.children[0].children[1];
+                        tb.props.finished = true;
+                        tb.children = tb.children.filter((c: any) => !c.props?.className?.includes('animate-pulse'));
+                        tb.children.push({ type: 'text', props: { className: 'text-green-600 font-semibold text-xs' }, children: '• Success' });
+                        last.children[1].children = [componentData];
                         return { ...prev, children: newChildren };
                     });
-
-                    setMessages(prev => [...prev, {
-                        id: Date.now().toString(),
-                        role: 'assistant',
-                        content: "I've generated the component for you.",
-                        timestamp: new Date(),
-                        componentJson: JSON.stringify(componentData, null, 2)
-                    }]);
-                } catch (e) {
-                    console.error("JSON Parse Error", e);
-                    console.error("Raw JSON Text:", jsonText);
-                    console.error("Full Stream Buffer:", fullStreamBuffer);
-
-                    setUiSchema(prev => {
-                        const newChildren = cloneDeep(prev.children);
-                        const lastWrapper = newChildren[newChildren.length - 1];
-                        const thinkingBlock = lastWrapper.children[0].children[1];
-                        thinkingBlock.props = { ...thinkingBlock.props, finished: true };
-                        thinkingBlock.children = thinkingBlock.children.filter((c: any) =>
-                            !(c.props?.className?.includes('animate-pulse'))
-                        );
-                        thinkingBlock.children.push({
-                            type: 'text',
-                            props: { className: 'text-red-500 font-medium block flex items-center gap-2' },
-                            children: `• JSON Parse Error: ${e instanceof Error ? e.message : 'Unknown error'}`
-                        });
-                        return { ...prev, children: newChildren };
-                    });
-
-                    setMessages(prev => [...prev, {
-                        id: Date.now().toString(),
-                        role: 'assistant',
-                        content: "I encountered an error processing the component JSON. Please check the console for details.",
-                        timestamp: new Date(),
-                        componentJson: `// MALFORMED JSON - PARSE ERROR\n${jsonText}`
-                    }]);
-                }
-            } else {
-                setMessages(prev => [...prev, {
-                    id: Date.now().toString(),
-                    role: 'assistant',
-                    content: fullStreamBuffer || "I'm sorry, I couldn't generate a response.",
-                    timestamp: new Date()
-                }]);
-                setUiSchema(prev => {
-                    const newChildren = cloneDeep(prev.children);
-                    const lastWrapper = newChildren[newChildren.length - 1];
-                    const thinkingBlock = lastWrapper.children[0].children[1];
-                    thinkingBlock.props = { ...thinkingBlock.props, finished: true };
-                    thinkingBlock.children = thinkingBlock.children.filter((c: any) =>
-                        !(c.props?.className?.includes('animate-pulse'))
-                    );
-                    thinkingBlock.children.push({ type: 'text', props: { className: 'text-blue-500 font-medium block flex items-center gap-2' }, children: '• Response received.' });
-                    return { ...prev, children: newChildren };
-                });
+                } catch (e) { assistantContent = "Error parsing component JSON"; }
             }
+
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: assistantContent, timestamp: new Date(), componentJson: assistantMetadata.componentJson }]);
+            
+            fetch(`${AI_URL}/api/memory/save-messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    conversationId: currentConversationId,
+                    messages: [
+                        { role: 'user', content: text },
+                        { role: 'assistant', content: assistantContent, metadata: assistantMetadata }
+                    ]
+                })
+            }).catch(e => console.error(e));
+
         } catch (error) {
             console.error(error);
-            setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                role: 'assistant',
-                content: "An unexpected error occurred. Please check the console.",
-                timestamp: new Date()
-            }]);
-            setUiSchema(prev => {
-                const newChildren = cloneDeep(prev.children);
-                const lastWrapper = newChildren[newChildren.length - 1];
-                const thinkingBlock = lastWrapper.children[0].children[1];
-                thinkingBlock.children.push({ type: 'text', props: { className: 'text-red-500 font-medium block flex items-center gap-2' }, children: '• Request failed.' });
-                return { ...prev, children: newChildren };
-            });
-        } finally {
-            setIsLoading(false);
-        }
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: "An error occurred.", timestamp: new Date() }]);
+        } finally { setIsLoading(false); }
     };
 
     return (
-        <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
-            {/* Chat Sidebar */}
-            <div className="w-[400px] border-r border-border/40 flex flex-col bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-xl shrink-0 h-screen z-20 shadow-xl">
-                <div className="p-4 border-b border-border/40 font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center justify-between bg-white/50 dark:bg-slate-900/50">
-                    <div className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-primary" />
-                        Canvas Assistant
+        <div className="flex h-screen w-full bg-[#f8fafc] dark:bg-[#020617] overflow-hidden font-sans relative">
+            
+            {/* Left Sidebar - History (PROJECTS) */}
+            <aside 
+                className={cn(
+                    "border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 shrink-0 h-full transition-all duration-300 ease-in-out z-40 relative",
+                    isLeftOpen ? "w-72" : "w-0 -translate-x-full border-none"
+                )}
+            >
+                <div className="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50 mb-2">
+                    <div className="flex items-center gap-2 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                        <History className="h-4 w-4" /> Projects
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => { setUiSchema(initialSchema); setMessages([]); }} title="Reset Canvas">
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
                 </div>
 
-                <div className="flex-1 p-4 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                            <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 border shadow-sm
-                                ${msg.role === 'assistant'
-                                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
-                                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                                }`}>
-                                {msg.role === 'assistant' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                {/* Theme & Accent Controls */}
+                <div className="px-5 py-2 space-y-4">
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-1.5 rounded-xl border border-slate-200/50 dark:border-white/5">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setTheme("light")}
+                            className={cn("h-8 flex-1 rounded-lg gap-2 text-[10px] font-bold uppercase tracking-wider transition-all", theme === "light" ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
+                        >
+                            <Sun className="h-3.5 w-3.5" /> Light
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setTheme("dark")}
+                            className={cn("h-8 flex-1 rounded-lg gap-2 text-[10px] font-bold uppercase tracking-wider transition-all", theme === "dark" ? "bg-slate-900 shadow-sm text-blue-400" : "text-slate-400 hover:text-slate-200")}
+                        >
+                            <Moon className="h-3.5 w-3.5" /> Dark
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-1">
+                        <div className="flex-1 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                            {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(color => (
+                                <button
+                                    key={color}
+                                    onClick={() => setAccentColor(color)}
+                                    className={cn(
+                                        "w-5 h-5 rounded-full shrink-0 transition-all hover:scale-110 active:scale-95",
+                                        accentColor === color ? "ring-2 ring-offset-2 ring-slate-300 dark:ring-slate-700 scale-110 shadow-lg" : "opacity-60"
+                                    )}
+                                    style={{ backgroundColor: color }}
+                                />
+                            ))}
+                        </div>
+                        <div className="relative group shrink-0">
+                            <Input 
+                                type="color" 
+                                value={accentColor} 
+                                onChange={(e) => setAccentColor(e.target.value)}
+                                className="w-6 h-6 p-0 border-none rounded-full overflow-hidden cursor-pointer bg-transparent"
+                            />
+                            <Palette className="h-3 w-3 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-white mix-blend-difference" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-5 pt-2 mb-2">
+                    {!isNamingNewChat ? (
+                        <Button onClick={handleNewChat} className="w-full justify-start gap-2 h-10 px-3 bg-blue-600 hover:bg-blue-700 text-white border-none shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                            <Plus className="h-4 w-4" />
+                            <span className="font-bold text-xs uppercase tracking-wider">New Project</span>
+                        </Button>
+                    ) : (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-blue-500/20 shadow-sm animate-in fade-in slide-in-from-top-2">
+                            <Input 
+                                value={newChatName} 
+                                onChange={(e) => setNewChatName(e.target.value)} 
+                                placeholder="Name..." 
+                                className="h-9 text-xs mb-2 bg-white dark:bg-slate-900" 
+                                autoFocus 
+                                onKeyDown={(e) => { 
+                                    if (e.key === 'Enter') confirmCreateChat(); 
+                                    if (e.key === 'Escape') setIsNamingNewChat(false); 
+                                }} 
+                            />
+                            <div className="flex gap-2">
+                                <Button size="sm" className="flex-1 h-7 text-[10px] bg-blue-600 hover:bg-blue-700" onClick={confirmCreateChat}>Create</Button>
+                                <Button size="sm" variant="ghost" className="flex-1 h-7 text-[10px]" onClick={() => setIsNamingNewChat(false)}>Cancel</Button>
                             </div>
-                            <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                    {msg.role === 'assistant' ? 'AI Assistant' : 'You'}
-                                </span>
-                                <div className={`p-3 rounded-2xl text-sm shadow-sm border leading-relaxed
-                                    ${msg.role === 'assistant'
-                                        ? 'bg-white dark:bg-slate-800 border-border/50 rounded-tl-none text-slate-700 dark:text-slate-300'
-                                        : 'bg-blue-600 text-white border-blue-600/50 rounded-tr-none'
-                                    }`}>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1">
+                    {conversations.length === 0 ? (
+                        <div className="py-12 text-center opacity-20 italic text-xs">No project history</div>
+                    ) : (
+                        conversations.map(conv => (
+                            <div 
+                                key={conv.conversation_id} 
+                                onClick={() => handleLoadConversation(conv)} 
+                                className={cn(
+                                    "group p-3 rounded-xl relative cursor-pointer transition-all duration-200",
+                                    currentConversationId === conv.conversation_id 
+                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 shadow-sm" 
+                                        : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                                        currentConversationId === conv.conversation_id ? "bg-blue-100 dark:bg-blue-800/40" : "bg-slate-100 dark:bg-slate-800"
+                                    )}>
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-[13px] truncate">{conv.title || 'Untitled Project'}</h3>
+                                        <p className="text-[10px] opacity-60 font-medium">{new Date(conv.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-inherit px-1">
+                                        <button onClick={(e) => handleDeleteConversation(conv.conversation_id, e)} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-md">
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+                
+                {/* Toggle Button for Left Sidebar */}
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsLeftOpen(!isLeftOpen)}
+                    className={cn(
+                        "absolute -right-10 top-5 h-9 w-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xl z-50 rounded-full transition-all",
+                        isLeftOpen ? "-right-4" : ""
+                    )}
+                >
+                    {isLeftOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                </Button>
+            </aside>
+
+            {/* Main Content - Canvas (CENTER) */}
+            <main className="flex-1 overflow-hidden relative transition-all duration-300">
+                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] opacity-40 dark:opacity-10 pointer-events-none" />
+                
+                <div className="absolute top-6 left-6 z-10 flex gap-2">
+                     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Live Workspace</span>
+                     </div>
+                     <Button variant="ghost" size="sm" onClick={handleClearAllHistory} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-3 rounded-xl border border-border/40 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50">
+                        <Trash2 className="h-3 w-3 mr-2" /> Wipe Memory
+                     </Button>
+                </div>
+
+                <Canvas uiSchema={uiSchema} />
+
+                {/* BOTTOM FLOATING CHAT INPUT (CENTERED) */}
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-2xl px-6 z-50 group">
+                    <form onSubmit={handleSendMessage} className="relative transition-all duration-500 hover:scale-[1.01] focus-within:scale-[1.01]">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-10 group-focus-within:opacity-20 transition duration-500"></div>
+                        <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-2 pl-4 shadow-2xl backdrop-blur-xl">
+                            <Input 
+                                value={inputValue} 
+                                onChange={(e) => setInputValue(e.target.value)} 
+                                placeholder="Ask me anything..." 
+                                disabled={isLoading} 
+                                className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium h-12 shadow-none dark:text-white"
+                            />
+                            <div className="flex items-center gap-1">
+                                <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-slate-600 rounded-xl"><Mic className="h-4 w-4" /></Button>
+                                <Button type="submit" disabled={!inputValue.trim() || isLoading} className={cn(
+                                    "h-10 w-10 rounded-xl transition-all shadow-lg",
+                                    isLoading ? "bg-slate-100 animate-pulse" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                                )}>
+                                    {isLoading ? <Sparkles className="h-4 w-4 animate-spin text-blue-600" /> : <Send className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </main>
+
+            {/* Right Sidebar - Chat History (AI INSIGHTS) */}
+            <aside 
+                className={cn(
+                    "border-l border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 shrink-0 h-full transition-all duration-300 ease-in-out z-40 relative",
+                    isRightOpen ? "w-[420px]" : "w-0 translate-x-full border-none"
+                )}
+            >
+                {/* Toggle Button for Right Sidebar */}
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsRightOpen(!isRightOpen)}
+                    className={cn(
+                        "absolute -left-10 top-5 h-9 w-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xl z-50 rounded-full transition-all",
+                        isRightOpen ? "-left-4" : ""
+                    )}
+                >
+                    {isRightOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                </Button>
+
+                <div className="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/50">
+                    <div className="flex items-center gap-2 font-black text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                        <Bot className="h-4 w-4 text-blue-500" /> AI Insights
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+                    {messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center opacity-20 filter grayscale scale-90">
+                            <Sparkles className="h-12 w-12 mb-4" />
+                            <p className="text-xs font-bold uppercase tracking-widest">Start a conversation</p>
+                        </div>
+                    ) : (
+                        messages.map(msg => (
+                            <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start animate-in fade-in slide-in-from-bottom-4")}>
+                                <div className="flex items-center gap-2 mb-1">
+                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{msg.role === 'user' ? 'You' : 'AI'}</span>
+                                     <div className={cn("w-1 h-1 rounded-full", msg.role === 'user' ? "bg-slate-300" : "bg-blue-500")} />
+                                </div>
+                                <div className={cn(
+                                    "p-4 rounded-2xl text-[13px] font-medium leading-[1.6] transition-all shadow-sm",
+                                    msg.role === 'user' 
+                                        ? "bg-slate-900 dark:bg-slate-800 text-white rounded-tr-none" 
+                                        : "bg-[#f1f5f9] dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 rounded-tl-none border border-slate-100 dark:border-slate-800/50"
+                                )}>
                                     {msg.content}
                                 </div>
                                 {msg.componentJson && (
                                     <Collapsible className="w-full mt-2">
-                                        <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors group">
-                                            <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                                            <Code2 className="h-3 w-3" />
-                                            <span>View Component JSON</span>
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 transition-all">
+                                                <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" /> Source Code
+                                            </Button>
                                         </CollapsibleTrigger>
-                                        <CollapsibleContent className="mt-2">
-                                            <pre className="text-[10px] bg-slate-900 dark:bg-slate-950 text-green-400 p-3 rounded-lg overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+                                        <CollapsibleContent className="mt-3 overflow-hidden animate-in slide-in-from-top-1">
+                                            <pre className="text-[10px] bg-slate-950 text-blue-400 p-5 rounded-2xl max-h-80 overflow-auto border border-slate-800/50 shadow-inner scrollbar-thin font-mono leading-relaxed">
                                                 {msg.componentJson}
                                             </pre>
                                         </CollapsibleContent>
                                     </Collapsible>
                                 )}
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                     <div ref={messagesEndRef} />
                 </div>
-
-                <div className="p-4 border-t border-border/40 bg-white/50 dark:bg-slate-900/50">
-                    <form onSubmit={handleSendMessage} className="relative">
-                        <Input
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="Type a message..."
-                            disabled={isLoading}
-                            className="pr-12 py-6 rounded-xl bg-white dark:bg-slate-800 border-border/50 focus-visible:ring-blue-500/20 shadow-sm transition-all focus:shadow-md h-12"
-                        />
-                        <Button
-                            type="submit"
-                            size="icon"
-                            disabled={!inputValue.trim() || isLoading}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md shadow-blue-500/20 transition-all hover:scale-105"
-                        >
-                            {isLoading ? <Sparkles className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
-                    </form>
+                
+                <div className="p-4 flex justify-center border-t border-slate-100 dark:border-slate-800/50">
+                    <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">Connected to Intelligence</span>
+                    </div>
                 </div>
-            </div>
-
-            {/* Canvas Area */}
-            <div className="flex-1 overflow-hidden relative bg-slate-100/50 dark:bg-slate-950 transition-colors duration-500">
-                <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:24px_24px] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] opacity-20 pointer-events-none" />
-                <Canvas uiSchema={uiSchema} />
-            </div>
+            </aside>
         </div>
     );
 }
