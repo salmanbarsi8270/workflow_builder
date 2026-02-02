@@ -127,16 +127,6 @@ export function SidebarIconExample() {
       title: "Assistant",
       url: "/assistant",
       icon: <HandshakeIcon size={18} />,
-    },
-    {
-      title: "Canvas",
-      url: "/canvas",
-      icon: <HandshakeIcon size={18} />,
-    },
-    {
-      title: "Presentations",
-      url: "/presentations",
-      icon: <HandshakeIcon size={18} />,
     }
   ]
  
@@ -154,7 +144,6 @@ export function SidebarIconExample() {
       case "/files": return "FILE MANAGER";
       case "/personas": return "INSTRUCTION LIBRARY";
       case "/assistant": return "ASSISTANT";
-      case "/canvas": return "CANVAS";
       default: return "Workflow Builder";
     }
   };
@@ -407,7 +396,7 @@ export function SidebarIconExample() {
       </Sheet>
  
       <ColorPickerModal open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen} />
-      <GlobalSupport />
+      {/* <GlobalSupport /> */}
     </SidebarProvider>
   )
 }

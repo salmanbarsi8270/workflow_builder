@@ -1,5 +1,6 @@
 import React from 'react';
-import { History } from 'lucide-react';
+import { History, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SupportHeaderProps {
     messageCount?: number;
@@ -21,13 +22,14 @@ export const SupportHeader: React.FC<SupportHeaderProps> = ({
             {/* Hero Section */}
             <div className="flex items-start gap-5">
                 {/* History Button (Yellow Circle) */}
-                <button
-                    onClick={onToggleHistory}
-                    className="mt-1 h-9 w-9 min-w-[36px] rounded-full bg-primary flex items-center justify-center text-slate-900 shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 transform"
+                {/* History Button */}
+                <Button 
+                    onClick={onToggleHistory} 
+                    className="h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 flex items-center justify-center transition-all hover:scale-110 active:scale-95 p-0"
                     title="View History"
                 >
                     <History className="h-4 w-4" />
-                </button>
+                </Button>
 
                 <div className="flex-1">
                     <div className="mb-2">

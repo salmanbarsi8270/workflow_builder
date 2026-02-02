@@ -43,6 +43,7 @@ interface HistorySliderProps {
     onClearHistory: () => void;
     onExportSession: (sessionId: string) => void;
     onCreateNew: () => void;
+    onClose?: () => void;
 }
 
 interface SessionItemProps {
@@ -71,7 +72,8 @@ export const HistorySlider: React.FC<HistorySliderProps> = ({
     onRenameSession,
     onClearHistory,
     onExportSession,
-    onCreateNew
+    onCreateNew,
+    onClose
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -149,13 +151,23 @@ export const HistorySlider: React.FC<HistorySliderProps> = ({
             style={{ position: 'absolute' }}
         >
             <SidebarHeader className="p-3">
-                <Button 
-                    onClick={onCreateNew}
-                    className="w-full justify-start gap-2 bg-slate-100 dark:bg-white/5 hover:bg-primary/5 dark:hover:bg-primary/10 border border-primary/20 text-foreground dark:text-white rounded-xl h-10 px-3 shadow-sm dark:shadow-none transition-all group/new"
-                >
-                    <Plus className="h-4 w-4 text-primary group-hover/new:rotate-90 transition-transform" />
-                    <span className="group-data-[collapsible=icon]:hidden font-medium text-sm">New chat</span>
-                </Button>
+                <div className="flex items-center gap-2 mb-2">
+                    <Button 
+                        onClick={onCreateNew}
+                        className="flex-1 justify-start gap-2 bg-slate-100 dark:bg-white/5 hover:bg-primary/5 dark:hover:bg-primary/10 border border-primary/20 text-foreground dark:text-white rounded-xl h-10 px-3 shadow-sm dark:shadow-none transition-all group/new"
+                    >
+                        <Plus className="h-4 w-4 text-primary group-hover/new:rotate-90 transition-transform" />
+                        <span className="group-data-[collapsible=icon]:hidden font-medium text-sm">New chat</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-foreground transition-all"
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
 
                 <div className="mt-4 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-white/40" />

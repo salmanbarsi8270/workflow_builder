@@ -5,6 +5,7 @@ import { SupportForm } from './SupportForm';
 import { SupportDetails } from './SupportDetails';
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
+import { SupportMessageCard } from './SupportMessageCard';
 
 interface MessageBubbleProps {
     message: {
@@ -33,8 +34,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
     };
 
     // User requested "only result.text" and "did not send ui" otherwise.
-    // We strictly hide the bubble if there is no content yet, suppressing the "thinking" dots.
-    if (role === 'assistant' && !message.content) {
+    // We strictly hide the bubble if there is no content yet, UNLESS it's thinking.
+    if (role === 'assistant' && !message.content && message.status !== 'thinking') {
         return null;
     }
 
@@ -84,7 +85,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
         }
 
 
-        const parsedNodes: { type: 'thought' | 'data' | 'text'; content: React.ReactNode }[] = [];
+        const parsedNodes: { type: 'thought' | 'data' | 'text'; content: React.ReactNode; isSuccessCard?: boolean }[] = [];
         
         // Helper function for text formatting (hoisted)
         const renderFormattedLine = (line: string, i: number, partIndex: number) => {
@@ -160,6 +161,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
                 if (isComplete) {
                     try {
                         const data = JSON.parse(jsonStr);
+                        
+                        // NEW: Check for Success Card Pattern (Strict Structure)
+                        // It must have 'success' boolean and optional 'users' array, or 'type'='conversation'
+                        if (
+                            (typeof data.success === 'boolean') && 
+                            (data.users || data.message || data.type === 'conversation' || data.error)
+                        ) {
+                             parsedNodes.push({ 
+                                 type: 'data', 
+                                 isSuccessCard: true,
+                                 content: <SupportMessageCard key={index} data={data} timestamp={new Date()} /> 
+                             });
+                             return;
+                        }
+
                         // Helper to traverse and find arrays
                         const findArray = (obj: any, depth = 0): any[] | null => {
                             if (!obj || typeof obj !== 'object' || depth > 3) return null;
@@ -203,29 +219,68 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
             // 3. Text Content
             const isMetaTalk = metaTalkPatterns.some(pattern => pattern.test(part.trim()));
             if (!isMetaTalk) {
-                parsedNodes.push({
-                    type: 'text',
-                    content: <div key={index}>{part.split('\n').map((line, i) => renderFormattedLine(line, i, index))}</div>
-                });
+                // Check if this part is actually just raw JSON that we will render later
+                let isJsonData = false;
+                try {
+                    const trimmed = part.trim();
+                    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                        JSON.parse(trimmed);
+                        isJsonData = true; 
+                    }
+                } catch (e) {}
+
+                if (!isJsonData) {
+                    parsedNodes.push({
+                        type: 'text',
+                        content: <div key={index}>{part.split('\n').map((line, i) => renderFormattedLine(line, i, index))}</div>
+                    });
+                }
             }
         });
 
-        // 4. Robust Fallback for Missing Backticks
+        // 4. Robust Fallback for Missing Backticks or Dirty JSON (e.g. "• {"name":...}")
         if (parsedNodes.filter(n => n.type === 'data').length === 0 && !message.content.includes('```')) {
              try {
-                 const cleanContent = message.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                 // Remove thoughts first
+                 let cleanContent = message.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                 
+                 // Remove confusing prefixes like bullets, excessive newlines
+                 cleanContent = cleanContent.replace(/^[\s\n]*[•\-\*]+[\s\n]*/, '').trim();
+
                  const firstBrace = cleanContent.indexOf('{');
                  const firstBracket = cleanContent.indexOf('[');
-                 const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
+                 
+                 // Determine where JSON *might* start
+                 let start = -1;
+                 if (firstBrace !== -1 && firstBracket !== -1) {
+                     start = Math.min(firstBrace, firstBracket);
+                 } else if (firstBrace !== -1) {
+                     start = firstBrace;
+                 } else {
+                     start = firstBracket;
+                 }
+
                  if (start !== -1) {
                      const lastBrace = cleanContent.lastIndexOf('}');
                      const lastBracket = cleanContent.lastIndexOf(']');
                      const end = Math.max(lastBrace, lastBracket);
+                     
                      if (end > start) {
                          const jsonStr = cleanContent.substring(start, end + 1);
                          const data = JSON.parse(jsonStr);
-                         // Quick check if valid data
-                         if (Array.isArray(data) || (data && typeof data === 'object')) {
+                         
+                         // Check for Success Card Pattern (Fallback)
+                         if (
+                            (typeof data.success === 'boolean') && 
+                            (data.users || data.message || data.type === 'conversation' || data.error)
+                         ) {
+                             parsedNodes.push({ 
+                                 type: 'data', 
+                                 isSuccessCard: true,
+                                 content: <SupportMessageCard key="fallback-success" data={data} timestamp={new Date()} /> 
+                             });
+                         } 
+                         else if (Array.isArray(data) || (data && typeof data === 'object')) {
                              // It's valid JSON data. Since we are in robust fallback, we assume this is THE data.
                              // We will construct a data node. Logic simplified for brevity, assuming SupportDetails/Table can handle it.
                              const isList = Array.isArray(data) || (data.data && Array.isArray(data.data));
@@ -240,6 +295,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, role, isT
         }
         
         // --- FINAL RENDERING DECISION ---
+        // 0. Check for Strict "Success/Error Card" Pattern (User Management Pattern)
+        const successCardNode = parsedNodes.find(n => n.type === 'data' && n.isSuccessCard);
+        if (successCardNode) {
+            // If we found a success card structure, we prioritize it. 
+            // We might still want to show "thought" nodes before it if they exist.
+            const otherNodes = parsedNodes.filter(n => n.type !== 'data' && n.type !== 'text'); // Keep thoughts
+            return [
+                ...otherNodes.map(n => n.content),
+                successCardNode.content
+            ];
+        }
+
         // Return all nodes in order (Thoughts, Text, Data).
         // This allows "Here is the list:" + Table to co-exist, while metaTalkPatterns filters out garbage.
         return parsedNodes.map(n => n.content);

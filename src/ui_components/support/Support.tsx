@@ -3,14 +3,18 @@ import { useUser } from '@/context/UserContext';
 import { SupportChatInterface } from './SupportChatInterface';
 import { Loader2, Bot } from 'lucide-react';
 
-export const Support = () => {
+interface SupportProps {
+    conversationId: string | null;
+    onToggleHistory: () => void;
+    onConversationIdChange?: (id: string) => void;
+}
+
+export default function Support({ conversationId, onToggleHistory, onConversationIdChange }: SupportProps) {
     const { user } = useUser();
     const [agent, setAgent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // We no longer need to setup a specialized agent.
-        // We can just set a static agent identity for the UI.
         setAgent({
             id: 'support-llm',
             name: 'Workflow Assistant',
@@ -46,8 +50,12 @@ export const Support = () => {
                 <SupportChatInterface 
                     userId={user?.id || 'anonymous'} 
                     userName={user?.name || 'user'} 
+                    conversationId={conversationId}
+                    onToggleHistory={onToggleHistory}
+                    onConversationIdChange={onConversationIdChange}
                 />
             </div>
         </div>
     );
 };
+
