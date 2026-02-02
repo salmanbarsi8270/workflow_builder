@@ -19,7 +19,7 @@ import type { AutomationItem } from '../Automation/components/AutomationList';
 import { OpenRouterModel } from '../Utility/openroutermodel';
 import { Switch } from "@/components/ui/switch";
 import { curatedModels, getOpenRouterModels } from '@/constants/models';
-import { PostgresConnectionDialog } from '../generative_ui/PostgresConnectionDialog';
+
 
 interface CreateAgentDialogProps {
     open: boolean;
@@ -63,9 +63,9 @@ export function CreateAgentDialog({
     const [selectedSubAgents, setSelectedSubAgents] = useState<string[]>([]);
     const [api_key, setApiKey] = useState<string>('');
     const [mcpTools, setMcpTools] = useState<MCPConfig[]>([]);
-    const [dbConnectionId, setDbConnectionId] = useState<string>('');
-    const [databaseConnectionString, setDatabaseConnectionString] = useState<string>('');
-    const [showPostgresDialog, setShowPostgresDialog] = useState(false);
+
+    const [catalogs, setCatalogs] = useState<any[]>([]);
+    const [selectedCatalogs, setSelectedCatalogs] = useState<string[]>([]);
 
     // ... previous code ...
     const [existingFiles, setExistingFiles] = useState<{ filename: string; count: number }[]>([]);
@@ -80,6 +80,7 @@ export function CreateAgentDialog({
     const [selectedInputType, setSelectedInputType] = useState<string>('');
     const [ragEnabled, setRagEnabled] = useState(false);
     const [evalsEnabled, setEvalsEnabled] = useState(false);
+    const [uiEnabled, setUiEnabled] = useState(true);
 
     // UI Design State
     const [uiDesigns, setUiDesigns] = useState<any[]>([]); // Using any for simplicity in dialog, strictly typed in Design module
@@ -157,6 +158,25 @@ export function CreateAgentDialog({
         }
     }, [open, userId]);
 
+    // Fetch Catalogs
+    useEffect(() => {
+        if (open && userId) {
+            // We assume list catalogs endpoint exists or we use a custom one.
+            // Since we implemented refresh and ui, we need list. 
+            // I will implement list endpoint in next turn backend side.
+            // For now, I'll fetch and expect empty or failure until backend is ready.
+            fetch(`${API_URL}/api/catalogs?userId=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setCatalogs(data);
+                    }
+                })
+                .catch(err => console.error("Error fetching catalogs:", err));
+        }
+    }, [open, userId]);
+
+
     // Flattened agents list for easier lookup and selection
     const allAvailableAgents = useMemo(() => {
         // Keep agents in tree format for recursive rendering
@@ -188,9 +208,14 @@ export function CreateAgentDialog({
                 setSelectedSubAgents(subAgents.map(a => a.id) || []);
                 setApiKey(initialAgent.api_key || '');
                 setSelectedConnection(initialAgent.connectionId || initialAgent.connection_id || '');
-                setDbConnectionId(initialAgent.db_connection_id || '');
-                setDatabaseConnectionString(initialAgent.database_connection_string || '');
                 setSelectedUiDesign(initialAgent.ui_design_id || ''); // Load UI Design
+                // Load Catalogs
+                try {
+                    let cats = (initialAgent as any).catalogs;
+                    if (typeof cats === 'string') cats = JSON.parse(cats);
+                    setSelectedCatalogs(Array.isArray(cats) ? cats : []);
+                } catch (e) { setSelectedCatalogs([]); }
+
 
                 // Load existing MCP tools if any
                 const existingMcpTools = initialAgent.tools
@@ -230,6 +255,7 @@ export function CreateAgentDialog({
                         setEnableGuardrails(flag);
                         setRagEnabled(initialAgent.rag_enabled !== false);
                         setEvalsEnabled(initialAgent.evals_enabled === true);
+                        setUiEnabled(initialAgent.ui_enabled !== false);
                     })
                     .catch(err => console.error("Error fetching guardrails:", err));
 
@@ -261,8 +287,8 @@ export function CreateAgentDialog({
         setEnableGuardrails(false);
         setEvalsEnabled(false);
         setSelectedInstructionId('');
-        setDbConnectionId('');
-        setDatabaseConnectionString('');
+        setSelectedCatalogs([]);
+        setUiEnabled(true);
     };
 
     // ... existing helper functions (getapikey, handleDeleteFile, etc.) ...
@@ -386,8 +412,8 @@ export function CreateAgentDialog({
                 rag_enabled: ragEnabled,
                 rag_file_ids: selectedFileIds, // Send selected file IDs to backend
                 evals_enabled: evalsEnabled,
-                db_connection_id: dbConnectionId,
-                database_connection_string: databaseConnectionString
+                catalogs: selectedCatalogs,
+                ui_enabled: uiEnabled
             };
 
             let response;
@@ -687,62 +713,73 @@ export function CreateAgentDialog({
                             </Select>
                         </div>
 
-                        <div className="grid gap-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="db-connection" className="text-slate-700 dark:text-white font-medium">Database Connection (Optional)</Label>
+
+
+                        <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                            <div className="space-y-0.5">
                                 <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => onRefreshConnections?.()} className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-blue-600" title="Refresh connections">
-                                        <RefreshCw className="h-2.5 w-2.5 mr-1" /> Refresh
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setShowPostgresDialog(true)} className="h-5 px-1.5 text-[10px] text-blue-600 dark:text-blue-400">
-                                        <Plus className="h-2.5 w-2.5 mr-1" /> New
-                                    </Button>
+                                    <Palette className="h-4 w-4 text-purple-500" />
+                                    <Label className="text-sm font-semibold">Enable Generative UI</Label>
                                 </div>
+                                <p className="text-[11px] text-slate-500">Allow agent to generate and render dynamic UI components using the system catalog.</p>
                             </div>
-                            <Select value={dbConnectionId} onValueChange={setDbConnectionId}>
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus:ring-blue-500 h-10">
-                                    <SelectValue placeholder="Select Database Connection" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">
-                                        <span className="text-slate-500 italic">None (Default)</span>
-                                    </SelectItem>
-                                    {connections.filter(c => c.service === 'postgres').length === 0 ? (
-                                        <div className="p-2 text-sm text-muted-foreground text-center">No database connections found</div>
-                                    ) : (
-                                        connections.filter(c => c.service === 'postgres').map(conn => (
-                                            <SelectItem key={conn.id} value={conn.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <Terminal className="h-3.5 w-3.5 text-blue-500" />
-                                                    <span className="truncate">{conn.name}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
+                            <Switch
+                                checked={uiEnabled}
+                                onCheckedChange={setUiEnabled}
+                                className="data-[state=checked]:bg-purple-600"
+                            />
                         </div>
 
-                        {(dbConnectionId === 'none' || !dbConnectionId) && (
-                            <div className="grid gap-2 animate-in fade-in duration-300">
-                                <Label htmlFor="db-connection-string" className="text-slate-700 dark:text-white font-medium text-xs opacity-70">Direct Connection String (Optional)</Label>
-                                <Textarea
-                                    id="db-connection-string"
-                                    placeholder="postgresql://user:password@host:port/database"
-                                    className="h-20 resize-none bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 focus-visible:ring-blue-500 font-mono text-[10px] leading-relaxed rounded-xl p-3"
-                                    value={databaseConnectionString}
-                                    onChange={(e) => setDatabaseConnectionString(e.target.value)}
-                                />
-                                <p className="text-[10px] text-slate-500 italic px-1">Use this if you don't want to create a permanent connector account.</p>
-                            </div>
-                        )}
+                        <div className="grid gap-2">
+                            <Label className="text-slate-700 dark:text-white font-medium">Catalogs (Optional)</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="justify-between bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 h-10">
+                                        {selectedCatalogs.length > 0 ? `${selectedCatalogs.length} selected` : "Select Catalogs"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[400px] p-0" align="start">
+                                    <Command>
+                                        <CommandInput placeholder="Search catalogs..." />
+                                        <CommandList>
+                                            <CommandEmpty>No catalogs found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {catalogs.map((cat) => (
+                                                    <CommandItem
+                                                        key={cat.id}
+                                                        value={cat.id} // or cat.data.table_name? No, ID.
+                                                        onSelect={() => {
+                                                            setSelectedCatalogs(prev =>
+                                                                prev.includes(cat.id)
+                                                                    ? prev.filter(id => id !== cat.id)
+                                                                    : [...prev, cat.id]
+                                                            );
+                                                        }}
+                                                    >
+                                                        <div className={`mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${selectedCatalogs.includes(cat.id) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"}`}>
+                                                            <Check className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span>{cat.connection_id ? (connections.find(c => c.id === cat.connection_id)?.name || 'Unknown Connection') : 'Manual Catalog'}</span>
+                                                            <span className="text-xs text-muted-foreground">{cat.type}</span>
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
 
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="instructions" className="text-slate-700 dark:text-white font-medium">System Instructions <span className="text-red-500">*</span></Label>
                                 {instructions_library.length > 0 && (
-                                    <Select 
-                                        value={selectedInstructionId} 
+                                    <Select
+                                        value={selectedInstructionId}
                                         onValueChange={(id) => {
                                             setSelectedInstructionId(id);
                                             const p = instructions_library.find(inst => inst.id === id);
@@ -1619,16 +1656,7 @@ export function CreateAgentDialog({
                     }
                 }}
             />
-            <PostgresConnectionDialog
-                open={showPostgresDialog}
-                onOpenChange={setShowPostgresDialog}
-                onSuccess={() => {
-                    toast.success("Database Connection added. Refreshing list...");
-                    if (onRefreshConnections) {
-                        onRefreshConnections();
-                    }
-                }}
-            />
+
         </>
     );
 }

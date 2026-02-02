@@ -44,11 +44,11 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
           {/* Status Badge */}
           <div className="flex items-center justify-between mb-8">
             <div className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-inner">
-               <Bot className="h-6 w-6" style={{ color: '#f97316' }} />
+              <Bot className="h-6 w-6" style={{ color: '#f97316' }} />
             </div>
             <div className="flex items-center gap-2 px-3 py-1 transparent rounded-full">
-               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active</span>
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active</span>
             </div>
           </div>
 
@@ -56,11 +56,11 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase line-clamp-1">
               {agent.name}
             </h3>
-            
+
             <div className="inline-flex px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-               <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                 {agent.model || 'GPT-4o'}
-               </span>
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                {agent.model || 'GPT-4o'}
+              </span>
             </div>
 
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3">
@@ -71,11 +71,11 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
           {/* Stats Row */}
           <div className="flex items-center gap-6 mt-8 py-6 border-t border-slate-100 dark:border-white/5">
             <div className="flex items-center gap-2">
-               <Terminal className="h-4 w-4 text-slate-300 dark:text-slate-600" />
-               <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{agent.tools?.length || 0} tools</span>
+              <Terminal className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{agent.tools?.length || 0} tools</span>
             </div>
             <div className="flex items-center gap-2">
-               <span className="text-xs font-bold text-slate-400 dark:text-slate-500">2m ago</span>
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">2m ago</span>
             </div>
           </div>
 
@@ -112,7 +112,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
         </div>
       </div>
 
-      {/* {hasSubagents && (
+      {hasSubagents && (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
           {subagentsList.map((sub, sidx) => (
             <AgentTreeNode
@@ -129,7 +129,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
             />
           ))}
         </div>
-      )} */}
+      )}
     </div>
   );
 }
@@ -397,7 +397,7 @@ export default function Agents() {
                 Create, manage, and deploy autonomous agents for your workflows. These agents can use tools and sub-agents to achieve complex objectives.
               </p>
             </div>
-          
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={fetchAgents}
@@ -424,26 +424,26 @@ export default function Agents() {
         {/* Stats Bar */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
-            { 
-              label: 'Active Agents', 
-              value: activeAgentsCount.toString(), 
-              badge: '100%', 
+            {
+              label: 'Active Agents',
+              value: activeAgentsCount.toString(),
+              badge: '100%',
               badgeColor: 'text-emerald-500 bg-emerald-500/10',
               trendIcon: <Zap className="h-3 w-3" />
             },
-            { 
-              label: 'Total Executions', 
-              value: '1,247', 
-              badge: 'Today', 
+            {
+              label: 'Total Executions',
+              value: '1,247',
+              badge: 'Today',
               badgeColor: 'text-blue-500 bg-blue-500/10',
-              trendIcon: <Zap className="h-3 w-3" /> 
+              trendIcon: <Zap className="h-3 w-3" />
             },
-            { 
-              label: 'Success Rate', 
-              value: '98.5%', 
-              badge: 'Optimized', 
+            {
+              label: 'Success Rate',
+              value: '98.5%',
+              badge: 'Optimized',
               badgeColor: 'text-orange-500 bg-orange-500/10',
-              trendIcon: <Sparkles className="h-3 w-3" /> 
+              trendIcon: <Sparkles className="h-3 w-3" />
             }
           ].map((stat, idx) => (
             <div
@@ -466,19 +466,19 @@ export default function Agents() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {isLoading && [1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="relative bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm h-[400px] animate-pulse">
-                <div className="flex justify-between items-start mb-8">
-                  <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-white/5" />
-                  <div className="h-6 w-20 rounded-full bg-slate-100 dark:bg-white/5" />
-                </div>
-                <div className="space-y-4">
-                  <div className="h-8 w-3/4 rounded-lg bg-slate-100 dark:bg-white/5" />
-                  <div className="h-6 w-24 rounded-lg bg-slate-100 dark:bg-white/5" />
-                  <div className="h-20 w-full rounded-lg bg-slate-100 dark:bg-white/5" />
-                </div>
-                <div className="mt-auto pt-8 border-t border-slate-100 dark:border-white/5 flex gap-2">
-                  <div className="h-14 flex-1 rounded-2xl bg-slate-100 dark:bg-white/5" />
-                  <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-white/5" />
-                </div>
+              <div className="flex justify-between items-start mb-8">
+                <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-white/5" />
+                <div className="h-6 w-20 rounded-full bg-slate-100 dark:bg-white/5" />
+              </div>
+              <div className="space-y-4">
+                <div className="h-8 w-3/4 rounded-lg bg-slate-100 dark:bg-white/5" />
+                <div className="h-6 w-24 rounded-lg bg-slate-100 dark:bg-white/5" />
+                <div className="h-20 w-full rounded-lg bg-slate-100 dark:bg-white/5" />
+              </div>
+              <div className="mt-auto pt-8 border-t border-slate-100 dark:border-white/5 flex gap-2">
+                <div className="h-14 flex-1 rounded-2xl bg-slate-100 dark:bg-white/5" />
+                <div className="h-14 w-14 rounded-2xl bg-slate-100 dark:bg-white/5" />
+              </div>
             </div>
           ))}
 
@@ -510,13 +510,13 @@ export default function Agents() {
 
         {/* Footer / Pagination */}
         <CustomPagination
-            currentPage={currentPage}
-            totalItems={topLevelAgents.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+          currentPage={currentPage}
+          totalItems={topLevelAgents.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
-        
+
         <CreateAgentDialog
           open={isCreateModalOpen}
           onOpenChange={setIsCreateModalOpen}

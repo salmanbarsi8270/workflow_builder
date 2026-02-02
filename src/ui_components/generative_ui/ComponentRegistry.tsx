@@ -9,6 +9,13 @@ import * as LucideIcons from 'lucide-react';
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
 import { Input } from '@/components/ui/input';
 import { DatabaseCard } from './DatabaseCard';
+import {
+    SummaryCard, MetricTrendCard, StatusOverviewCard, KeyValuePanel, SimpleTablePanel, ActivityFeedPanel,
+    InsightSummaryCard, ComparisonCard, TrendAnalysisPanel, RiskAssessmentCard, RecommendationPanel,
+    ChartWithSummary, PerformanceDashboardBlock, DistributionBreakdownCard, TimeSeriesReport,
+    ModelAnswerCard, ReasoningPanel, PromptResultBlock, TokenUsageCard, LatencyStatsCard,
+    ErrorReportPanel, EmptyResultCard, LoadingBlock
+} from './componsts/componsts';
 
 // Card Wrapper with Grid Span Support
 const CardWrapper = ({ span = 6, className, children, ...props }: any) => {
@@ -29,11 +36,12 @@ const IconWrapper = ({ name, className, ...props }: { name: string; className?: 
 };
 
 // Layout Components
-const Container = ({ className, children, layout = 'grid', gap = 4, span, ...props }: any) => {
-    // 12-column grid system (standard Tailwind)
+const Container = ({ className, children, layout = 'grid', gap = 4, span, cols = 24, ...props }: any) => {
+    // 24-column grid system (custom extended Tailwind)
     const layoutClasses = layout === 'grid'
         ? cn(
-            "grid grid-cols-12",
+            "grid",
+            cols === 24 ? "grid-cols-24" : `grid-cols-${cols}`,
             `gap-${gap}`,
             "auto-rows-auto"
         )
@@ -42,7 +50,7 @@ const Container = ({ className, children, layout = 'grid', gap = 4, span, ...pro
             : "";
 
     // If this container is inside a grid, apply col-span (default to full width)
-    const spanClass = span ? `col-span-${span}` : '';
+    const spanClass = span ? `col-span-${span}` : 'col-span-full';
 
     return (
         <div className={cn("w-full", spanClass, layoutClasses, className)} {...props}>
@@ -315,7 +323,7 @@ const ThinkingBlock = ({ children, className, finished }: any) => {
         <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className={cn("w-full transition-all duration-300", className)}
+            className={cn("w-full col-span-full transition-all duration-300", className)}
         >
             <CollapsibleTrigger asChild>
                 <div className="flex items-center gap-2 py-2 cursor-pointer opacity-70 hover:opacity-100 transition-opacity group w-fit">
@@ -385,4 +393,37 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
     'error-state': ErrorState,
     'thinking-block': ThinkingBlock,
     'database-card': DatabaseCard,
+
+    // Tier 1
+    'SummaryCard': SummaryCard,
+    'MetricTrendCard': MetricTrendCard,
+    'StatusOverviewCard': StatusOverviewCard,
+    'KeyValuePanel': KeyValuePanel,
+    'SimpleTablePanel': SimpleTablePanel,
+    'ActivityFeedPanel': ActivityFeedPanel,
+
+    // Tier 2
+    'InsightSummaryCard': InsightSummaryCard,
+    'ComparisonCard': ComparisonCard,
+    'TrendAnalysisPanel': TrendAnalysisPanel,
+    'RiskAssessmentCard': RiskAssessmentCard,
+    'RecommendationPanel': RecommendationPanel,
+
+    // Tier 3
+    'ChartWithSummary': ChartWithSummary,
+    'PerformanceDashboardBlock': PerformanceDashboardBlock,
+    'DistributionBreakdownCard': DistributionBreakdownCard,
+    'TimeSeriesReport': TimeSeriesReport,
+
+    // Tier 4
+    'ModelAnswerCard': ModelAnswerCard,
+    'ReasoningPanel': ReasoningPanel,
+    'PromptResultBlock': PromptResultBlock,
+    'TokenUsageCard': TokenUsageCard,
+    'LatencyStatsCard': LatencyStatsCard,
+
+    // Tier 5
+    'ErrorReportPanel': ErrorReportPanel,
+    'EmptyResultCard': EmptyResultCard,
+    'LoadingBlock': LoadingBlock,
 };

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
-import { 
-    Bot, Trash2, ChevronRight, Plus, History, 
+import {
+    Bot, Trash2, ChevronRight, Plus, History,
     MessageSquare, PanelLeftClose, PanelLeftOpen,
     PanelRightClose, PanelRightOpen, Sparkles, Send,
     Mic, Moon, Sun, Palette
@@ -84,6 +84,12 @@ const transformComponentData = (data: any): any => {
     } else {
         transformed.children = sourceData;
     }
+
+    // PATCH: Handle AI confusion between 'table' (html structure) and 'SimpleTablePanel' (data props)
+    if (transformed.type === 'table' && (transformed.props?.columns || transformed.props?.rows)) {
+        transformed.type = 'SimpleTablePanel';
+    }
+
     return transformed;
 };
 
@@ -281,7 +287,7 @@ export default function CanvasPage() {
         setUiSchema(prev => ({ ...prev, children: [...(prev.children || []), initialWrapper] }));
 
         try {
-            const response = await fetch(`${AI_URL}/agents/dc9b860c-8eda-4922-88e6-5fd01bdb9ceb/stream`, {
+            const response = await fetch(`${AI_URL}/agents/dcf594b0-148c-47e3-95a7-78c09b339740/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
                 body: JSON.stringify({ input: text, userId, conversationId: currentConversationId })
@@ -351,7 +357,7 @@ export default function CanvasPage() {
             }
 
             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: assistantContent, timestamp: new Date(), componentJson: assistantMetadata.componentJson }]);
-            
+
             fetch(`${AI_URL}/api/memory/save-messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -373,9 +379,9 @@ export default function CanvasPage() {
 
     return (
         <div className="flex h-screen w-full bg-[#f8fafc] dark:bg-[#020617] overflow-hidden font-sans relative">
-            
+
             {/* Left Sidebar - History (PROJECTS) */}
-            <aside 
+            <aside
                 className={cn(
                     "border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 shrink-0 h-full transition-all duration-300 ease-in-out z-40 relative",
                     isLeftOpen ? "w-72" : "w-0 -translate-x-full border-none"
@@ -390,17 +396,17 @@ export default function CanvasPage() {
                 {/* Theme & Accent Controls */}
                 <div className="px-5 py-2 space-y-4">
                     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/40 p-1.5 rounded-xl border border-slate-200/50 dark:border-white/5">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setTheme("light")}
                             className={cn("h-8 flex-1 rounded-lg gap-2 text-[10px] font-bold uppercase tracking-wider transition-all", theme === "light" ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
                         >
                             <Sun className="h-3.5 w-3.5" /> Light
                         </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setTheme("dark")}
                             className={cn("h-8 flex-1 rounded-lg gap-2 text-[10px] font-bold uppercase tracking-wider transition-all", theme === "dark" ? "bg-slate-900 shadow-sm text-blue-400" : "text-slate-400 hover:text-slate-200")}
                         >
@@ -423,9 +429,9 @@ export default function CanvasPage() {
                             ))}
                         </div>
                         <div className="relative group shrink-0">
-                            <Input 
-                                type="color" 
-                                value={accentColor} 
+                            <Input
+                                type="color"
+                                value={accentColor}
                                 onChange={(e) => setAccentColor(e.target.value)}
                                 className="w-6 h-6 p-0 border-none rounded-full overflow-hidden cursor-pointer bg-transparent"
                             />
@@ -442,16 +448,16 @@ export default function CanvasPage() {
                         </Button>
                     ) : (
                         <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-blue-500/20 shadow-sm animate-in fade-in slide-in-from-top-2">
-                            <Input 
-                                value={newChatName} 
-                                onChange={(e) => setNewChatName(e.target.value)} 
-                                placeholder="Name..." 
-                                className="h-9 text-xs mb-2 bg-white dark:bg-slate-900" 
-                                autoFocus 
-                                onKeyDown={(e) => { 
-                                    if (e.key === 'Enter') confirmCreateChat(); 
-                                    if (e.key === 'Escape') setIsNamingNewChat(false); 
-                                }} 
+                            <Input
+                                value={newChatName}
+                                onChange={(e) => setNewChatName(e.target.value)}
+                                placeholder="Name..."
+                                className="h-9 text-xs mb-2 bg-white dark:bg-slate-900"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') confirmCreateChat();
+                                    if (e.key === 'Escape') setIsNamingNewChat(false);
+                                }}
                             />
                             <div className="flex gap-2">
                                 <Button size="sm" className="flex-1 h-7 text-[10px] bg-blue-600 hover:bg-blue-700" onClick={confirmCreateChat}>Create</Button>
@@ -466,13 +472,13 @@ export default function CanvasPage() {
                         <div className="py-12 text-center opacity-20 italic text-xs">No project history</div>
                     ) : (
                         conversations.map(conv => (
-                            <div 
-                                key={conv.conversation_id} 
-                                onClick={() => handleLoadConversation(conv)} 
+                            <div
+                                key={conv.conversation_id}
+                                onClick={() => handleLoadConversation(conv)}
                                 className={cn(
                                     "group p-3 rounded-xl relative cursor-pointer transition-all duration-200",
-                                    currentConversationId === conv.conversation_id 
-                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 shadow-sm" 
+                                    currentConversationId === conv.conversation_id
+                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 shadow-sm"
                                         : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400"
                                 )}
                             >
@@ -497,11 +503,11 @@ export default function CanvasPage() {
                         ))
                     )}
                 </div>
-                
+
                 {/* Toggle Button for Left Sidebar */}
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setIsLeftOpen(!isLeftOpen)}
                     className={cn(
                         "absolute -right-10 top-5 h-9 w-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xl z-50 rounded-full transition-all",
@@ -515,15 +521,15 @@ export default function CanvasPage() {
             {/* Main Content - Canvas (CENTER) */}
             <main className="flex-1 overflow-hidden relative transition-all duration-300">
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] opacity-40 dark:opacity-10 pointer-events-none" />
-                
+
                 <div className="absolute top-6 left-6 z-10 flex gap-2">
-                     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex items-center gap-2">
+                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Live Workspace</span>
-                     </div>
-                     <Button variant="ghost" size="sm" onClick={handleClearAllHistory} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-3 rounded-xl border border-border/40 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50">
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={handleClearAllHistory} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-3 rounded-xl border border-border/40 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50">
                         <Trash2 className="h-3 w-3 mr-2" /> Wipe Memory
-                     </Button>
+                    </Button>
                 </div>
 
                 <Canvas uiSchema={uiSchema} />
@@ -533,11 +539,11 @@ export default function CanvasPage() {
                     <form onSubmit={handleSendMessage} className="relative transition-all duration-500 hover:scale-[1.01] focus-within:scale-[1.01]">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-10 group-focus-within:opacity-20 transition duration-500"></div>
                         <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-2 pl-4 shadow-2xl backdrop-blur-xl">
-                            <Input 
-                                value={inputValue} 
-                                onChange={(e) => setInputValue(e.target.value)} 
-                                placeholder="Ask me anything..." 
-                                disabled={isLoading} 
+                            <Input
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                placeholder="Ask me anything..."
+                                disabled={isLoading}
                                 className="flex-1 bg-transparent border-none focus-visible:ring-0 text-sm font-medium h-12 shadow-none dark:text-white"
                             />
                             <div className="flex items-center gap-1">
@@ -555,16 +561,16 @@ export default function CanvasPage() {
             </main>
 
             {/* Right Sidebar - Chat History (AI INSIGHTS) */}
-            <aside 
+            <aside
                 className={cn(
                     "border-l border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 shrink-0 h-full transition-all duration-300 ease-in-out z-40 relative",
                     isRightOpen ? "w-[420px]" : "w-0 translate-x-full border-none"
                 )}
             >
                 {/* Toggle Button for Right Sidebar */}
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setIsRightOpen(!isRightOpen)}
                     className={cn(
                         "absolute -left-10 top-5 h-9 w-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-xl z-50 rounded-full transition-all",
@@ -590,13 +596,13 @@ export default function CanvasPage() {
                         messages.map(msg => (
                             <div key={msg.id} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start animate-in fade-in slide-in-from-bottom-4")}>
                                 <div className="flex items-center gap-2 mb-1">
-                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{msg.role === 'user' ? 'You' : 'AI'}</span>
-                                     <div className={cn("w-1 h-1 rounded-full", msg.role === 'user' ? "bg-slate-300" : "bg-blue-500")} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{msg.role === 'user' ? 'You' : 'AI'}</span>
+                                    <div className={cn("w-1 h-1 rounded-full", msg.role === 'user' ? "bg-slate-300" : "bg-blue-500")} />
                                 </div>
                                 <div className={cn(
                                     "p-4 rounded-2xl text-[13px] font-medium leading-[1.6] transition-all shadow-sm",
-                                    msg.role === 'user' 
-                                        ? "bg-slate-900 dark:bg-slate-800 text-white rounded-tr-none" 
+                                    msg.role === 'user'
+                                        ? "bg-slate-900 dark:bg-slate-800 text-white rounded-tr-none"
                                         : "bg-[#f1f5f9] dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 rounded-tl-none border border-slate-100 dark:border-slate-800/50"
                                 )}>
                                     {msg.content}
@@ -620,11 +626,11 @@ export default function CanvasPage() {
                     )}
                     <div ref={messagesEndRef} />
                 </div>
-                
+
                 <div className="p-4 flex justify-center border-t border-slate-100 dark:border-slate-800/50">
                     <div className="flex items-center gap-2">
-                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">Connected to Intelligence</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">Connected to Intelligence</span>
                     </div>
                 </div>
             </aside>
