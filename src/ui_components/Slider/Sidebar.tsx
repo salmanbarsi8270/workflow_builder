@@ -135,6 +135,11 @@ export function SidebarIconExample() {
       url: "/presentation",
       icon: <UserCircle size={20} />,
     },
+    {
+      title: "Support",
+      url: "/support",
+      icon: <UserCircle size={20} />,
+    },
   ]
 
   return (
