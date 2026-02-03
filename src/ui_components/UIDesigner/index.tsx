@@ -4,6 +4,7 @@ import type { UIDesign } from './types';
 import DesignCard from './DesignCard';
 import CreateDesignDialog from './CreateDesignDialog';
 import { API_URL } from "../api/apiurl";
+import { toast } from 'sonner';
 
 interface UIDesignerProps {
     userId: string;
@@ -16,6 +17,7 @@ export default function UIDesigner({ userId }: UIDesignerProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [editingDesign, setEditingDesign] = useState<UIDesign | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Fetch designs from API
     const fetchDesigns = async () => {
@@ -39,16 +41,19 @@ export default function UIDesigner({ userId }: UIDesignerProps) {
     // Handle delete
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this design?')) return;
-
+        setDeletingId(id);
         try {
             const response = await fetch(`${API_URL}/api/v1/ui-designs/${id}`, {
                 method: 'DELETE'
             });
             if (!response.ok) throw new Error('Failed to delete design');
             setDesigns(designs.filter(d => d.id !== id));
+            toast.success('Design deleted');
         } catch (error) {
             console.error('Error deleting design:', error);
-            alert('Failed to delete design');
+            toast.error('Failed to delete design');
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -144,6 +149,7 @@ export default function UIDesigner({ userId }: UIDesignerProps) {
                             design={design}
                             onEdit={handleEdit}
                             onDelete={handleDelete}
+                            isDeleting={deletingId === design.id}
                         />
                     ))}
                 </div>

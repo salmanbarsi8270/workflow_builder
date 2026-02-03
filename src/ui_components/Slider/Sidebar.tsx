@@ -125,6 +125,11 @@ export function SidebarIconExample() {
       url: "/files",
       icon: <FolderOpen size={20} />,
     },
+    {
+      title: "Canvas",
+      url: "/canvas",
+      icon: <FolderOpen size={20} />,
+    },
   ]
 
   return (

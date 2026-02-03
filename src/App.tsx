@@ -47,7 +47,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 import { PieceProvider } from './context/PieceContext';
 
+
 import { Toaster } from 'sonner';
+import { Toaster as ShadcnToaster } from '@/components/ui/toaster';
+import CanvasPage from './Canvas/CanvasPage';
 
 export function App() {
     return (
@@ -70,6 +73,7 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
+                            <Route path="/canvas" element={<CanvasPage />} />
                         </Route>
 
                         <Route path="/chat/:slug" element={<PublicChat />} />
@@ -78,6 +82,7 @@ export function App() {
                     </Routes>
                 </BrowserRouter>
                 <Toaster />
+                <ShadcnToaster />
             </PieceProvider>
         </UserProvider>
     );

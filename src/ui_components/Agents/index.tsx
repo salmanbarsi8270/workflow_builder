@@ -172,6 +172,7 @@ export default function Agents() {
   const [selectedInfoAgent, setSelectedInfoAgent] = useState<Agent | null>(null);
   const [infoSheetTab, setInfoSheetTab] = useState<'details' | 'publish'>('details');
   const [isOpeningRun, setIsOpeningRun] = useState<string | null>(null);
+  const [isUpdatingAgent, setIsUpdatingAgent] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -302,7 +303,7 @@ export default function Agents() {
 
   const handleUpdateAgent = async (updates: Partial<Agent>) => {
     if (!selectedInfoAgent) return;
-
+    setIsUpdatingAgent(true);
     try {
       const response = await fetch(`${API_URL}/api/v1/agents/${selectedInfoAgent.id}`, {
         method: 'PATCH',
@@ -323,6 +324,8 @@ export default function Agents() {
     } catch (error) {
       console.error("Error updating agent:", error);
       toast.error("Failed to update agent");
+    } finally {
+      setIsUpdatingAgent(false);
     }
   };
 
@@ -598,6 +601,7 @@ export default function Agents() {
           setIsRunModalOpen(true);
         }}
         onUpdate={handleUpdateAgent}
+        isUpdating={isUpdatingAgent}
       />
 
       {/* Pagination Footer */}

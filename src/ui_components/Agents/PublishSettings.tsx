@@ -9,9 +9,10 @@ import type { Agent } from './types';
 interface PublishSettingsProps {
     agent: Agent;
     onUpdate: (updates: Partial<Agent>) => void;
+    isUpdating?: boolean;
 }
 
-export function PublishSettings({ agent, onUpdate }: PublishSettingsProps) {
+export function PublishSettings({ agent, onUpdate, isUpdating = false }: PublishSettingsProps) {
     const [isPublished, setIsPublished] = useState(agent.is_published || false);
     const [urlSlug, setUrlSlug] = useState(agent.public_url_slug || '');
     const [copied, setCopied] = useState(false);
@@ -55,6 +56,7 @@ export function PublishSettings({ agent, onUpdate }: PublishSettingsProps) {
                         id="publish-switch"
                         checked={isPublished}
                         onCheckedChange={handlePublishToggle}
+                        disabled={isUpdating}
                     />
                 </div>
 
@@ -87,6 +89,7 @@ export function PublishSettings({ agent, onUpdate }: PublishSettingsProps) {
                                 onChange={(e) => handleSlugChange(e.target.value)}
                                 onBlur={handleSlugBlur}
                                 placeholder="my-agent-slug"
+                                disabled={isUpdating}
                             />
                             <p className="text-xs text-muted-foreground">
                                 Customize the URL for your agent (only lowercase letters, numbers, and hyphens)
