@@ -18,7 +18,7 @@ import UIDesigner from './ui_components/UIDesigner';
 import FileManager from './ui_components/Files/FileManager';
 import InstructionLibrary from './ui_components/Agents/InstructionLibrary';
 import { PublicChat } from './ui_components/PublicChat/PublicChat';
-import { Presentation } from './ui_components/generative_ui/presentation';
+
 
 function UIDesignerWrapper() {
     const { user } = useUser();

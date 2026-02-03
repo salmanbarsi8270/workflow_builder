@@ -40,6 +40,7 @@ import { useState } from 'react';
 
 import { motion } from 'framer-motion';
 import { ColorPickerModal } from './ColorPickerModal';
+import type { title } from 'process'
 
 export function SidebarIconExample() {
   const { theme, setTheme, accentColor } = useTheme()
