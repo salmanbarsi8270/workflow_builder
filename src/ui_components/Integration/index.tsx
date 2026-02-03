@@ -20,6 +20,7 @@ import { StatsCard } from './StatsCard';
 import { IntegrationGridCard } from './IntegrationGridCard';
 import { IntegrationListItem } from './IntegrationListItem';
 import { McpForm } from '../Connections/McpForm';
+import { PostgresForm } from '../Connections/PostgresForm';
 import axios from 'axios';
 import { ConnectorInfoSlider } from './ConnectorInfoSlider';
 import { CreateConnectorDialog } from './CreateConnectorDialog';
@@ -49,6 +50,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedApps = filteredApps.slice(startIndex, startIndex + itemsPerPage);
   const [mcpModalOpen, setMcpModalOpen] = useState(false);
+  const [postgresModalOpen, setPostgresModalOpen] = useState(false);
   const [createConnectorOpen, setCreateConnectorOpen] = useState(false);
   const [createTriggerOpen, setCreateTriggerOpen] = useState(false);
   const [createActionOpen, setCreateActionOpen] = useState(false);
@@ -196,6 +198,10 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
     else if (app.id === 'mcp') {
       setMcpModalOpen(true);
     }
+    else if (['database', 'postgres', 'postgresql'].includes(app.id.toLowerCase())) {
+      console.log('Opening Postgres Modal for:', app.id);
+      setPostgresModalOpen(true);
+    }
     else {
       window.location.href = `${API_URL}/auth/connect/${app.id}?userId=${user?.id}&callbackUrl=${returnPath}`;
     }
@@ -209,11 +215,11 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
 
   const handleShowDetails = async (app: IntegrationApp) => {
     setDetailOpen(true);
-    
+
     // If metadata not already available, we could fetch it here or just use what we have
     // For now, let's simulate a small delay or check if we need to show loading
     const hasMetadata = !!piecesMetadata[app.id];
-    
+
     if (!hasMetadata) {
       setIsLoadingMetadata(true);
       // Metadata is usually fetched on mount, but if it's missing, we wait
@@ -601,6 +607,7 @@ export default function Connectors({ defaultTab = 'all' }: IntegrationProps) {
           }}
         />
         <McpForm open={mcpModalOpen} onOpenChange={setMcpModalOpen} />
+        <PostgresForm open={postgresModalOpen} onOpenChange={setPostgresModalOpen} serviceId={connectingApp || 'database'} />
         <CreateConnectorDialog open={createConnectorOpen} onOpenChange={setCreateConnectorOpen} />
         <CreateTriggerDialog
           open={createTriggerOpen}
