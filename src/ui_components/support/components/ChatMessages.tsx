@@ -85,7 +85,7 @@ export const ChatMessages = ({
         const ref = thinkingRefs.current[`thinking-${message.id}`];
         if (ref) {
           ref.scrollTop = ref.scrollHeight;
-        }
+        }  
       }
     });
   }, [messages, isLoading]);
