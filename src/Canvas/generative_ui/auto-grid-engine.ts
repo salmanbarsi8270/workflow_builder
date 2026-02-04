@@ -3,9 +3,10 @@
 
 export interface ComponentMetrics {
     width?: 'full' | 'half' | 'third' | 'quarter' | 'auto';
-    height?: 'compact' | 'medium' | 'tall' | 'auto';
+    height?: 'compact' | 'medium' | 'tall' | 'extra-tall' | 'auto';
     priority?: number;
     complexity?: 'simple' | 'moderate' | 'complex';
+    rowSpan?: number;
 }
 
 export interface LayoutHint {
@@ -25,6 +26,7 @@ export function analyzeComponent(component: any): ComponentMetrics {
     let height: ComponentMetrics['height'] = 'medium';
     let complexity: ComponentMetrics['complexity'] = 'moderate';
     let priority = 0;
+    let rowSpan = 1;
 
     const type = component.type?.toLowerCase();
     
@@ -54,12 +56,13 @@ export function analyzeComponent(component: any): ComponentMetrics {
         priority = 2;
     }
     
-    // Complex components - Full or Half based on type
+    // Charts and tables need more vertical space
     if (type === 'chart' || type === 'chart-placeholder' || type === 'table') {
         width = 'full';
         height = 'tall';
         complexity = 'complex';
-        priority = 1;
+        priority = 1; // Highest priority for placement
+        rowSpan = 2; 
     }
     
     // Grid containers with many children
@@ -68,15 +71,33 @@ export function analyzeComponent(component: any): ComponentMetrics {
         
         if (childCount > 6) {
             width = 'full';
-            height = 'tall';
+            height = 'extra-tall';
             complexity = 'complex';
+            priority = 1;
+            rowSpan = 3;
         } else if (childCount > 3) {
             width = 'half';
-            height = 'medium';
+            height = 'tall';
+            priority = 2;
+            rowSpan = 2;
         }
     }
 
-    return { width, height, priority, complexity };
+    // Special handling for metrics - they are compact but high priority
+    if (type === 'metric' || type === 'stat-card' || type === 'status-badge') {
+        width = 'quarter'; // Default to quarter for dense dashboard look
+        height = 'compact';
+        rowSpan = 1;
+    }
+
+    // Thinking blocks should be full width but compact
+    if (type === 'thinking-block') {
+        width = 'full';
+        height = 'compact';
+        rowSpan = 1;
+    }
+
+    return { width, height, priority, complexity, rowSpan };
 }
 
 /**
@@ -124,9 +145,13 @@ export function getGridClasses(
     rightSidebarOpen: boolean = true
 ): string {
     const width = metrics.width || 'half';
+    const rowSpan = metrics.rowSpan || 1;
     
     // Generate Tailwind classes
-    return getAdaptiveColSpan(width, leftSidebarOpen, rightSidebarOpen);
+    const colSpanClass = getAdaptiveColSpan(width, leftSidebarOpen, rightSidebarOpen);
+    const rowSpanClass = rowSpan > 1 ? `row-span-${rowSpan}` : '';
+    
+    return `${colSpanClass} ${rowSpanClass}`.trim();
 }
 
 /**

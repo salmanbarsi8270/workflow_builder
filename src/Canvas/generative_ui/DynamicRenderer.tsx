@@ -1,20 +1,22 @@
-import React from 'react';
 import type { UIComponent } from './types';
 import { componentRegistry } from './ComponentRegistry';
+import { analyzeComponent, sortComponentsByPriority } from './auto-grid-engine';
 
 interface DynamicRendererProps {
     component: UIComponent | string;
+    isRoot?: boolean; // New prop to track if we're at the root level
 }
 
-export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component }) => {
+export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isRoot = false }) => {
     if (!component) return null;
 
     // Handle arrays (e.g. fragments or Multiple components)
     if (Array.isArray(component)) {
+        const sortedComponents = isRoot ? sortComponentsByPriority(component) : component;
         return (
             <>
-                {component.map((child, index) => (
-                    <DynamicRenderer key={(child as any)?.id || index} component={child as any} />
+                {sortedComponents.map((child, index) => (
+                    <DynamicRenderer key={(child as any)?.id || index} component={child as any} isRoot={isRoot} />
                 ))}
             </>
         );
@@ -37,14 +39,31 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component }) =
         );
     }
 
+    // Auto-grid logic: only calculate spans if we're at the root level
+    const metrics = isRoot ? analyzeComponent(component) : null;
+
+    // Convert metrics width to span if span is not provided
+    const getSpanFromWidth = (width: string | undefined) => {
+        switch (width) {
+            case 'full': return 12;
+            case 'half': return 6;
+            case 'third': return 4;
+            case 'quarter': return 3;
+            default: return 12; // Nested components default to full container width
+        }
+    };
+
+    const finalSpan = isRoot ? (props.span || getSpanFromWidth(metrics?.width)) : props.span;
+    const finalRowSpan = isRoot ? (props.rowSpan || metrics?.rowSpan || 1) : props.rowSpan;
+
     return (
-        <Component {...props}>
+        <Component {...props} span={finalSpan} rowSpan={finalRowSpan}>
             {Array.isArray(children) ? (
                 children.map((child, index) => (
-                    <DynamicRenderer key={(child as any)?.id || index} component={child} />
+                    <DynamicRenderer key={(child as any)?.id || index} component={child} isRoot={false} />
                 ))
             ) : (
-                children // This handles string children or undefined
+                children
             )}
         </Component>
     );
