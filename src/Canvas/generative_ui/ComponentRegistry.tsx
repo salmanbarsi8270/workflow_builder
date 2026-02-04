@@ -3,7 +3,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Alert, AlertTitle, AlertDescription } from '@/components/alert';
+// import { Alert, AlertTitle, AlertDescription } from '@/components/alert';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
