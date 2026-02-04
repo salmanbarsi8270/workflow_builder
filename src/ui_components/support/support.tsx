@@ -1,80 +1,195 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useUser } from '@/context/UserContext';
+import { AI_URL } from '../api/apiurl';
+import { useTheme } from '@/components/theme-provider';
+import { useChatHistoryActions } from './rename_delete_handlers';
+import type { Message, ChatSession } from './types';
 import { 
-  MessageCircle, 
-  Send, 
-  ChevronLeft, 
-  ChevronRight, 
-  User, 
-  Bot,
-  Clock,
-  Trash2,
-  Maximize2,
-  Minimize2,
-  Volume2,
-  VolumeX
-} from 'lucide-react';
+  SupportHeader, 
+  HistorySidebar, 
+  ChatMessages, 
+  InputArea, 
+  TableModal 
+} from './components';
 
-// Types
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-}
+// Constants
+const AGENT_ID = '3e60de9c-4fec-4aa3-873c-bbaf6984609e';
+const API_BASE_URL = AI_URL;
 
-interface ChatSession {
-  id: string;
-  title: string;
-  messages: Message[];
-  date: Date;
-}
+// Helper function to parse SSE chunks
+const parseSSEChunk = (chunk: string) => {
+  const events: Array<{ type: string; text?: string; conversationId?: string; [key: string]: any }> = [];
+  const lines = chunk.split('\n');
+
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+
+    try {
+      const data = JSON.parse(line.slice(6));
+
+      // ✅ NORMAL TEXT
+      if (data.type === 'text-delta') {
+        events.push({
+          type: 'text-delta',
+          text: data.text ?? ''  // Changed from data.textDelta to data.text
+        });
+      }
+
+      // ✅ REASONING TEXT (THIS WAS MISSING)
+      if (data.type === 'reasoning-delta') {
+        const reasoningText =
+          data.providerMetadata?.openrouter?.reasoning_details
+            ?.map((r: any) => r.text)
+            .join('') ?? '';
+
+        events.push({
+          type: 'reasoning-delta',
+          text: reasoningText
+        });
+      }
+
+      if (data.type === 'finish') {
+        events.push({ type: 'finish', conversationId: data.conversationId, ...data });
+      }
+    } catch (e) {
+      console.error('[SSE Parse Error]', e);
+    }
+  }
+
+  return events;
+};
+
+// Helper function to detect and extract JSON from text
+const extractJSON = (text: string): { hasJSON: boolean; jsonData: any[] | null; beforeJSON: string; afterJSON: string; isPartialJSON?: boolean } => {
+  if (!text) return { hasJSON: false, jsonData: null, beforeJSON: '', afterJSON: '', isPartialJSON: false };
+
+  try {
+    // Check if --json marker exists (even if incomplete)
+    const hasMarkerStart = text.includes('--json');
+    const hasMarkerEnd = text.includes('json--');
+    
+    // If we have start marker but not end marker, it's still streaming
+    if (hasMarkerStart && !hasMarkerEnd) {
+      console.log('⏳ [extractJSON] Partial JSON detected - still streaming');
+      const beforeMarker = text.substring(0, text.indexOf('--json')).trim();
+      return { 
+        hasJSON: false, 
+        jsonData: null, 
+        beforeJSON: beforeMarker, 
+        afterJSON: '', 
+        isPartialJSON: true 
+      };
+    }
+    
+    // 1. Try to extract using --json and json-- markers first (most reliable)
+    const markerRegex = /--json\s*(\[[\s\S]*?\])\s*json--/i;
+    const markerMatch = text.match(markerRegex);
+    
+    if (markerMatch) {
+      const jsonStr = markerMatch[1].trim();
+      try {
+        const jsonData = JSON.parse(jsonStr);
+        if (Array.isArray(jsonData) && jsonData.length > 0) {
+          let beforeJSON = text.substring(0, markerMatch.index ?? 0).trim();
+          const afterJSON = text.substring((markerMatch.index ?? 0) + markerMatch[0].length).trim();
+          
+          console.log('📋 [extractJSON] beforeJSON:', beforeJSON.substring(0, 200));
+          
+          // Check if there's a heading like "Available Workflows", "Available Agents", etc.
+          // Everything before the heading is "thinking", everything after is "output"
+          const headingMatch = beforeJSON.match(/(Available\s+\w+)/i);
+          
+          console.log('🔍 [extractJSON] headingMatch:', headingMatch);
+          
+          if (headingMatch && headingMatch.index !== undefined) {
+            // Split: thinking vs output
+            const thinkingPart = beforeJSON.substring(0, headingMatch.index).trim();
+            const outputPart = beforeJSON.substring(headingMatch.index).trim();
+            
+            console.log('💭 [extractJSON] thinkingPart length:', thinkingPart.length);
+            console.log('📄 [extractJSON] outputPart:', outputPart.substring(0, 100));
+            
+            // If there's thinking, format it with the accordion pattern
+            if (thinkingPart) {
+              beforeJSON = `🤔 Thinking...\n${thinkingPart}\n\n${outputPart}`;
+              console.log('✅ [extractJSON] Formatted with thinking accordion');
+            } else {
+              beforeJSON = outputPart;
+              console.log('⚠️ [extractJSON] No thinking part, using output only');
+            }
+          } else {
+            // No heading found - treat ALL beforeJSON as thinking, show nothing as output
+            console.log('⚠️ [extractJSON] No heading match found - treating all as thinking');
+            if (beforeJSON.trim()) {
+              beforeJSON = `🤔 Thinking...\n${beforeJSON}\n\n`;
+              console.log('✅ [extractJSON] All content moved to thinking accordion');
+            }
+          }
+          
+          return { hasJSON: true, jsonData, beforeJSON, afterJSON, isPartialJSON: false };
+        }
+      } catch (e) {
+        console.error('Marker-based JSON parse failed:', e);
+      }
+    }
+
+    // 2. Fallback: Try regex patterns if no markers or marker parse failed
+    const cleanText = text.replace(/--json\s*/gi, '').replace(/\s*json--/gi, '');
+    
+    const patterns = [
+      /\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/,
+      /\[[\s\S]*\]/,
+    ];
+    
+    for (const pattern of patterns) {
+      const jsonMatch = cleanText.match(pattern);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[0];
+        try {
+          const jsonData = JSON.parse(jsonStr);
+          if (Array.isArray(jsonData) && jsonData.length > 0 && typeof jsonData[0] === 'object') {
+            const beforeJSON = cleanText.substring(0, jsonMatch.index).trim();
+            const afterJSON = cleanText.substring((jsonMatch.index || 0) + jsonStr.length).trim();
+            return { hasJSON: true, jsonData, beforeJSON, afterJSON, isPartialJSON: false };
+          }
+        } catch (e) {
+          // Continue to next pattern
+        }
+      }
+    }
+  } catch (e) {
+    console.error('JSON extraction error:', e);
+  }
+  
+  return { hasJSON: false, jsonData: null, beforeJSON: text, afterJSON: '', isPartialJSON: false };
+};
 
 export const Support = () => {
+  // Get user from context
+  const { user } = useUser();
+  const USER_ID = user?.id || 'support-user-' + Date.now();
+  
   // State
   const [inputMessage, setInputMessage] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: 'Hello! How can I assist you today?', sender: 'bot', timestamp: new Date(Date.now() - 300000) },
-    { id: '2', text: 'I need help with my account.', sender: 'user', timestamp: new Date(Date.now() - 240000) },
-    { id: '3', text: 'Sure! What specific issue are you facing with your account?', sender: 'bot', timestamp: new Date(Date.now() - 180000) },
-  ]);
-  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(true);
-  const [chatHistory, setChatHistory] = useState<ChatSession[]>([
-    {
-      id: 'session1',
-      title: 'Account Issue',
-      date: new Date(Date.now() - 86400000),
-      messages: [
-        { id: '1', text: 'Can you help me reset my password?', sender: 'user', timestamp: new Date(Date.now() - 86400000) },
-        { id: '2', text: 'Absolutely! I can guide you through the password reset process.', sender: 'bot', timestamp: new Date(Date.now() - 86350000) },
-      ]
-    },
-    {
-      id: 'session2',
-      title: 'Billing Question',
-      date: new Date(Date.now() - 172800000),
-      messages: [
-        { id: '1', text: 'When will I be charged for my subscription?', sender: 'user', timestamp: new Date(Date.now() - 172800000) },
-        { id: '2', text: 'Your subscription renews on the 15th of each month.', sender: 'bot', timestamp: new Date(Date.now() - 172795000) },
-      ]
-    },
-    {
-      id: 'session3',
-      title: 'Feature Request',
-      date: new Date(Date.now() - 259200000),
-      messages: [
-        { id: '1', text: 'Do you have dark mode?', sender: 'user', timestamp: new Date(Date.now() - 259200000) },
-        { id: '2', text: 'Dark mode is coming in our next update!', sender: 'bot', timestamp: new Date(Date.now() - 259195000) },
-      ]
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [activeSession, setActiveSession] = useState<string>('current');
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
-  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingSession, setIsLoadingSession] = useState<boolean>(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+  const [isGeneratingTable, setIsGeneratingTable] = useState<boolean>(false);
+  const [typingText, setTypingText] = useState<string>('');
+  const [showTableModal, setShowTableModal] = useState<boolean>(false);
+  const [modalTableData, setModalTableData] = useState<any[]>([]);
+  
+  // Use theme context for dark mode
+  const { theme, setTheme } = useTheme();
+  const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -83,390 +198,402 @@ export const Support = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, typingText]);
 
-  // Send message
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
+  useEffect(() => {
+    loadConversationHistory();
+  }, []);
 
-    const newMessage: Message = {
+  // Load conversation history from API
+  async function loadConversationHistory() {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/memory/conversations?conversationId=${currentConversationId || ''}&userId=${USER_ID}`
+      );
+      
+      // Handle 404 - conversation doesn't exist yet
+      if (response.status === 404) {
+        console.log('[History] Conversation not found (404) - this is normal for new conversations');
+        setChatHistory([]);
+        setIsLoadingHistory(false);
+        return;
+      }
+      
+      if (response.ok) {
+        const data = await response.json();
+        const sessions: ChatSession[] = (data.conversations || []).map((conv: any) => ({
+          id: conv.conversation_id,
+          conversationId: conv.conversation_id,
+          title: conv.title || conv.runtime_title || 'Untitled Chat',
+          subtitle: conv.runtime_title?.substring(0, 30) + '...' || 'No messages',
+          date: new Date(conv.last_message_at || conv.updated_at || Date.now())
+        }));
+        
+        setChatHistory(sessions);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }
+
+  // Use the chat history actions hook
+  const {
+    editingSessionId,
+    editingTitle,
+    isDeletingSession,
+    setEditingTitle,
+    deleteConversation,
+    startRename,
+    saveRename,
+    cancelRename
+  } = useChatHistoryActions({
+    userId: USER_ID,
+    activeSession,
+    setChatHistory,
+    setMessages,
+    setCurrentConversationId,
+    setActiveSession,
+    loadConversationHistory
+  });
+
+  // Send message with streaming
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputMessage,
-      sender: 'user',
+      role: 'user',
+      content: inputMessage.trim(),
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
+    setIsLoading(true);
+    setTypingText('');
 
-    // Simulate bot response
-    setIsTyping(true);
-    setTimeout(() => {
-      const botResponses = [
-        "Thanks for your message! How else can I help?",
-        "I understand. Could you provide more details?",
-        "Let me check that for you...",
-        "I've noted your concern. Is there anything specific you'd like to know?",
-        "Great question! Here's what I found..."
-      ];
+    let accumulatedThinking = '';
+    let accumulatedOutput = '';
+    const tempMessageId = (Date.now() + 1).toString();
+
+    try {
+      // Use streaming endpoint
+      const response = await fetch(`${API_BASE_URL}/agents/${AGENT_ID}/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: userMessage.content,
+          userId: USER_ID,
+          conversationId: currentConversationId || "chat_"+Date.now(),
+          options: {
+            userId: USER_ID,
+            conversationId: currentConversationId || "chat_"+Date.now(),
+            context: {
+              userId: USER_ID,
+              conversationId: currentConversationId || "chat_"+Date.now()
+            }
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let fullStreamBuffer = '';
+
+      console.log('🚀 [Stream] Starting to read stream...');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          console.log('✅ [Stream] Stream completed');
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('📦 [Stream] Raw chunk:', chunk);
+        
+        const events = parseSSEChunk(chunk);
+        
+        for (const event of events) {
+          console.log('📋 [Stream] Parsed event:', event);
+          
+          if (event.type === 'reasoning-delta') {
+            const reasoningText = event.text || '';
+            console.log('🤔 [Stream] Reasoning delta:', reasoningText);
+            accumulatedThinking += reasoningText;
+            
+            console.log('💭 [Stream] Accumulated thinking:', accumulatedThinking);
+            console.log('📄 [Stream] Accumulated output:', accumulatedOutput);
+            
+            // Update or add the streaming message with separate thinking
+            setMessages(prev => {
+              const existingIndex = prev.findIndex(m => m.id === tempMessageId);
+              
+              const streamingMsg: Message = {
+                id: tempMessageId,
+                role: 'assistant',
+                content: accumulatedOutput,     // ONLY OUTPUT
+                thinking: accumulatedThinking,  // ONLY THINKING
+                timestamp: new Date()
+              };
+              
+              if (existingIndex >= 0) {
+                // Update existing message
+                const updated = [...prev];
+                updated[existingIndex] = streamingMsg;
+                return updated;
+              } else {
+                // Add new message
+                return [...prev, streamingMsg];
+              }
+            });
+          } else if (event.type === 'text-delta') {
+            const textDelta = event.text || '';
+            console.log('💬 [Stream] Text delta:', textDelta);
+            
+            fullStreamBuffer += textDelta;
+            accumulatedOutput += textDelta;
+            
+            console.log('💭 [Stream] Accumulated thinking:', accumulatedThinking);
+            console.log('📄 [Stream] Accumulated output:', accumulatedOutput);
+            
+            // Update or add the streaming message with separate thinking
+            setMessages(prev => {
+              const existingIndex = prev.findIndex(m => m.id === tempMessageId);
+              
+              const streamingMsg: Message = {
+                id: tempMessageId,
+                role: 'assistant',
+                content: accumulatedOutput,     // ONLY OUTPUT
+                thinking: accumulatedThinking,  // ONLY THINKING
+                timestamp: new Date()
+              };
+              
+              if (existingIndex >= 0) {
+                // Update existing message
+                const updated = [...prev];
+                updated[existingIndex] = streamingMsg;
+                return updated;
+              } else {
+                // Add new message
+                return [...prev, streamingMsg];
+              }
+            });
+          } else if (event.type === 'finish') {
+            console.log('🏁 [Stream] Finish event received');
+            console.log('📊 [Stream] Final thinking:', accumulatedThinking);
+            console.log('📊 [Stream] Final output:', accumulatedOutput);
+            
+            // Replace the streaming message with final content
+            setMessages(prev => {
+              const filtered = prev.filter(m => m.id !== tempMessageId);
+              
+              return [
+                ...filtered,
+                {
+                  id: tempMessageId,
+                  role: 'assistant',
+                  content: accumulatedOutput || 'No output generated.',
+                  thinking: accumulatedThinking,
+                  timestamp: new Date()
+                }
+              ];
+            });
+            
+            setTypingText('');
+            
+            // Update conversation ID if provided
+            if (event.conversationId && !currentConversationId) {
+              setCurrentConversationId(event.conversationId);
+            }
+            
+            // Reload history to get updated conversations
+            await loadConversationHistory();
+          } else {
+            console.log('❓ [Stream] Unknown event type:', event.type);
+          }
+        }
+      }
       
-      const botMessage: Message = {
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: botResponses[Math.floor(Math.random() * botResponses.length)],
-        sender: 'bot',
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.',
         timestamp: new Date()
       };
-      
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-    }, 1500);
+      setMessages(prev => [...prev, errorMessage]);
+      setTypingText('');
+    } finally {
+      setIsLoading(false);
+      setIsGeneratingTable(false);
+    }
   };
 
   // Load session from history
-  const loadSession = (sessionId: string) => {
+  const loadSession = async (sessionId: string) => {
     if (sessionId === 'current') {
       setActiveSession('current');
       return;
     }
-    
-    const session = chatHistory.find(s => s.id === sessionId);
-    if (session) {
-      setMessages([...session.messages]);
-      setActiveSession(sessionId);
-      setIsHistoryOpen(false);
+
+    // Prevent loading if already loading or already on this session
+    if (isLoadingSession || activeSession === sessionId) {
+      return;
+    }
+
+    setIsLoadingSession(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/memory/conversations/${sessionId}?userId=${USER_ID}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const loadedMessages: Message[] = (data.messages || []).map((msg: any) => ({
+          id: msg.id || Date.now().toString(),
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp || Date.now())
+        }));
+        
+        setMessages(loadedMessages);
+        setCurrentConversationId(sessionId);
+        setActiveSession(sessionId);
+      }
+    } catch (error) {
+      console.error('Failed to load session:', error);
+    } finally {
+      setIsLoadingSession(false);
     }
   };
 
   // Start new chat
   const startNewChat = () => {
-    if (messages.length > 0) {
-      const newSession: ChatSession = {
-        id: `session${chatHistory.length + 1}`,
-        title: messages[0]?.text.substring(0, 30) + '...' || 'New Chat',
-        date: new Date(),
-        messages: [...messages]
-      };
-      
-      setChatHistory(prev => [newSession, ...prev]);
-    }
-    
     setMessages([]);
+    setCurrentConversationId(null);
     setActiveSession('current');
-    inputRef.current?.focus();
+    setInputMessage('');
   };
 
   // Clear current chat
   const clearChat = () => {
-    if (messages.length > 0) {
-      if (window.confirm('Are you sure you want to clear this chat?')) {
-        setMessages([]);
-      }
-    }
-  };
-
-  // Delete history session
-  const deleteSession = (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setChatHistory(prev => prev.filter(session => session.id !== sessionId));
-    if (activeSession === sessionId) {
-      setActiveSession('current');
+    if (window.confirm('Are you sure you want to clear this chat?')) {
       setMessages([]);
+      setInputMessage('');
     }
   };
 
   // Format time
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Format date for history
-  const formatHistoryDate = (date: Date) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString();
-    }
+  // Toggle dark mode using theme context
+  const toggleDarkMode = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  // Handle view table
+  const handleViewTable = (data: any[]) => {
+    setModalTableData(data);
+    setShowTableModal(true);
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (message: string) => {
+    setInputMessage(message);
   };
 
   return (
-    <div className={`flex flex-col h-[calc(100vh-64px)]`}>
-      {/* Header */}
-      <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <MessageCircle className="w-8 h-8" />
-          <div>
-            <h1 className="text-xl font-bold">AI Support Assistant</h1>
-            <p className="text-sm opacity-90">24/7 Support • Instant Responses</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setIsSoundOn(!isSoundOn)}
-            className="p-2 rounded-full hover:bg-white/20 transition-colors"
-            title={isSoundOn ? "Mute sounds" : "Unmute sounds"}
-          >
-            {isSoundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          </button>
-          
-          <button
-            onClick={startNewChat}
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-          >
-            New Chat
-          </button>
-          
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2 rounded-full hover:bg-white/20 transition-colors"
-            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          >
-            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-          </button>
-        </div>
+    <div className={`flex h-[calc(100vh-64px)] transition-colors duration-200 ${
+      isDarkMode 
+        ? 'bg-gray-900' 
+        : 'bg-linear-to-br from-purple-50 via-white to-blue-50'
+    }`}>
+      {/* History Sidebar */}
+      <HistorySidebar
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        sessions={chatHistory}
+        activeSession={activeSession}
+        onLoadSession={loadSession}
+        onNewChat={startNewChat}
+        onClearChat={clearChat}
+        isDarkMode={isDarkMode}
+        editingSessionId={editingSessionId}
+        editingTitle={editingTitle}
+        onStartRename={startRename}
+        onSaveRename={saveRename}
+        onCancelRename={cancelRename}
+        onEditingTitleChange={setEditingTitle}
+        onDeleteConversation={deleteConversation}
+        currentMessages={messages}
+        formatTime={formatTime}
+        isLoadingSession={isLoadingSession}
+        isDeletingSession={isDeletingSession}
+        isLoadingHistory={isLoadingHistory}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <SupportHeader
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
+          onNewChat={startNewChat}
+          onToggleHistory={() => setIsHistoryOpen(!isHistoryOpen)}
+        />
+
+        {/* Messages */}
+        <ChatMessages
+          messages={messages}
+          typingText={typingText}
+          isGeneratingTable={isGeneratingTable}
+          isDarkMode={isDarkMode}
+          onViewTable={handleViewTable}
+          onSuggestionClick={handleSuggestionClick}
+          extractJSON={extractJSON}
+          messagesEndRef={messagesEndRef}
+          isLoading={isLoading}
+        />
+
+        {/* Input Area */}
+        <InputArea
+          value={inputMessage}
+          onChange={setInputMessage}
+          onSend={handleSendMessage}
+          isLoading={isLoading}
+          isDarkMode={isDarkMode}
+          onSuggestionClick={handleSuggestionClick}
+        />
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* History Sidebar */}
-        <div className={`
-          ${isHistoryOpen ? 'w-80' : 'w-0'} 
-          bg-gray-50 border-r border-gray-200 
-          transition-all duration-300 ease-in-out 
-          overflow-hidden flex flex-col
-        `}>
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-700">Chat History</h2>
-              <button
-                onClick={() => setIsHistoryOpen(false)}
-                className="p-1 hover:bg-gray-200 rounded"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Previous conversations</p>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {/* Current Chat */}
-            <div 
-              onClick={() => loadSession('current')}
-              className={`p-4 rounded-lg cursor-pointer transition-all ${activeSession === 'current' ? 'bg-blue-100 border border-blue-300' : 'bg-white hover:bg-gray-100 border border-gray-200'}`}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle className="w-4 h-4 text-blue-500" />
-                    <h3 className="font-medium text-gray-800">Current Chat</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {messages.length > 0 
-                      ? `${messages.length} messages` 
-                      : 'No messages yet'}
-                  </p>
-                </div>
-                <Clock className="w-4 h-4 text-gray-400" />
-              </div>
-            </div>
-
-            {/* History Sessions */}
-            {chatHistory.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => loadSession(session.id)}
-                className={`p-4 rounded-lg cursor-pointer transition-all ${activeSession === session.id ? 'bg-blue-100 border border-blue-300' : 'bg-white hover:bg-gray-100 border border-gray-200'}`}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-gray-800 truncate">{session.title}</h3>
-                      <button
-                        onClick={(e) => deleteSession(session.id, e)}
-                        className="ml-2 p-1 hover:bg-red-100 rounded text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {session.messages.length} messages
-                    </p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">
-                        {formatHistoryDate(session.date)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatTime(session.date)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="p-4 border-t border-gray-200">
-            <button
-              onClick={clearChat}
-              className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Clear Current Chat</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* History Toggle Button */}
-          {!isHistoryOpen && (
-            <button
-              onClick={() => setIsHistoryOpen(true)}
-              className="absolute left-4 top-20 z-10 p-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-6 bg-linear-to-b from-white to-gray-50">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                <MessageCircle className="w-16 h-16 mb-4 text-gray-300" />
-                <h3 className="text-xl font-medium mb-2">Start a Conversation</h3>
-                <p className="text-center max-w-md">
-                  Ask me anything! I'm here to help with account issues, billing questions, 
-                  feature requests, or any other concerns you might have.
-                </p>
-                <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-                  {["Account Help", "Billing", "Technical Issues", "Feature Requests"].map((topic) => (
-                    <button
-                      key={topic}
-                      onClick={() => setInputMessage(`I need help with ${topic.toLowerCase()}...`)}
-                      className="p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
-                    >
-                      <span className="font-medium text-gray-800">{topic}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-2xl p-4 ${message.sender === 'user' 
-                        ? 'bg-blue-600 text-white rounded-br-none' 
-                        : 'bg-gray-100 text-gray-800 rounded-bl-none'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className={`p-1 rounded-full ${message.sender === 'user' ? 'bg-blue-500' : 'bg-gray-300'}`}>
-                          {message.sender === 'user' ? (
-                            <User className="w-4 h-4" />
-                          ) : (
-                            <Bot className="w-4 h-4" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">
-                          {message.sender === 'user' ? 'You' : 'Support AI'}
-                        </span>
-                        <span className="text-xs opacity-75">
-                          {formatTime(message.timestamp)}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap">{message.text}</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[70%] rounded-2xl p-4 bg-gray-100 text-gray-800 rounded-bl-none">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="p-1 rounded-full bg-gray-300">
-                          <Bot className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-medium">Support AI</span>
-                      </div>
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t border-gray-200 p-4 bg-white">
-            <div className="flex items-center space-x-4 max-w-4xl mx-auto">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Type your message here..."
-                className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isTyping}
-                className={`p-4 rounded-xl ${!inputMessage.trim() || isTyping 
-                  ? 'bg-gray-300 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-                } text-white transition-colors`}
-              >
-                <Send className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="flex justify-center space-x-6 mt-4 text-sm text-gray-500">
-              <button 
-                onClick={() => setInputMessage("How do I reset my password?")}
-                className="hover:text-blue-600"
-              >
-                Password Reset
-              </button>
-              <button 
-                onClick={() => setInputMessage("What are your business hours?")}
-                className="hover:text-blue-600"
-              >
-                Business Hours
-              </button>
-              <button 
-                onClick={() => setInputMessage("Can I upgrade my plan?")}
-                className="hover:text-blue-600"
-              >
-                Plan Upgrade
-              </button>
-              <button 
-                onClick={() => setInputMessage("Where can I find documentation?")}
-                className="hover:text-blue-600"
-              >
-                Documentation
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* Table Modal */}
+      <TableModal
+        isOpen={showTableModal}
+        onClose={() => setShowTableModal(false)}
+        data={modalTableData}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };
-

@@ -40,7 +40,6 @@ import { useState } from 'react';
 
 import { motion } from 'framer-motion';
 import { ColorPickerModal } from './ColorPickerModal';
-import type { title } from 'process'
 
 export function SidebarIconExample() {
   const { theme, setTheme, accentColor } = useTheme()
@@ -129,11 +128,6 @@ export function SidebarIconExample() {
     {
       title: "Instructions",
       url: "/personas",
-      icon: <UserCircle size={20} />,
-    },
-     {
-      title: "Presentation",
-      url: "/presentation",
       icon: <UserCircle size={20} />,
     },
     {

@@ -71,7 +71,6 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
-                            <Route path="/presentation" element={<Presentation />} />
                             <Route path="/support" element={<Support />} />
                         </Route>
 
