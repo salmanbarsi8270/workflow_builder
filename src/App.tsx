@@ -49,12 +49,9 @@ import { PieceProvider } from './context/PieceContext';
 
 
 import { Toaster } from 'sonner';
-<<<<<<< HEAD
 import Support from './ui_components/support';
-=======
 import { Toaster as ShadcnToaster } from '@/components/ui/toaster';
 import CanvasPage from './Canvas/CanvasPage';
->>>>>>> be64fd2ef80c46daf0894eda5801db414999ef28
 
 export function App() {
     return (
@@ -77,11 +74,8 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
-<<<<<<< HEAD
                             <Route path="/support" element={<Support />} />
-=======
                             <Route path="/canvas" element={<CanvasPage />} />
->>>>>>> be64fd2ef80c46daf0894eda5801db414999ef28
                         </Route>
 
                         <Route path="/chat/:slug" element={<PublicChat />} />

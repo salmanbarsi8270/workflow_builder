@@ -126,7 +126,6 @@ export function SidebarIconExample() {
       icon: <FolderOpen size={20} />,
     },
     {
-<<<<<<< HEAD
       title: "Instructions",
       url: "/personas",
       icon: <UserCircle size={20} />,
@@ -135,11 +134,11 @@ export function SidebarIconExample() {
       title: "Support",
       url: "/support",
       icon: <UserCircle size={20} />,
-=======
+    },
+    {
       title: "Canvas",
       url: "/canvas",
       icon: <FolderOpen size={20} />,
->>>>>>> be64fd2ef80c46daf0894eda5801db414999ef28
     },
   ]
 
