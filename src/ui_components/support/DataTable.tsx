@@ -22,7 +22,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
         No data available
       </div>
     );
-  }
+  } 
 
   // Get all unique keys from the data
   const columns = Array.from(
