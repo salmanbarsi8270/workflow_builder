@@ -43,7 +43,8 @@ export const HistorySidebar = ({
   formatTime,
   isLoadingSession,
   isDeletingSession,
-  isLoadingHistory
+  isLoadingHistory,
+  onClearChat
 }: HistorySidebarProps) => {
   const todaySessions = sessions.filter(session => {
     const diff = new Date().getTime() - session.date.getTime();
@@ -145,9 +146,13 @@ export const HistorySidebar = ({
   );
 
   return (
-    <div className={`${
-      isOpen ? 'w-72' : 'w-0'
-    } ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
+    <div className={`
+      ${isOpen ? 'w-72' : 'w-0'} 
+      ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}
+      ${isOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
+      fixed sm:relative inset-y-0 left-0 z-50
+      sm:border-r flex flex-col transition-all duration-300 ease-in-out overflow-hidden
+    `}>
       {/* Sidebar Header */}
       <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
         <div className="flex items-center justify-between mb-4">
@@ -155,15 +160,22 @@ export const HistorySidebar = ({
             <History className="w-4 h-4" />
             <h2 className="text-sm font-semibold">History</h2>
           </div>
-          <button 
-            onClick={onClose}
-            className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            title="Close sidebar"
-          >
-            <svg className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onClearChat}
+              className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-red-50 text-red-500'}`}
+              title="Clear all history"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={onClose}
+              className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}
+              title="Close sidebar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         
         {/* New Chat Button */}

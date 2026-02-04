@@ -59,109 +59,112 @@ const parseSSEChunk = (chunk: string) => {
   return events;
 };
 
-// Helper function to detect and extract JSON from text
-const extractJSON = (text: string): { hasJSON: boolean; jsonData: any[] | null; beforeJSON: string; afterJSON: string; isPartialJSON?: boolean } => {
+const extractJSON = (text: string): { 
+  hasJSON: boolean; 
+  jsonData: any[] | null; 
+  beforeJSON: string; 
+  afterJSON: string; 
+  isPartialJSON?: boolean;
+  thinking?: string;
+} => {
   if (!text) return { hasJSON: false, jsonData: null, beforeJSON: '', afterJSON: '', isPartialJSON: false };
 
-  try {
-    // Check if --json marker exists (even if incomplete)
-    const hasMarkerStart = text.includes('--json');
-    const hasMarkerEnd = text.includes('json--');
+  let extractedThinking = '';
+  let mainText = text;
+
+  // 1. Extract thinking first if it exists
+  const headingMatch = text.match(/(Available\s+\w+)/i);
+  if (headingMatch && headingMatch.index !== undefined) {
+    extractedThinking = text.substring(0, headingMatch.index).trim();
+    mainText = text.substring(headingMatch.index).trim();
+  }
+
+  // 2. Look for --json and json-- markers
+  const jsonStartIndex = mainText.indexOf('--json');
+  if (jsonStartIndex !== -1) {
+    const jsonEndIndex = mainText.indexOf('json--', jsonStartIndex + 6);
+    const beforeJSON = mainText.substring(0, jsonStartIndex).trim();
     
-    // If we have start marker but not end marker, it's still streaming
-    if (hasMarkerStart && !hasMarkerEnd) {
-      console.log('⏳ [extractJSON] Partial JSON detected - still streaming');
-      const beforeMarker = text.substring(0, text.indexOf('--json')).trim();
-      return { 
-        hasJSON: false, 
-        jsonData: null, 
-        beforeJSON: beforeMarker, 
-        afterJSON: '', 
-        isPartialJSON: true 
+    if (jsonEndIndex === -1) {
+      // Partial JSON (still streaming)
+      return {
+        hasJSON: false,
+        jsonData: null,
+        beforeJSON,
+        afterJSON: '',
+        isPartialJSON: true,
+        thinking: extractedThinking || undefined
       };
-    }
-    
-    // 1. Try to extract using --json and json-- markers first (most reliable)
-    const markerRegex = /--json\s*(\[[\s\S]*?\])\s*json--/i;
-    const markerMatch = text.match(markerRegex);
-    
-    if (markerMatch) {
-      const jsonStr = markerMatch[1].trim();
+    } else {
+      // Potentially complete JSON
+      const jsonStr = mainText.substring(jsonStartIndex + 6, jsonEndIndex).trim();
+      const afterJSON = mainText.substring(jsonEndIndex + 6).trim();
+      
       try {
         const jsonData = JSON.parse(jsonStr);
-        if (Array.isArray(jsonData) && jsonData.length > 0) {
-          let beforeJSON = text.substring(0, markerMatch.index ?? 0).trim();
-          const afterJSON = text.substring((markerMatch.index ?? 0) + markerMatch[0].length).trim();
-          
-          console.log('📋 [extractJSON] beforeJSON:', beforeJSON.substring(0, 200));
-          
-          // Check if there's a heading like "Available Workflows", "Available Agents", etc.
-          // Everything before the heading is "thinking", everything after is "output"
-          const headingMatch = beforeJSON.match(/(Available\s+\w+)/i);
-          
-          console.log('🔍 [extractJSON] headingMatch:', headingMatch);
-          
-          if (headingMatch && headingMatch.index !== undefined) {
-            // Split: thinking vs output
-            const thinkingPart = beforeJSON.substring(0, headingMatch.index).trim();
-            const outputPart = beforeJSON.substring(headingMatch.index).trim();
-            
-            console.log('💭 [extractJSON] thinkingPart length:', thinkingPart.length);
-            console.log('📄 [extractJSON] outputPart:', outputPart.substring(0, 100));
-            
-            // If there's thinking, format it with the accordion pattern
-            if (thinkingPart) {
-              beforeJSON = `🤔 Thinking...\n${thinkingPart}\n\n${outputPart}`;
-              console.log('✅ [extractJSON] Formatted with thinking accordion');
-            } else {
-              beforeJSON = outputPart;
-              console.log('⚠️ [extractJSON] No thinking part, using output only');
-            }
-          } else {
-            // No heading found - treat ALL beforeJSON as thinking, show nothing as output
-            console.log('⚠️ [extractJSON] No heading match found - treating all as thinking');
-            if (beforeJSON.trim()) {
-              beforeJSON = `🤔 Thinking...\n${beforeJSON}\n\n`;
-              console.log('✅ [extractJSON] All content moved to thinking accordion');
-            }
-          }
-          
-          return { hasJSON: true, jsonData, beforeJSON, afterJSON, isPartialJSON: false };
+        if (Array.isArray(jsonData)) {
+          return {
+            hasJSON: true,
+            jsonData,
+            beforeJSON,
+            afterJSON,
+            isPartialJSON: false,
+            thinking: extractedThinking || undefined
+          };
         }
       } catch (e) {
-        console.error('Marker-based JSON parse failed:', e);
+        console.error('Failed to parse JSON between markers:', e);
+        // If it looks like it's still being formed or just broken, 
+        // fallback to partial or raw text
+        return {
+          hasJSON: false,
+          jsonData: null,
+          beforeJSON,
+          afterJSON,
+          isPartialJSON: true, // Show loading if markers are there but parse fails
+          thinking: extractedThinking || undefined
+        };
       }
     }
+  }
 
-    // 2. Fallback: Try regex patterns if no markers or marker parse failed
-    const cleanText = text.replace(/--json\s*/gi, '').replace(/\s*json--/gi, '');
-    
-    const patterns = [
-      /\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/,
-      /\[[\s\S]*\]/,
-    ];
-    
-    for (const pattern of patterns) {
-      const jsonMatch = cleanText.match(pattern);
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[0];
-        try {
-          const jsonData = JSON.parse(jsonStr);
-          if (Array.isArray(jsonData) && jsonData.length > 0 && typeof jsonData[0] === 'object') {
-            const beforeJSON = cleanText.substring(0, jsonMatch.index).trim();
-            const afterJSON = cleanText.substring((jsonMatch.index || 0) + jsonStr.length).trim();
-            return { hasJSON: true, jsonData, beforeJSON, afterJSON, isPartialJSON: false };
-          }
-        } catch (e) {
-          // Continue to next pattern
+  // 3. Fallback: Regex for data without markers (e.g. from history)
+  const patterns = [
+    /\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/,
+    /\[[\s\S]*\]/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = mainText.match(pattern);
+    if (match) {
+      try {
+        const jsonData = JSON.parse(match[0]);
+        if (Array.isArray(jsonData) && jsonData.length > 0) {
+          const beforeJSON = mainText.substring(0, match.index).trim();
+          const afterJSON = mainText.substring((match.index || 0) + match[0].length).trim();
+          return {
+            hasJSON: true,
+            jsonData,
+            beforeJSON,
+            afterJSON,
+            isPartialJSON: false,
+            thinking: extractedThinking || undefined
+          };
         }
+      } catch (e) {
+        // continue
       }
     }
-  } catch (e) {
-    console.error('JSON extraction error:', e);
   }
   
-  return { hasJSON: false, jsonData: null, beforeJSON: text, afterJSON: '', isPartialJSON: false };
+  return { 
+    hasJSON: false, 
+    jsonData: null, 
+    beforeJSON: mainText, 
+    afterJSON: '', 
+    isPartialJSON: false,
+    thinking: extractedThinking || undefined
+  };
 };
 
 export const Support = () => {
@@ -188,6 +191,22 @@ export const Support = () => {
   const { theme, setTheme } = useTheme();
   const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
+  // Sync currentConversationId with localStorage
+  useEffect(() => {
+    if (currentConversationId) {
+      localStorage.setItem('last_support_conversation_id', currentConversationId);
+    }
+  }, [currentConversationId]);
+
+  // Load last active session on mount
+  useEffect(() => {
+    const lastSessionId = localStorage.getItem('last_support_conversation_id');
+    if (lastSessionId) {
+      loadSession(lastSessionId);
+    }
+    loadConversationHistory();
+  }, []);
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -200,16 +219,12 @@ export const Support = () => {
     scrollToBottom();
   }, [messages, typingText]);
 
-  useEffect(() => {
-    loadConversationHistory();
-  }, []);
-
   // Load conversation history from API
   async function loadConversationHistory() {
     setIsLoadingHistory(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/memory/conversations?conversationId=${currentConversationId || ''}&userId=${USER_ID}`
+        `${API_BASE_URL}/api/memory/conversations?userId=${USER_ID}&limit=50&offset=0`
       );
       
       // Handle 404 - conversation doesn't exist yet
@@ -279,6 +294,13 @@ export const Support = () => {
     let accumulatedOutput = '';
     const tempMessageId = (Date.now() + 1).toString();
 
+    const nextConvId = currentConversationId || "chat_" + Date.now();
+    
+    // Set immediate conversation ID if it's a new chat
+    if (!currentConversationId) {
+      setCurrentConversationId(nextConvId);
+    }
+
     try {
       // Use streaming endpoint
       const response = await fetch(`${API_BASE_URL}/agents/${AGENT_ID}/stream`, {
@@ -287,13 +309,13 @@ export const Support = () => {
         body: JSON.stringify({
           input: userMessage.content,
           userId: USER_ID,
-          conversationId: currentConversationId || "chat_"+Date.now(),
+          conversationId: nextConvId,
           options: {
             userId: USER_ID,
-            conversationId: currentConversationId || "chat_"+Date.now(),
+            conversationId: nextConvId,
             context: {
               userId: USER_ID,
-              conversationId: currentConversationId || "chat_"+Date.now()
+              conversationId: nextConvId
             }
           }
         }),
@@ -413,9 +435,29 @@ export const Support = () => {
             
             setTypingText('');
             
-            // Update conversation ID if provided
-            if (event.conversationId && !currentConversationId) {
+            if (event.conversationId) {
               setCurrentConversationId(event.conversationId);
+              localStorage.setItem('last_support_conversation_id', event.conversationId);
+            }
+            
+            const finalConvId = event.conversationId || currentConversationId;
+
+            // AUTO-TITLE: If this was the first user message, update the conversation title
+            if (messages.length <= 1 && finalConvId) {
+              try {
+                const firstUserMsg = userMessage.content;
+                const newTitle = firstUserMsg.length > 40 ? firstUserMsg.substring(0, 37) + '...' : firstUserMsg;
+                
+                console.log(`🏷️ [Auto-Title] Updating title for ${finalConvId} to: ${newTitle}`);
+                
+                await fetch(`${API_BASE_URL}/api/memory/conversations/${finalConvId}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ title: newTitle }),
+                });
+              } catch (titleError) {
+                console.error('Failed to auto-title conversation:', titleError);
+              }
             }
             
             // Reload history to get updated conversations
@@ -457,17 +499,39 @@ export const Support = () => {
     setIsLoadingSession(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/memory/conversations/${sessionId}?userId=${USER_ID}`
+        `${API_BASE_URL}/api/memory/conversations/${sessionId}?userId=${USER_ID}`
       );
       
       if (response.ok) {
         const data = await response.json();
-        const loadedMessages: Message[] = (data.messages || []).map((msg: any) => ({
-          id: msg.id || Date.now().toString(),
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(msg.timestamp || Date.now())
-        }));
+        const loadedMessages: Message[] = (data.messages || []).map((m: any) => {
+          let content = '';
+          let thinking = '';
+          
+          if (Array.isArray(m.parts)) {
+            m.parts.forEach((part: any) => {
+              if (part.type === 'text') {
+                content += (part.text || '');
+              } else if (part.type === 'reasoning' || part.type === 'reasoning.text' || part.type === 'thinking') {
+                thinking += (part.text || '');
+              } else if (typeof part === 'string') {
+                content += part;
+              }
+            });
+          } else if (typeof m.parts === 'string') {
+            content = m.parts;
+          } else {
+            content = m.content || '';
+          }
+          
+          return {
+            id: m.id || Math.random().toString(36).substr(2, 9),
+            role: m.role,
+            content: content,
+            thinking: thinking || undefined,
+            timestamp: new Date(m.created_at || m.timestamp || Date.now())
+          };
+        });
         
         setMessages(loadedMessages);
         setCurrentConversationId(sessionId);
@@ -480,20 +544,36 @@ export const Support = () => {
     }
   };
 
+  // Clear all history for this agent
+  const handleClearAllHistory = async () => {
+    if (!window.confirm('Are you sure you want to clear ALL conversation history? This cannot be undone.')) return;
+    
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/memory/agent/${AGENT_ID}?userId=${USER_ID}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setChatHistory([]);
+        setCurrentConversationId(null);
+        setMessages([]);
+        setActiveSession('current');
+      }
+    } catch (error) {
+      console.error('Failed to clear agent history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Start new chat
   const startNewChat = () => {
     setMessages([]);
     setCurrentConversationId(null);
     setActiveSession('current');
     setInputMessage('');
-  };
-
-  // Clear current chat
-  const clearChat = () => {
-    if (window.confirm('Are you sure you want to clear this chat?')) {
-      setMessages([]);
-      setInputMessage('');
-    }
+    localStorage.removeItem('last_support_conversation_id');
   };
 
   // Format time
@@ -524,11 +604,19 @@ export const Support = () => {
   };
 
   return (
-    <div className={`flex h-[calc(100vh-64px)] transition-colors duration-200 ${
+    <div className={`flex h-[calc(100vh-64px)] transition-colors duration-200 relative overflow-hidden ${
       isDarkMode 
         ? 'bg-gray-900' 
         : 'bg-linear-to-br from-purple-50 via-white to-blue-50'
     }`}>
+      {/* Background Overlay for Mobile Sidebar */}
+      {isHistoryOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 sm:hidden transition-opacity duration-300"
+          onClick={() => setIsHistoryOpen(false)}
+        />
+      )}
+
       {/* History Sidebar */}
       <HistorySidebar
         isOpen={isHistoryOpen}
@@ -537,7 +625,7 @@ export const Support = () => {
         activeSession={activeSession}
         onLoadSession={loadSession}
         onNewChat={startNewChat}
-        onClearChat={clearChat}
+        onClearChat={handleClearAllHistory}
         isDarkMode={isDarkMode}
         editingSessionId={editingSessionId}
         editingTitle={editingTitle}

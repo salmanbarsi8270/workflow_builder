@@ -40,7 +40,7 @@ export const useChatHistoryActions = ({
       setIsDeletingSession(sessionId);
       try {
         const response = await fetch(
-          `${AI_URL}/memory/conversation/${conversationId}?userId=${userId}`,
+          `${AI_URL}/api/memory/conversations/${conversationId}?userId=${userId}`,
           { method: 'DELETE' }
         );
         
@@ -81,16 +81,25 @@ export const useChatHistoryActions = ({
     }
 
     try {
-      // For now, we update local state. 
-      // If there's an endpoint for renaming, we should call it here.
-      setChatHistory(prev => prev.map(session => 
-        session.id === sessionId 
-          ? { ...session, title: editingTitle.trim() }
-          : session
-      ));
-      
-      setEditingSessionId(null);
-      setEditingTitle('');
+      const response = await fetch(`${AI_URL}/api/memory/conversations/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editingTitle.trim(), userId })
+      });
+
+      if (response.ok) {
+        setChatHistory(prev => prev.map(session => 
+          session.id === sessionId 
+            ? { ...session, title: editingTitle.trim() }
+            : session
+        ));
+        
+        setEditingSessionId(null);
+        setEditingTitle('');
+        
+        // Reload to ensure sync with backend derived titles if any
+        await loadConversationHistory();
+      }
     } catch (error) {
       console.error('Failed to rename conversation:', error);
     }
