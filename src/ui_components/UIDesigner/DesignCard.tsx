@@ -1,14 +1,15 @@
 
-import { Edit2, Trash2, Calendar, MessageSquare } from 'lucide-react';
+import { Edit2, Trash2, Calendar, MessageSquare, Loader2 } from 'lucide-react';
 import { type UIDesign, TEMPLATES } from './types';
 
 interface DesignCardProps {
     design: UIDesign;
     onEdit: (design: UIDesign) => void;
     onDelete: (id: string) => void;
+    isDeleting?: boolean;
 }
 
-export default function DesignCard({ design, onEdit, onDelete }: DesignCardProps) {
+export default function DesignCard({ design, onEdit, onDelete, isDeleting = false }: DesignCardProps) {
     // Find template definition to get preview icon/style
     const template = TEMPLATES.find(t => t.id === design.template_id) || TEMPLATES[0];
 
@@ -45,10 +46,11 @@ export default function DesignCard({ design, onEdit, onDelete }: DesignCardProps
                     </button>
                     <button
                         onClick={() => onDelete(design.id)}
-                        className="p-2 bg-white text-red-600 rounded-full hover:bg-red-50 transition-colors"
+                        disabled={isDeleting}
+                        className="p-2 bg-white text-red-600 rounded-full hover:bg-red-50 transition-colors disabled:opacity-50"
                         title="Delete Design"
                     >
-                        <Trash2 className="w-5 h-5" />
+                        {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
                     </button>
                 </div>
             </div>

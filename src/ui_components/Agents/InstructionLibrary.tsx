@@ -26,6 +26,7 @@ export default function InstructionLibrary() {
     // Form State
     const [formData, setFormData] = useState({ name: '', system_prompt: '' });
     const [saving, setSaving] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const fetchInstructions = useCallback(async () => {
         if (!user?.id) return;
@@ -72,12 +73,15 @@ export default function InstructionLibrary() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure?")) return;
+        setDeletingId(id);
         try {
             await axios.delete(`${API_URL}/api/v1/ai/personas/${id}?userId=${user?.id}`);
             setInstructions(prev => prev.filter(p => p.id !== id));
             toast.success("Instruction removed");
         } catch (e) {
             toast.error("Failed to delete instruction");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -171,8 +175,14 @@ export default function InstructionLibrary() {
                                         <Button size="icon-sm" variant="ghost" onClick={() => startEdit(instruction)}>
                                             <Edit3 className="h-3.5 w-3.5" />
                                         </Button>
-                                        <Button size="icon-sm" variant="ghost" className="text-red-500" onClick={() => handleDelete(instruction.id)}>
-                                            <Trash2 className="h-3.5 w-3.5" />
+                                        <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            className="text-red-500"
+                                            onClick={() => handleDelete(instruction.id)}
+                                            disabled={deletingId === instruction.id}
+                                        >
+                                            {deletingId === instruction.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                         </Button>
                                     </div>
                                 </div>

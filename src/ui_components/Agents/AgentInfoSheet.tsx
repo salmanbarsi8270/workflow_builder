@@ -17,11 +17,12 @@ interface AgentInfoSheetProps {
     connections?: ConnectionOption[];
     onUpdate?: (updates: Partial<Agent>) => void;
     initialTab?: 'details' | 'publish';
+    isUpdating?: boolean;
 }
 
 
 
-export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections = [], onUpdate, initialTab = 'details' }: AgentInfoSheetProps) {
+export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections = [], onUpdate, initialTab = 'details', isUpdating = false }: AgentInfoSheetProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const subagentsList = agent?.subagents || agent?.sub_agents || [];
 
@@ -117,7 +118,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                             </span>
                                         </div>
                                         <div className="text-xs text-slate-500 dark:text-slate-400">
-                                            {agent.evals_enabled 
+                                            {agent.evals_enabled
                                                 ? "This agent's responses are automatically scored for helpfulness."
                                                 : "Auto-scoring is disabled for this agent."
                                             }
@@ -326,7 +327,7 @@ export function AgentInfoSheet({ agent, open, onOpenChange, onRun, connections =
                                     </Label>
                                     <div className="p-4 rounded-xl bg-white dark:bg-[#151515] border border-slate-200 dark:border-white/5 shadow-sm">
                                         {onUpdate ? (
-                                            <PublishSettings agent={agent} onUpdate={onUpdate} />
+                                            <PublishSettings agent={agent} onUpdate={onUpdate} isUpdating={isUpdating} />
                                         ) : (
                                             <div className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-lg">
                                                 Update functionality not available. Please refresh the page.
