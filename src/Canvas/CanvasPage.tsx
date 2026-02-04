@@ -45,7 +45,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "../context/UserContext";
-import { AI_URL } from "../ui_components/api/apiurl";
+import { AI_URL, API_URL } from "../ui_components/api/apiurl";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -119,8 +119,9 @@ const transformComponentData = (data: any): any => {
     } else if (keys.length === 1 && typeof data[keys[0]] === 'object' && (data[keys[0]].type || data[keys[0]].component)) {
         return transformComponentData(data[keys[0]]);
     } else {
-        transformed.type = explicitType || (keys.length === 1 ? keys[0] : 'container');
-        sourceData = (keys.length === 1 && !explicitType) ? data[keys[0]] : data;
+        const inferredType = (keys.length === 1 && componentTypes.includes(keys[0])) ? keys[0] : 'container';
+        transformed.type = explicitType || inferredType;
+        sourceData = (keys.length === 1 && !explicitType && inferredType !== 'container') ? data[keys[0]] : data;
     }
 
     // Process props and other attributes
@@ -487,8 +488,27 @@ export default function CanvasPage() {
             children: [...(prev.children || []), placeholderCard]
         }));
 
+        // Fetch connection map before streaming
+        let connectionMap = {};
+        let agentConnectionId1 = 'dcf594b0-148c-47e3-95a7-78c09b339740'; // Default
+
         try {
-            const response = await fetch(`${AI_URL}/agents/dcf594b0-148c-47e3-95a7-78c09b339740/stream`, {
+            const linkRes = await fetch(`${API_URL}/api/v1/agents/${agentConnectionId1}/user-link?userId=625ea375-e6ff-44be-91bc-dcd3d495ad98`);
+            const linkData = await linkRes.json();
+            if (linkData && linkData.connection_map) {
+                connectionMap = linkData.connection_map;
+                // // If the link has a specific connection ID override for the agent, use it
+                // if (linkData.connection_id) {
+                //     agentConnectionId = linkData.connection_id; // Keeping default for now as per user request snippet, but map is key
+                // }
+            }
+        } catch (err) {
+            console.warn("Failed to fetch agent user link:", err);
+        }
+
+        try {
+            console.log("agent id", agentConnectionId1)
+            const response = await fetch(`${AI_URL}/agents/${agentConnectionId1}/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
                 body: JSON.stringify({
@@ -502,6 +522,8 @@ export default function CanvasPage() {
                             userId: userId,
                             conversationId: currentConversationId,
                             tooluserid: userId,
+                            connectionMap: connectionMap,
+                            agentId: agentConnectionId1
                         },
                         maxSteps: 10,
                     }
@@ -825,7 +847,7 @@ export default function CanvasPage() {
                     </div>
 
                     {/* Canvas Area */}
-                    <div className="h-full pt-14 pb-0 overflow-hidden relative">
+                    <div className="h-full pb-0 overflow-hidden relative">
                         <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none" />
                         <div className="h-full w-full overflow-auto px-4 md:px-8 py-8 pb-32">
                             <Canvas uiSchema={uiSchema} />

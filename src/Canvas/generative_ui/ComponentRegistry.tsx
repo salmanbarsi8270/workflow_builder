@@ -3,17 +3,25 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Alert, AlertTitle, AlertDescription } from '@/components/alert';
+// import { Alert, AlertTitle, AlertDescription } from '@/components/alert';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
 import { Input } from '@/components/ui/input';
 
 // Card Wrapper with Grid Span Support
-const CardWrapper = ({ span = 6, className, children, ...props }: any) => {
-    const spanClass = `col-span-${span}`;
+const CardWrapper = ({ span, rowSpan, className, children, ...props }: any) => {
+    const spanClass = span ? `col-span-${span}` : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
     return (
-        <Card className={cn(spanClass, className)} {...props}>
+        <Card className={cn(
+            "group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30",
+            "bg-card/50 backdrop-blur-sm border-border/50 p-0 m-0",
+            spanClass,
+            rowSpanClass,
+            className
+        )} {...props}>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             {children}
         </Card>
     );
@@ -28,26 +36,29 @@ const IconWrapper = ({ name, className, ...props }: { name: string; className?: 
 };
 
 // Layout Components
-const Container = ({ className, children, layout = 'grid', gap = 4, span, cols, ...props }: any) => {
+const Container = ({ className, children, layout = 'grid', gap = 4, span, rowSpan, cols, dense = true, ...props }: any) => {
     // 12-column grid system (standard Tailwind)
-    // If cols is provided, use it. Otherwise default to 12.
-    // If className contains grid-cols override, cn() should handle it.
     const layoutClasses = layout === 'grid'
         ? cn(
             "grid",
-            cols ? `grid-cols-${cols}` : "grid-cols-1", // Default to 1 col for better readability
+            cols ? `grid-cols-${cols}` : "grid-cols-1", // Default to 1 column for nested content
             `gap-${gap}`,
-            "auto-rows-auto"
+            dense && "grid-flow-dense", // Standard Tailwind class
+            "auto-rows-min"
         )
         : layout === 'flex'
-            ? cn("flex flex-col", `gap-${gap}`) // Default flex to vertical for simplicity
+            ? cn("flex flex-col", `gap-${gap}`)
             : "";
 
-    // If this container is inside a grid, apply col-span (default to full width)
     const spanClass = span ? `col-span-${span}` : '';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
 
     return (
-        <div className={cn("w-full", spanClass, layoutClasses, className)} {...props}>
+        <div
+            className={cn("w-full", spanClass, rowSpanClass, layoutClasses, className)}
+            style={dense ? { gridAutoFlow: 'dense' } : {}}
+            {...props}
+        >
             {children}
         </div>
     );
@@ -69,13 +80,19 @@ const Stack = ({ className, children, gap = 2, direction = 'col', ...props }: an
     <div className={cn("flex", direction === 'col' ? "flex-col" : "flex-row", `gap-${gap}`, className)} {...props}>{children}</div>
 );
 
-const Grid = ({ className, children, cols = 1, gap = 4, ...props }: any) => {
-    const gridCols = cols === 'auto'
-        ? 'grid-cols-[repeat(auto-fit,minmax(200px,1fr))]'
-        : `grid-cols-${cols}`;
+const Grid = ({ className, children, cols, gap = 4, dense = true, ...props }: any) => {
+    const gridCols = !cols
+        ? 'grid-cols-1'
+        : cols === 'auto'
+            ? 'grid-cols-[repeat(auto-fit,minmax(200px,1fr))]'
+            : `grid-cols-${cols}`;
 
     return (
-        <div className={cn("grid", gridCols, `gap-${gap}`, className)} {...props}>
+        <div
+            className={cn("grid", gridCols, `gap-${gap}`, className)}
+            style={dense ? { gridAutoFlow: 'dense' } : {}}
+            {...props}
+        >
             {children}
         </div>
     );
@@ -244,18 +261,20 @@ const StatCard = ({ label, value, icon, trend, trendDirection = 'neutral', color
 
 // Error State
 const ErrorState = ({ title, message, retryAction, className, ...props }: any) => (
-    <Alert variant="destructive" className={cn("bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/20", className)} {...props}>
-        <LucideIcons.AlertCircle className="h-4 w-4" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mt-2 flex flex-col gap-3">
-            <p>{message}</p>
-            {retryAction && (
-                <Button variant="outline" size="sm" onClick={retryAction} className="w-fit border-red-200 hover:bg-red-100 hover:text-red-900 dark:border-red-800 dark:hover:bg-red-900/50">
-                    Try Again
-                </Button>
-            )}
-        </AlertDescription>
-    </Alert>
+    <div className={cn("flex flex-col gap-4 p-6 rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-sm", className)} {...props}>
+        <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-500/10">
+                <LucideIcons.AlertCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <h4 className="font-semibold text-red-900 dark:text-red-400">{title}</h4>
+        </div>
+        <p className="text-sm text-red-800/70 dark:text-red-400/70 leading-relaxed font-medium">{message}</p>
+        {retryAction && (
+            <Button variant="outline" size="sm" onClick={retryAction} className="w-fit border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors">
+                Try Again
+            </Button>
+        )}
+    </div>
 );
 
 // Charts - Theme Aware
@@ -375,7 +394,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 
 // Basic HTML Elements
 const DivWrapper = ({ className, children, ...props }: any) => (
-    <div className={cn(className)} {...props}>{children}</div>
+    <div className={cn("w-full", className)} {...props}>{children}</div>
 );
 
 // Thinking Block Component with Animation
