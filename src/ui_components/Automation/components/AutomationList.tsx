@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu"
-import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, Plus, Search, X, RefreshCw, } from "lucide-react"
+import { PlusIcon, MoreHorizontal, TrashIcon, EyeIcon, PencilIcon, PlayCircle, Sparkles, CalendarIcon, Workflow, Layers, ArrowUpDown, Plus, Search, X, RefreshCw, Loader2, } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
