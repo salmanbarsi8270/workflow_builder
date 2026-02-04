@@ -49,6 +49,7 @@ import { PieceProvider } from './context/PieceContext';
 
 
 import { Toaster } from 'sonner';
+import Support from './ui_components/support';
 import { Toaster as ShadcnToaster } from '@/components/ui/toaster';
 import CanvasPage from './Canvas/CanvasPage';
 
@@ -73,6 +74,7 @@ export function App() {
                             <Route path="/ui-designer" element={<UIDesignerWrapper />} />
                             <Route path="/files" element={<FileManager />} />
                             <Route path="/personas" element={<InstructionLibrary />} />
+                            <Route path="/support" element={<Support />} />
                             <Route path="/canvas" element={<CanvasPage />} />
                         </Route>
 

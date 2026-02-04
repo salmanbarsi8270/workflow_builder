@@ -32,7 +32,7 @@ import { UnfoldMoreIcon, Layout01Icon } from "@hugeicons/core-free-icons"
 import { useTheme } from "@/components/theme-provider"
 import { Switch } from "@/components/ui/switch"
 import { useLocation, Link, Outlet } from "react-router-dom"
-import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen } from 'lucide-react'
+import { Link as LinkIcon, Bot, LayoutDashboard, Workflow, Globe, Activity, Palette, FolderOpen, UserCircle } from 'lucide-react'
 import Logout from '../Logout/index';
 import { useUser } from '@/context/UserContext';
 import { cn } from "@/lib/utils";
@@ -124,6 +124,16 @@ export function SidebarIconExample() {
       title: "File Manager",
       url: "/files",
       icon: <FolderOpen size={20} />,
+    },
+    {
+      title: "Instructions",
+      url: "/personas",
+      icon: <UserCircle size={20} />,
+    },
+    {
+      title: "Support",
+      url: "/support",
+      icon: <UserCircle size={20} />,
     },
     {
       title: "Canvas",
