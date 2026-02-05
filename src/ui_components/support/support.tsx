@@ -316,7 +316,9 @@ export const Support = () => {
             context: {
               userId: USER_ID,
               conversationId: nextConvId
-            }
+            },
+            maxSteps: 20,
+
           }
         }),
       });
