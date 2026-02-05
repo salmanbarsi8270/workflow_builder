@@ -53,8 +53,8 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isR
         }
     };
 
-    const finalSpan = isRoot ? (props.span || getSpanFromWidth(metrics?.width)) : props.span;
-    const finalRowSpan = isRoot ? (props.rowSpan || metrics?.rowSpan || 1) : props.rowSpan;
+    const finalSpan = isRoot ? (props.span || 12) : (props.span || getSpanFromWidth(metrics?.width));
+    const finalRowSpan = isRoot ? (props.rowSpan || 1) : (props.rowSpan || metrics?.rowSpan || 1);
 
     return (
         <Component {...props} span={finalSpan} rowSpan={finalRowSpan}>

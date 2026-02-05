@@ -28,7 +28,27 @@ export type ComponentType =
   | 'separator'
   | 'divider'
   | 'stat-card'
-  | 'thinking-block';
+  | 'thinking-block'
+  | 'data-table'
+  | 'kpi-card'
+  | 'info-card'
+  | 'activity-feed'
+  | 'timeline-card'
+  | 'chart-card'
+  | 'grid-container'
+  | 'stats-grid'
+  | 'stats-list'
+  | 'calendar-card'
+  | 'code-card'
+  | 'comparison-card'
+  | 'empty-state'
+  | 'heading'
+  | 'progress-card'
+  | 'status-tag'
+  | 'step-indicator'
+  | 'summary-card'
+  | 'text-card'
+  | 'wiki-card';
 
 export interface BaseProps {
   className?: string;

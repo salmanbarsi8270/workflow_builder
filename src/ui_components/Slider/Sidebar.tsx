@@ -70,8 +70,10 @@ export function SidebarIconExample() {
         return "FILE MANAGER";
       case "/personas":
         return "INSTRUCTION LIBRARY";
-      case "/presentation":
-        return "PRESENTATION";
+      case "/canvas":
+        return "AI CANVAS";
+      case "/support":
+        return "SUPPORT";
       default:
         return "Workflow Builder";
     }
