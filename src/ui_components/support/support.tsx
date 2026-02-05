@@ -4,12 +4,12 @@ import { AI_URL } from '../api/apiurl';
 import { useTheme } from '@/components/theme-provider';
 import { useChatHistoryActions } from './rename_delete_handlers';
 import type { Message, ChatSession } from './types';
-import { 
-  SupportHeader, 
-  HistorySidebar, 
-  ChatMessages, 
-  InputArea, 
-  TableModal 
+import {
+  SupportHeader,
+  HistorySidebar,
+  ChatMessages,
+  InputArea,
+  TableModal
 } from './components';
 
 // Constants
@@ -18,7 +18,7 @@ const API_BASE_URL = AI_URL;
 
 // Helper function to parse SSE chunks
 const parseSSEChunk = (chunk: string) => {
-  const events: Array<{ type: string; text?: string; conversationId?: string; [key: string]: any }> = [];
+  const events: Array<{ type: string; text?: string; conversationId?: string;[key: string]: any }> = [];
   const lines = chunk.split('\n');
 
   for (const line of lines) {
@@ -59,11 +59,11 @@ const parseSSEChunk = (chunk: string) => {
   return events;
 };
 
-const extractJSON = (text: string): { 
-  hasJSON: boolean; 
-  jsonData: any[] | null; 
-  beforeJSON: string; 
-  afterJSON: string; 
+const extractJSON = (text: string): {
+  hasJSON: boolean;
+  jsonData: any[] | null;
+  beforeJSON: string;
+  afterJSON: string;
   isPartialJSON?: boolean;
   thinking?: string;
 } => {
@@ -84,7 +84,7 @@ const extractJSON = (text: string): {
   if (jsonStartIndex !== -1) {
     const jsonEndIndex = mainText.indexOf('json--', jsonStartIndex + 6);
     const beforeJSON = mainText.substring(0, jsonStartIndex).trim();
-    
+
     if (jsonEndIndex === -1) {
       // Partial JSON (still streaming)
       return {
@@ -99,7 +99,7 @@ const extractJSON = (text: string): {
       // Potentially complete JSON
       const jsonStr = mainText.substring(jsonStartIndex + 6, jsonEndIndex).trim();
       const afterJSON = mainText.substring(jsonEndIndex + 6).trim();
-      
+
       try {
         const jsonData = JSON.parse(jsonStr);
         if (Array.isArray(jsonData)) {
@@ -133,7 +133,7 @@ const extractJSON = (text: string): {
     /\[\s*\{[\s\S]*?\}\s*(?:,\s*\{[\s\S]*?\}\s*)*\]/,
     /\[[\s\S]*\]/,
   ];
-  
+
   for (const pattern of patterns) {
     const match = mainText.match(pattern);
     if (match) {
@@ -156,12 +156,12 @@ const extractJSON = (text: string): {
       }
     }
   }
-  
-  return { 
-    hasJSON: false, 
-    jsonData: null, 
-    beforeJSON: mainText, 
-    afterJSON: '', 
+
+  return {
+    hasJSON: false,
+    jsonData: null,
+    beforeJSON: mainText,
+    afterJSON: '',
     isPartialJSON: false,
     thinking: extractedThinking || undefined
   };
@@ -171,7 +171,7 @@ export const Support = () => {
   // Get user from context
   const { user } = useUser();
   const USER_ID = user?.id || 'support-user-' + Date.now();
-  
+
   // State
   const [inputMessage, setInputMessage] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -186,11 +186,11 @@ export const Support = () => {
   const [typingText, setTypingText] = useState<string>('');
   const [showTableModal, setShowTableModal] = useState<boolean>(false);
   const [modalTableData, setModalTableData] = useState<any[]>([]);
-  
+
   // Use theme context for dark mode
   const { theme, setTheme } = useTheme();
   const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  
+
   // Sync currentConversationId with localStorage
   useEffect(() => {
     if (currentConversationId) {
@@ -226,7 +226,7 @@ export const Support = () => {
       const response = await fetch(
         `${API_BASE_URL}/api/memory/conversations?userId=${USER_ID}&limit=50&offset=0`
       );
-      
+
       // Handle 404 - conversation doesn't exist yet
       if (response.status === 404) {
         console.log('[History] Conversation not found (404) - this is normal for new conversations');
@@ -234,7 +234,7 @@ export const Support = () => {
         setIsLoadingHistory(false);
         return;
       }
-      
+
       if (response.ok) {
         const data = await response.json();
         const sessions: ChatSession[] = (data.conversations || []).map((conv: any) => ({
@@ -244,7 +244,7 @@ export const Support = () => {
           subtitle: conv.runtime_title?.substring(0, 30) + '...' || 'No messages',
           date: new Date(conv.last_message_at || conv.updated_at || Date.now())
         }));
-        
+
         setChatHistory(sessions);
       }
     } catch (error) {
@@ -295,13 +295,39 @@ export const Support = () => {
     const tempMessageId = (Date.now() + 1).toString();
 
     const nextConvId = currentConversationId || "chat_" + Date.now();
-    
+
     // Set immediate conversation ID if it's a new chat
     if (!currentConversationId) {
       setCurrentConversationId(nextConvId);
     }
 
     try {
+      // Fetch connection map before streaming
+      let connectionMap = {};
+      let openrouterkey: string | undefined;
+      // let cId: string | undefined;
+
+      try {
+        // Use API_BASE_URL as user provided API_URL in snippet
+        const linkRes = await fetch(`${API_BASE_URL}/api/v1/agents/${AGENT_ID}/user-link?userId=${USER_ID}`);
+        if (linkRes.ok) {
+          const linkData = await linkRes.json();
+          if (linkData) {
+            if (linkData.connection_map) {
+              connectionMap = linkData.connection_map;
+            }
+            if (linkData.api_key) {
+              openrouterkey = linkData.api_key;
+            }
+            // if (linkData.connection_id) { cId = linkData.connection_id; }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch agent user link:", err);
+      }
+
+      console.log("Running Support Agent ID:", AGENT_ID);
+
       // Use streaming endpoint
       const response = await fetch(`${API_BASE_URL}/agents/${AGENT_ID}/stream`, {
         method: 'POST',
@@ -315,7 +341,11 @@ export const Support = () => {
             conversationId: nextConvId,
             context: {
               userId: USER_ID,
-              conversationId: nextConvId
+              conversationId: nextConvId,
+              tooluserid: USER_ID,
+              // connectionMap: {},
+              agentId: AGENT_ID,
+              openrouterkey: openrouterkey
             },
             maxSteps: 20,
 
@@ -346,24 +376,24 @@ export const Support = () => {
 
         const chunk = decoder.decode(value, { stream: true });
         console.log('📦 [Stream] Raw chunk:', chunk);
-        
+
         const events = parseSSEChunk(chunk);
-        
+
         for (const event of events) {
           console.log('📋 [Stream] Parsed event:', event);
-          
+
           if (event.type === 'reasoning-delta') {
             const reasoningText = event.text || '';
             console.log('🤔 [Stream] Reasoning delta:', reasoningText);
             accumulatedThinking += reasoningText;
-            
+
             console.log('💭 [Stream] Accumulated thinking:', accumulatedThinking);
             console.log('📄 [Stream] Accumulated output:', accumulatedOutput);
-            
+
             // Update or add the streaming message with separate thinking
             setMessages(prev => {
               const existingIndex = prev.findIndex(m => m.id === tempMessageId);
-              
+
               const streamingMsg: Message = {
                 id: tempMessageId,
                 role: 'assistant',
@@ -371,7 +401,7 @@ export const Support = () => {
                 thinking: accumulatedThinking,  // ONLY THINKING
                 timestamp: new Date()
               };
-              
+
               if (existingIndex >= 0) {
                 // Update existing message
                 const updated = [...prev];
@@ -385,17 +415,17 @@ export const Support = () => {
           } else if (event.type === 'text-delta') {
             const textDelta = event.text || '';
             console.log('💬 [Stream] Text delta:', textDelta);
-            
+
             fullStreamBuffer += textDelta;
             accumulatedOutput += textDelta;
-            
+
             console.log('💭 [Stream] Accumulated thinking:', accumulatedThinking);
             console.log('📄 [Stream] Accumulated output:', accumulatedOutput);
-            
+
             // Update or add the streaming message with separate thinking
             setMessages(prev => {
               const existingIndex = prev.findIndex(m => m.id === tempMessageId);
-              
+
               const streamingMsg: Message = {
                 id: tempMessageId,
                 role: 'assistant',
@@ -403,7 +433,7 @@ export const Support = () => {
                 thinking: accumulatedThinking,  // ONLY THINKING
                 timestamp: new Date()
               };
-              
+
               if (existingIndex >= 0) {
                 // Update existing message
                 const updated = [...prev];
@@ -418,11 +448,11 @@ export const Support = () => {
             console.log('🏁 [Stream] Finish event received');
             console.log('📊 [Stream] Final thinking:', accumulatedThinking);
             console.log('📊 [Stream] Final output:', accumulatedOutput);
-            
+
             // Replace the streaming message with final content
             setMessages(prev => {
               const filtered = prev.filter(m => m.id !== tempMessageId);
-              
+
               return [
                 ...filtered,
                 {
@@ -434,14 +464,14 @@ export const Support = () => {
                 }
               ];
             });
-            
+
             setTypingText('');
-            
+
             if (event.conversationId) {
               setCurrentConversationId(event.conversationId);
               localStorage.setItem('last_support_conversation_id', event.conversationId);
             }
-            
+
             const finalConvId = event.conversationId || currentConversationId;
 
             // AUTO-TITLE: If this was the first user message, update the conversation title
@@ -449,9 +479,9 @@ export const Support = () => {
               try {
                 const firstUserMsg = userMessage.content;
                 const newTitle = firstUserMsg.length > 40 ? firstUserMsg.substring(0, 37) + '...' : firstUserMsg;
-                
+
                 console.log(`🏷️ [Auto-Title] Updating title for ${finalConvId} to: ${newTitle}`);
-                
+
                 await fetch(`${API_BASE_URL}/api/memory/conversations/${finalConvId}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
@@ -461,7 +491,7 @@ export const Support = () => {
                 console.error('Failed to auto-title conversation:', titleError);
               }
             }
-            
+
             // Reload history to get updated conversations
             await loadConversationHistory();
           } else {
@@ -469,7 +499,7 @@ export const Support = () => {
           }
         }
       }
-      
+
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
@@ -503,13 +533,13 @@ export const Support = () => {
       const response = await fetch(
         `${API_BASE_URL}/api/memory/conversations/${sessionId}?userId=${USER_ID}`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         const loadedMessages: Message[] = (data.messages || []).map((m: any) => {
           let content = '';
           let thinking = '';
-          
+
           if (Array.isArray(m.parts)) {
             m.parts.forEach((part: any) => {
               if (part.type === 'text') {
@@ -525,7 +555,7 @@ export const Support = () => {
           } else {
             content = m.content || '';
           }
-          
+
           return {
             id: m.id || Math.random().toString(36).substr(2, 9),
             role: m.role,
@@ -534,7 +564,7 @@ export const Support = () => {
             timestamp: new Date(m.created_at || m.timestamp || Date.now())
           };
         });
-        
+
         setMessages(loadedMessages);
         setCurrentConversationId(sessionId);
         setActiveSession(sessionId);
@@ -549,13 +579,13 @@ export const Support = () => {
   // Clear all history for this agent
   const handleClearAllHistory = async () => {
     if (!window.confirm('Are you sure you want to clear ALL conversation history? This cannot be undone.')) return;
-    
+
     setIsLoadingHistory(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/memory/agent/${AGENT_ID}?userId=${USER_ID}`, {
         method: 'DELETE'
       });
-      
+
       if (response.ok) {
         setChatHistory([]);
         setCurrentConversationId(null);
@@ -582,7 +612,7 @@ export const Support = () => {
   const formatTime = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -606,14 +636,13 @@ export const Support = () => {
   };
 
   return (
-    <div className={`flex h-[calc(100vh-64px)] transition-colors duration-200 relative overflow-hidden ${
-      isDarkMode 
-        ? 'bg-gray-900' 
-        : 'bg-linear-to-br from-purple-50 via-white to-blue-50'
-    }`}>
+    <div className={`flex h-[calc(100vh-64px)] transition-colors duration-200 relative overflow-hidden ${isDarkMode
+      ? 'bg-gray-900'
+      : 'bg-linear-to-br from-purple-50 via-white to-blue-50'
+      }`}>
       {/* Background Overlay for Mobile Sidebar */}
       {isHistoryOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 sm:hidden transition-opacity duration-300"
           onClick={() => setIsHistoryOpen(false)}
         />
