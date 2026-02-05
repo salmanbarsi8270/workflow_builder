@@ -157,6 +157,29 @@ const extractJSON = (text: string): {
     }
   }
 
+  // 4. Heuristic for Partial JSON (Streaming without markers)
+  // If the text ends with an open structure that looks like JSON, treat it as partial
+  // This prevents raw JSON string chunks from appearing in the text stream
+  const partialPattern = /(\n|^|\s)(\[|\{)\s*(?:\"|\{|\[|\]|\}|[0-9]|true|false|null)?[\s\S]*$/;
+  const partialMatch = mainText.match(partialPattern);
+
+  if (partialMatch && partialMatch.index !== undefined) {
+    // Ensure we are reasonably close to the end or it's a distinct block
+    // The match index points to the prefix (\n or space), so we adjust
+    const startCharIdx = mainText.indexOf(partialMatch[2], partialMatch.index);
+
+    if (startCharIdx !== -1) {
+      return {
+        hasJSON: false,
+        jsonData: null,
+        beforeJSON: mainText.substring(0, startCharIdx).trim(), // Hide the partial JSON
+        afterJSON: '',
+        isPartialJSON: true, // Trigger Skeleton
+        thinking: extractedThinking || undefined
+      };
+    }
+  }
+
   return {
     hasJSON: false,
     jsonData: null,
@@ -290,13 +313,21 @@ export const Support = () => {
     setIsLoading(true);
     setTypingText('');
 
-    let accumulatedThinking = '';
-    let accumulatedOutput = '';
     const tempMessageId = (Date.now() + 1).toString();
-
     const nextConvId = currentConversationId || "chat_" + Date.now();
 
-    // Set immediate conversation ID if it's a new chat
+    // IMMEDIATE FEEDBACK: Add placeholder assistant message
+    setMessages(prev => [...prev, {
+      id: tempMessageId,
+      role: 'assistant',
+      content: '',
+      thinking: '',
+      timestamp: new Date()
+    }]);
+
+    let accumulatedThinking = '';
+    let accumulatedOutput = '';
+
     if (!currentConversationId) {
       setCurrentConversationId(nextConvId);
     }

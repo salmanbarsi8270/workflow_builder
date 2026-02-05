@@ -16,13 +16,12 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
 
   if (!data || data.length === 0) {
     return (
-      <div className={`rounded-lg border p-6 text-center ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-white border-gray-200 text-gray-500'
-      }`}>
+      <div className={`rounded-lg border p-6 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-white border-gray-200 text-gray-500'
+        }`}>
         No data available
       </div>
     );
-  } 
+  }
 
   // Get all unique keys from the data
   const columns = Array.from(
@@ -39,16 +38,16 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
   // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortField) return 0;
-    
+
     const aValue = a[sortField];
     const bValue = b[sortField];
-    
+
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
     }
-    
+
     return sortDirection === 'asc' ? (aValue as any) - (bValue as any) : (bValue as any) - (aValue as any);
   });
 
@@ -88,7 +87,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
       columns.map(col => `"${formatValue(item[col])}"`).join(',')
     );
     const csv = [headers, ...rows].join('\n');
-    
+
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -98,13 +97,11 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
   };
 
   return (
-    <div className={`rounded-lg shadow-sm border my-3 max-w-full overflow-hidden ${
-      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
-      {/* Header */}
-      <div className={`p-4 border-b ${
-        isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-linear-to-r from-violet-50 to-purple-50'
+    <div className={`rounded-lg shadow-sm border my-3 max-w-full overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
+      {/* Header */}
+      <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-linear-to-r from-violet-50 to-purple-50'
+        }`}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
           <div>
             <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{title}</h3>
@@ -112,7 +109,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
               Showing {paginatedData.length} of {filteredData.length} items
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             {/* Search */}
             <div className="relative">
@@ -122,18 +119,16 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`pl-8 pr-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full sm:w-48 text-sm ${
-                  isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 text-gray-900'
-                }`}
+                className={`pl-8 pr-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full sm:w-48 text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 text-gray-900'
+                  }`}
               />
             </div>
 
             {/* Export */}
             <button
               onClick={exportToCSV}
-              className={`px-3 py-1.5 border rounded-lg transition-colors flex items-center justify-center text-sm ${
-                isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`px-3 py-1.5 border rounded-lg transition-colors flex items-center justify-center text-sm ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <Download className="w-3.5 h-3.5 mr-1.5" />
               Export CSV
@@ -143,16 +138,15 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto max-w-full">
-        <table className="min-w-full text-sm table-auto">
+      <div className="overflow-x-auto w-full">
+        <table className="min-w-full text-sm w-max">
           <thead className={isDarkMode ? 'bg-gray-900/50' : 'bg-gray-50'}>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column}
-                  className={`px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider cursor-pointer transition-colors ${
-                    isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'
-                  }`}
+                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap cursor-pointer transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
                   onClick={() => handleSort(column)}
                 >
                   <div className="flex items-center space-x-1">
@@ -179,8 +173,8 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
               paginatedData.map((item, idx) => (
                 <tr key={idx} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
                   {columns.map((column) => (
-                    <td key={column} className="px-4 py-3 max-w-[200px]">
-                      <div className={`text-sm break-words ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`} title={formatValue(item[column])}>
+                    <td key={column} className="px-6 py-3 min-w-[200px]">
+                      <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`} title={formatValue(item[column])}>
                         {formatValue(item[column])}
                       </div>
                     </td>
@@ -194,9 +188,8 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
 
       {/* Pagination */}
       {paginatedData.length > 0 && (
-        <div className={`px-4 py-3 border-t ${
-          isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-gray-50'
-        }`}>
+        <div className={`px-4 py-3 border-t ${isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-gray-50'
+          }`}>
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
             {/* Items per page */}
             <div className="flex items-center space-x-2">
@@ -204,9 +197,8 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
               <select
                 value={itemsPerPage}
                 onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                className={`border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 ${
-                  isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                }`}
+                className={`border rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                  }`}
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -237,7 +229,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              
+
               <div className="flex items-center space-x-1 mx-1">
                 {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                   let pageNum;
@@ -250,16 +242,15 @@ export const DataTable: React.FC<DataTableProps> = ({ data, title = 'Data Table'
                   } else {
                     pageNum = currentPage - 1 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
-                        currentPage === pageNum
+                      className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${currentPage === pageNum
                           ? 'bg-violet-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>

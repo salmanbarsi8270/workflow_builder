@@ -16,13 +16,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { DataTable } from '../DataTable';
 
 interface ChatMessagesProps {
   messages: Message[];
   typingText: string;
   isGeneratingTable: boolean;
   isDarkMode: boolean;
-  onViewTable: (data: any[]) => void;
+
   onSuggestionClick: (message: string) => void;
   extractJSON: (
     text: string
@@ -39,29 +40,36 @@ interface ChatMessagesProps {
   streamingThinking?: string; // Add thinking text for streaming
 }
 
+
 /* -----------------------------
-   Helper: Extract numbered list
+   Helper: Extract list (numbered or bulleted)
 ------------------------------ */
-const extractNumberedList = (text: string) => {
+const extractList = (text: string) => {
   if (!text || !text.trim()) {
-    return { title: '', items: [] };
+    return { title: '', items: [], cleanText: '' };
   }
 
-  const lines = text
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean);
+  const allLines = text.split('\n');
+  const items: { content: string; type: 'number' | 'bullet' }[] = [];
+  const cleanLines: string[] = [];
 
-  const items = lines
-    .filter(line => /^\d+\.\s+/.test(line))
-    .map(line => line.replace(/^\d+\.\s+/, ''));
+  allLines.forEach(line => {
+    const trimmed = line.trim();
+    // Match numbered list (1. item) or bullet list (- item, * item, • item)
+    const numberMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
+    const bulletMatch = trimmed.match(/^([*\-•])\s+(.+)/);
 
-  const title =
-    items.length > 0 && !/^\d+\./.test(lines[0])
-      ? lines[0]
-      : '';
+    if (numberMatch) {
+      items.push({ content: numberMatch[2].trim(), type: 'number' });
+    } else if (bulletMatch) {
+      items.push({ content: bulletMatch[2].trim(), type: 'bullet' });
+    } else {
+      cleanLines.push(line);
+    }
+  });
 
-  return { title, items };
+  const cleanText = cleanLines.join('\n').trim();
+  return { items, cleanText };
 };
 
 const TableSkeleton = ({ isDarkMode }: { isDarkMode: boolean }) => (
@@ -81,8 +89,8 @@ const TableSkeleton = ({ isDarkMode }: { isDarkMode: boolean }) => (
       ))}
     </div>
     <div className={`px-4 py-2 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} flex items-center justify-center space-x-2`}>
-       <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
-       <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Generating Data Insights...</span>
+      <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
+      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Generating Data Insights...</span>
     </div>
   </div>
 );
@@ -92,7 +100,7 @@ export const ChatMessages = ({
   typingText,
   isGeneratingTable,
   isDarkMode,
-  onViewTable,
+
   onSuggestionClick,
   extractJSON,
   messagesEndRef,
@@ -109,7 +117,7 @@ export const ChatMessages = ({
         const ref = thinkingRefs.current[`thinking-${message.id}`];
         if (ref) {
           ref.scrollTop = ref.scrollHeight;
-        }  
+        }
       }
     });
   }, [messages, isLoading]);
@@ -117,62 +125,62 @@ export const ChatMessages = ({
   /* -----------------------------
      Suggestion Cards
   ------------------------------ */
-const suggestionCards: SuggestionCard[] = [
-  {
-    icon: <Workflow className="w-5 h-5" />,
-    title: 'List Workflows',
-    description:
-      'Get a complete overview of all workflows in your workspace, including their current status, creation details, and whether they are active or paused.',
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-    message: 'List all workflows and explain their current status'
-  },
-  {
-    icon: <Users className="w-5 h-5" />,
-    title: 'List Agents',
-    description:
-      'View all AI agents configured in your system, along with their roles, activity state, and how they contribute to your workflow executions.',
-    bgColor: 'bg-indigo-50',
-    iconColor: 'text-indigo-600',
-    message: 'List all agents and summarize what each one does'
-  },
-  {
-    icon: <History className="w-5 h-5" />,
-    title: 'Last Workflow Run',
-    description:
-      'Inspect the most recent workflow execution, including when it ran, whether it succeeded or failed, and what that result means for your system.',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600',
-    message: 'Show my last workflow run and explain the result'
-  },
-  {
-    icon: <PlayCircle className="w-5 h-5" />,
-    title: 'Run History',
-    description:
-      'Analyze recent workflow executions over time to understand activity patterns, system stability, and overall execution trends.',
-    bgColor: 'bg-teal-50',
-    iconColor: 'text-teal-600',
-    message: 'Show recent workflow runs with a clear summary'
-  },
-  {
-    icon: <AlertTriangle className="w-5 h-5" />,
-    title: 'Failed Runs',
-    description:
-      'Identify workflows that failed recently, including how often failures occur and what their current impact is on your automation setup.',
-    bgColor: 'bg-red-50',
-    iconColor: 'text-red-600',
-    message: 'Show failed workflow runs and explain the failures'
-  },
-  {
-    icon: <CheckCircle className="w-5 h-5" />,
-    title: 'Workflow Status',
-    description:
-      'Check which workflows are currently active, paused, or inactive, and understand the overall operational state of your automation system.',
-    bgColor: 'bg-yellow-50',
-    iconColor: 'text-yellow-600',
-    message: 'Check workflow status and summarize system health'
-  }
-];
+  const suggestionCards: SuggestionCard[] = [
+    {
+      icon: <Workflow className="w-5 h-5" />,
+      title: 'List Workflows',
+      description:
+        'Get a complete overview of all workflows in your workspace, including their current status, creation details, and whether they are active or paused.',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      message: 'List all workflows and explain their current status'
+    },
+    {
+      icon: <Users className="w-5 h-5" />,
+      title: 'List Agents',
+      description:
+        'View all AI agents configured in your system, along with their roles, activity state, and how they contribute to your workflow executions.',
+      bgColor: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+      message: 'List all agents and summarize what each one does'
+    },
+    {
+      icon: <History className="w-5 h-5" />,
+      title: 'Last Workflow Run',
+      description:
+        'Inspect the most recent workflow execution, including when it ran, whether it succeeded or failed, and what that result means for your system.',
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      message: 'Show my last workflow run and explain the result'
+    },
+    {
+      icon: <PlayCircle className="w-5 h-5" />,
+      title: 'Run History',
+      description:
+        'Analyze recent workflow executions over time to understand activity patterns, system stability, and overall execution trends.',
+      bgColor: 'bg-teal-50',
+      iconColor: 'text-teal-600',
+      message: 'Show recent workflow runs with a clear summary'
+    },
+    {
+      icon: <AlertTriangle className="w-5 h-5" />,
+      title: 'Failed Runs',
+      description:
+        'Identify workflows that failed recently, including how often failures occur and what their current impact is on your automation setup.',
+      bgColor: 'bg-red-50',
+      iconColor: 'text-red-600',
+      message: 'Show failed workflow runs and explain the failures'
+    },
+    {
+      icon: <CheckCircle className="w-5 h-5" />,
+      title: 'Workflow Status',
+      description:
+        'Check which workflows are currently active, paused, or inactive, and understand the overall operational state of your automation system.',
+      bgColor: 'bg-yellow-50',
+      iconColor: 'text-yellow-600',
+      message: 'Check workflow status and summarize system health'
+    }
+  ];
 
   return (
     <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-8">
@@ -184,14 +192,12 @@ const suggestionCards: SuggestionCard[] = [
           {/* Icon */}
           <div className="flex justify-center mb-4 sm:mb-6">
             <div
-              className={`p-4 sm:p-6 rounded-3xl shadow-lg ${
-                isDarkMode ? 'bg-gray-800' : 'bg-white'
-              }`}
+              className={`p-4 sm:p-6 rounded-3xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+                }`}
             >
               <MessageCircle
-                className={`w-8 h-8 sm:w-12 sm:h-12 ${
-                  isDarkMode ? 'text-violet-400' : 'text-violet-600'
-                }`}
+                className={`w-8 h-8 sm:w-12 sm:h-12 ${isDarkMode ? 'text-violet-400' : 'text-violet-600'
+                  }`}
               />
             </div>
           </div>
@@ -199,16 +205,14 @@ const suggestionCards: SuggestionCard[] = [
           {/* Text */}
           <div className="text-center mb-8 sm:mb-12 px-4">
             <h2
-              className={`text-2xl sm:text-3xl font-bold mb-3 ${
-                isDarkMode ? 'text-gray-100' : 'text-gray-900'
-              }`}
+              className={`text-2xl sm:text-3xl font-bold mb-3 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}
             >
               How can we help you today?
             </h2>
             <p
-              className={`max-w-xl mx-auto ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}
+              className={`max-w-xl mx-auto ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}
             >
               I'm your AI workflow assistant. Ask me about workflows, agents, or
               execution history.
@@ -222,11 +226,10 @@ const suggestionCards: SuggestionCard[] = [
                 key={index}
                 onClick={() => onSuggestionClick(card.message)}
                 disabled={isLoading}
-                className={`p-4 sm:p-5 rounded-2xl border transition-all text-left group ${
-                  isDarkMode
-                    ? 'bg-gray-800 border-gray-700 hover:border-violet-500'
-                    : 'bg-white border-gray-200 hover:border-violet-300'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`p-4 sm:p-5 rounded-2xl border transition-all text-left group ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700 hover:border-violet-500'
+                  : 'bg-white border-gray-200 hover:border-violet-300'
+                  } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div
                   className={`inline-flex p-2.5 ${card.bgColor} rounded-lg mb-3 ${card.iconColor}`}
@@ -234,16 +237,14 @@ const suggestionCards: SuggestionCard[] = [
                   {card.icon}
                 </div>
                 <h3
-                  className={`font-semibold mb-1 ${
-                    isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                  }`}
+                  className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                    }`}
                 >
                   {card.title}
                 </h3>
                 <p
-                  className={`text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}
+                  className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}
                 >
                   {card.description}
                 </p>
@@ -261,12 +262,12 @@ const suggestionCards: SuggestionCard[] = [
               message.role === 'assistant'
                 ? extractJSON(message.content)
                 : {
-                    hasJSON: false,
-                    jsonData: null,
-                    beforeJSON: message.content,
-                    isPartialJSON: false,
-                    thinking: undefined
-                  };
+                  hasJSON: false,
+                  jsonData: null,
+                  beforeJSON: message.content,
+                  isPartialJSON: false,
+                  thinking: undefined
+                };
 
             const thinking = message.thinking || extractedThinking;
 
@@ -277,165 +278,211 @@ const suggestionCards: SuggestionCard[] = [
             return (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.role === 'user'
-                    ? 'justify-end'
-                    : 'justify-start'
-                }`}
+                className={`flex ${message.role === 'user'
+                  ? 'justify-end'
+                  : 'justify-start'
+                  }`}
               >
                 {/* =============================
-                   ASSISTANT WITH JSON
+                   ASSISTANT MESSAGE (STRICT 3-ROW LAYOUT + TOOLS + COLLAPSIBLE JSON)
                 ============================== */}
-                {message.role === 'assistant' && (hasJSON || isPartialJSON) ? (
-                  <div className="flex items-start space-x-3 w-full">
+                {message.role === 'assistant' ? (
+                  <div className="flex items-start space-x-3 max-w-full group">
                     <div
-                      className={`p-2 rounded-full ${
-                        isDarkMode ? 'bg-gray-800' : 'bg-primary/10'
-                      }`}
+                      className={`p-2 rounded-full shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-primary/10'
+                        }`}
                     >
                       <Bot className="w-4 h-4 text-primary" />
                     </div>
 
-                    <div
-                      className={`flex-1 rounded-2xl px-4 py-3 ${
-                        isDarkMode
-                          ? 'bg-gray-800 text-gray-200'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {(() => {
-                        const { title, items } = extractNumberedList(beforeJSON.trim());
+                    <div className={`flex-1 rounded-2xl overflow-hidden border transition-all duration-200 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+                      }`}>
 
-                        return (
-                          <div className="space-y-3">
-                            {/* Thinking Accordion */}
-                            {thinking && (
-                              <Accordion 
-                                key={`accordion-${message.id}-${isStreamingThisMessage ? 'open' : 'closed'}`}
-                                type="single" 
-                                collapsible 
-                                className="w-full"
-                                defaultValue={isStreamingThisMessage ? 'thinking' : ''}
-                              >
-                                <AccordionItem value="thinking" className="border-none">
-                                  <AccordionTrigger className="text-xs font-medium text-muted-foreground hover:no-underline py-2">
-                                    🤔 View Thinking Process
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div 
-                                      ref={(el) => {
-                                        thinkingRefs.current[`thinking-${message.id}`] = el;
-                                      }}
-                                      className="max-h-[180px] overflow-y-auto text-xs text-muted-foreground whitespace-pre-wrap"
-                                    >
-                                      {thinking}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              </Accordion>
-                            )}
+                      {/* ---------------------------------------------------------
+                          INITIAL LOADING STATE
+                      ---------------------------------------------------------- */}
+                      {isStreamingThisMessage && !thinking && !message.content && (
+                        <div className="px-5 py-4 flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <span>loading...</span>
+                        </div>
+                      )}
 
-                            {beforeJSON.trim() && (
-                              <>
-                                {/* Title */}
-                                {title && !/^\d+\./.test(title) && (
-                                  <p className="font-semibold text-sm">
-                                    {title}
-                                  </p>
-                                )}
-
-                                {/* Pills */}
-                                <div className="grid grid-cols-2 gap-2">
-                                  {items.map((item, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="px-3 py-1.5 rounded-full text-xs font-medium
-                                        bg-violet-100 text-violet-700
-                                        dark:bg-violet-900/30 dark:text-violet-300 w-fit"
-                                    >
-                                      {idx + 1}. {item}
-                                    </span>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-
-                            {/* Loading or View Table */}
-                            {isPartialJSON ? (
-                              <TableSkeleton isDarkMode={isDarkMode} />
-                            ) : jsonData && jsonData.length > 0 && (
-                              <button
-                                onClick={() => onViewTable(jsonData)}
-                                className="text-primary hover:underline font-medium text-sm"
-                              >
-                                View Table
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ) : message.role === 'user' ? (
-                  /* USER MESSAGE */
-                  <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 bg-primary text-white">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  </div>
-                ) : (
-                  /* ASSISTANT TEXT */
-                  <div className="flex items-start space-x-3 max-w-[85%] sm:max-w-[75%]">
-                    <div
-                      className={`p-2 rounded-full ${
-                        isDarkMode ? 'bg-gray-800' : 'bg-primary/10'
-                      }`}
-                    >
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                    <div
-                      className={`flex-1 rounded-2xl px-4 py-3 ${
-                        isDarkMode
-                          ? 'bg-gray-800 text-gray-200'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {/* Check if message has thinking text */}
-                      {thinking ? (
-                        <div className="space-y-2">
-                          <Accordion 
-                            key={`accordion-${message.id}-${isStreamingThisMessage ? 'open' : 'closed'}`}
-                            type="single" 
-                            collapsible 
+                      {/* ---------------------------------------------------------
+                          ROW 1: THINKING PROCESS (Collapsible, Auto-Open, Tool Parsing)
+                      ---------------------------------------------------------- */}
+                      {thinking && (
+                        <div className={`border-b ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'}`}>
+                          <Accordion
+                            key={`accordion-${message.id}`}
+                            type="single"
+                            collapsible
                             className="w-full"
-                            defaultValue={isStreamingThisMessage ? 'thinking' : ''}
+                            // Force 'thinking' open if streaming, otherwise let it be undefined (collapsed) or controlled by user interaction? 
+                            // Actually, defaultValue is for initial render. To force state, we need 'value'.
+                            // But 'value' makes it controlled. User wants to see it OPEN while streaming.
+                            // Let's use defaultValue='thinking' for new messages, and if user toggles it, it's fine.
+                            // But "time we open our top thinkig row... means we can see what they think" implies it should be open.
+                            defaultValue="thinking"
                           >
-                            <AccordionItem value="thinking" className="border-none">
-                              <AccordionTrigger className="text-xs font-medium text-muted-foreground hover:no-underline py-2">
-                                🤔 View Thinking Process
+                            <AccordionItem value="thinking" className="border-none px-0">
+                              <AccordionTrigger className="px-4 py-2.5 hover:no-underline hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                  <Bot className={`w-3.5 h-3.5 ${isStreamingThisMessage ? 'animate-pulse text-primary' : ''}`} />
+                                  <span>Thinking Process</span>
+                                </div>
                               </AccordionTrigger>
-                              <AccordionContent>
-                                <div 
+                              <AccordionContent className="px-4 pb-3 pt-0">
+                                <div
                                   ref={(el) => {
                                     thinkingRefs.current[`thinking-${message.id}`] = el;
                                   }}
-                                  className="max-h-[180px] overflow-y-auto text-xs text-muted-foreground whitespace-pre-wrap"
+                                  className={`
+                                    text-muted-foreground/90 font-mono leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto 
+                                    bg-black/5 dark:bg-black/20 p-4 rounded-lg border border-black/5 dark:border-white/5 space-y-2
+                                    ${isStreamingThisMessage ? 'animate-pulse' : ''}
+                                    text-sm sm:text-base font-light
+                                  `}
                                 >
-                                  {message.thinking}
+                                  {/* Advanced Thinking Parser */}
+                                  {(() => {
+                                    const lines = thinking.split('\n');
+                                    const blocks: { type: 'text' | 'tool', toolName?: string, content: string[] }[] = [];
+                                    let currentBlock: { type: 'text' | 'tool', toolName?: string, content: string[] } = { type: 'text', content: [] };
+
+                                    lines.forEach(line => {
+                                      // Heuristic for Tool Calls
+                                      const toolMatch = line.match(/^(?:Action|Tool|Calling tool):\s*(.+)/i);
+                                      if (toolMatch) {
+                                        if (currentBlock.content.length > 0) blocks.push(currentBlock);
+                                        currentBlock = { type: 'tool', toolName: toolMatch[1].trim(), content: [] };
+                                      }
+                                      currentBlock.content.push(line);
+                                    });
+                                    if (currentBlock.content.length > 0) blocks.push(currentBlock);
+
+                                    return blocks.map((block, i) => {
+                                      if (block.type === 'tool') {
+                                        return (
+                                          <div key={i} className="my-2 border rounded-md overflow-hidden dark:border-gray-700 border-gray-200 bg-white dark:bg-gray-900/50">
+                                            {/* Inner Tool Accordion - Default Open per user request */}
+                                            <Accordion type="single" collapsible className="w-full" defaultValue="tool-details">
+                                              <AccordionItem value="tool-details" className="border-none">
+                                                <AccordionTrigger className="px-3 py-2 text-xs hover:no-underline hover:bg-black/5 dark:hover:bg-white/5">
+                                                  <div className="flex items-center gap-2">
+                                                    <div className={`p-1 rounded ${isDarkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`}>
+                                                      <Workflow className="w-3 h-3" />
+                                                    </div>
+                                                    <span className={`font-bold ${isDarkMode ? 'text-primary' : 'text-primary-darkish'}`}>{block.toolName}</span>
+                                                  </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="px-3 py-2 bg-black/5 dark:bg-black/30 border-t dark:border-gray-700 border-gray-100">
+                                                  <div className="whitespace-pre-wrap opacity-80 pl-2 border-l-2 border-primary/30">
+                                                    {block.content.join('\n')}
+                                                  </div>
+                                                </AccordionContent>
+                                              </AccordionItem>
+                                            </Accordion>
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <div key={i} className="whitespace-pre-wrap px-1">
+                                          {block.content.join('\n')}
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+
+                                  {isStreamingThisMessage && (
+                                    <div className="flex items-center gap-2 pt-2 opacity-50">
+                                      <span className="w-1.5 h-3 bg-primary animate-pulse" />
+                                    </div>
+                                  )}
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
                           </Accordion>
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                         </div>
-                      ) : (
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.content}
-                        </p>
                       )}
+
+                      {/* ---------------------------------------------------------
+                          ROW 2: EXPLANATION / CONTENT
+                      ---------------------------------------------------------- */}
+                      {(() => {
+                        // FIX: Use beforeJSON if isPartialJSON OR hasJSON. 
+                        // This prevents raw JSON from being shown during streaming.
+                        const shouldHideJSON = hasJSON || isPartialJSON;
+                        const targetText = shouldHideJSON ? beforeJSON.trim() : message.content.trim();
+
+                        if (!targetText && !isStreamingThisMessage && !hasJSON && !isPartialJSON) return null;
+
+                        const { items, cleanText } = extractList(targetText);
+                        // If items exist, show cleanText (without list) to avoid duplication. Otherwise show full text.
+                        // Also append streaming cursor if applicable
+                        const textToShow = items.length > 0 ? cleanText : targetText;
+
+                        return (
+                          <div className={`px-5 py-4 relative min-h-[40px] ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                            {/* Main Text Content */}
+                            {(textToShow || isStreamingThisMessage) && (
+                              <div className="text-sm leading-7 whitespace-pre-wrap font-sans">
+                                {textToShow}
+                                {isStreamingThisMessage && !hasJSON && !isPartialJSON && (
+                                  <span className="inline-block w-2 h-4 bg-primary ml-1 align-middle animate-pulse"></span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Structured Lists Handling (UL/OL) */}
+                            {items.length > 0 && (
+                              <ul className="mt-4 space-y-2 pl-2">
+                                {items.map((item, idx) => (
+                                  <li key={idx} className="flex items-start gap-3">
+                                    <span className={`shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold mt-0.5 ${isDarkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'
+                                      }`}>
+                                      {item.type === 'number' ? idx + 1 : '•'}
+                                    </span>
+                                    <span className="text-sm leading-6">{item.content}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* ---------------------------------------------------------
+                          ROW 3: JSON DATA & ACTIONS (Collapsible)
+                      ---------------------------------------------------------- */}
+                      {(hasJSON || isPartialJSON) && (
+                        <div className="w-full">
+                          {isPartialJSON ? (
+                            <TableSkeleton isDarkMode={isDarkMode} />
+                          ) : (
+                            jsonData && (
+                              <div className="mt-4 rounded-lg border dark:border-gray-800 border-gray-200 overflow-hidden shadow-sm">
+                                <DataTable
+                                  data={jsonData}
+                                  title="Structured Data"
+                                  isDarkMode={isDarkMode}
+                                />
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
+
                     </div>
                   </div>
-                )}
+                ) : message.role === 'user' ? (
+                  /* USER MESSAGE */
+                  <div className="max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 bg-primary text-primary-foreground shadow-md">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -447,18 +494,16 @@ const suggestionCards: SuggestionCard[] = [
             <div className="flex justify-start">
               <div className="flex items-start space-x-3 max-w-[85%] sm:max-w-[75%]">
                 <div
-                  className={`p-2 rounded-full ${
-                    isDarkMode ? 'bg-gray-800' : 'bg-primary/10'
-                  }`}
+                  className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-primary/10'
+                    }`}
                 >
                   <Bot className="w-4 h-4 text-primary" />
                 </div>
                 <div
-                  className={`flex-1 rounded-2xl px-4 py-3 ${
-                    isDarkMode
-                      ? 'bg-gray-800 text-gray-200'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
+                  className={`flex-1 rounded-2xl px-4 py-3 ${isDarkMode
+                    ? 'bg-gray-800 text-gray-200'
+                    : 'bg-gray-100 text-gray-800'
+                    }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{typingText}</p>
                   {isGeneratingTable && (
