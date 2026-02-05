@@ -133,13 +133,15 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
             >
               <Globe className="h-4 w-4" />
             </button>
-            <button
-              onClick={(e) => onDeleteClick(agent.id, e)}
-              disabled={isDeleting}
-              className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </button>
+            {!isPublic && (
+              <button
+                onClick={(e) => onDeleteClick(agent.id, e)}
+                disabled={isDeleting}
+                className="bg-slate-100 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/20 border border-slate-200 dark:border-white/10 hover:border-red-500/30 px-3 py-2 rounded-lg transition-all duration-300 text-red-500 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </button>
+            )}
           </div>
         </div>
       </div>

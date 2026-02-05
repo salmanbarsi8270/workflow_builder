@@ -20,7 +20,7 @@ export function AgentCard({ agent, onEdit, onDelete, onRun, onInfo }: AgentCardP
                     <CardTitle className="flex items-center gap-2 text-lg">
                         <Bot className="h-5 w-5 text-primary" />
                         {agent.name}
-                    </CardTitle>    
+                    </CardTitle>
                     <div className="flex gap-1 group-hover:opacity-100 opacity-0 transition-opacity">
                         <TooltipProvider>
                             <Tooltip>
@@ -42,16 +42,18 @@ export function AgentCard({ agent, onEdit, onDelete, onRun, onInfo }: AgentCardP
                                 <TooltipContent>Edit Agent</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50" onClick={() => onDelete(agent.id)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete Agent</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        {!((agent.visibility === 'public' || (agent as any).is_public)) && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50" onClick={() => onDelete(agent.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete Agent</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
                     </div>
                 </div>
                 <CardDescription className="line-clamp-1 text-xs font-mono bg-muted/50 w-fit px-2 py-0.5 rounded">
@@ -64,10 +66,10 @@ export function AgentCard({ agent, onEdit, onDelete, onRun, onInfo }: AgentCardP
                 </p>
             </CardContent>
             <CardFooter className="pt-3 border-t bg-muted/5 gap-2">
-                 <Button className="w-full gap-2" variant="default" onClick={() => onRun(agent)}>
+                <Button className="w-full gap-2" variant="default" onClick={() => onRun(agent)}>
                     <Play className="h-4 w-4" />
                     Run Agent
-                 </Button>
+                </Button>
             </CardFooter>
         </Card>
     );
