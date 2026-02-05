@@ -25,7 +25,7 @@ export const InputArea = ({
   };
 
   return (
-    <div className={`border-t p-6 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+    <div className={`border-t p-3 sm:p-6 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
       <div className="max-w-5xl mx-auto">
         {/* Input Container */}
         <div className={`rounded-2xl border shadow-sm ${
@@ -99,7 +99,7 @@ export const InputArea = ({
         </div>
         
         {/* Quick Links */}
-        <div className="flex justify-center items-center space-x-6 mt-4 text-xs">
+        <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 sm:gap-x-6 mt-4 text-[10px] sm:text-xs">
           <button 
             onClick={() => onSuggestionClick("List all workflows")}
             className={`transition-colors ${

@@ -11,9 +11,20 @@ const AccordionItemContext = React.createContext<string>("")
 
 const Accordion = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { type?: "single" | "multiple"; collapsible?: boolean }
->(({ className, children, ...props }, ref) => {
-  const [value, setValue] = React.useState<string>("")
+  React.HTMLAttributes<HTMLDivElement> & { 
+    type?: "single" | "multiple"; 
+    collapsible?: boolean;
+    defaultValue?: string;
+  }
+>(({ className, children, type, collapsible, defaultValue, ...props }, ref) => {
+  const [value, setValue] = React.useState<string>(defaultValue || "")
+
+  // Sync with defaultValue if it changes (e.g. during streaming)
+  React.useEffect(() => {
+    if (defaultValue !== undefined) {
+      setValue(defaultValue)
+    }
+  }, [defaultValue])
 
   return (
     <AccordionContext.Provider value={{ value, setValue }}>
