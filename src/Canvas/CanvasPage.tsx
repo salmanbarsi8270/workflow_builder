@@ -2,13 +2,14 @@ import { useRef, useState, useEffect } from "react";
 import {
     Plus, PanelLeftClose, PanelLeftOpen,
     PanelRightClose, PanelRightOpen, Sparkles, Send,
-    Loader2, Trash2,
+    Loader2, Trash2, Settings,
     Code, Menu, LayoutTemplate, MoreVertical
 } from "lucide-react";
 import { Canvas } from "./generative_ui/Canvas";
 import type { UIComponent } from "./generative_ui/types";
 import { parseSSEChunk } from "../lib/sse-parser";
 import { applyAutoGridFlow } from "./generative_ui/auto-grid-engine";
+import { AgentConnectionDialog } from "../ui_components/Agents/AgentConnectionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/collapsible";
@@ -183,6 +184,25 @@ export default function CanvasPage() {
 
     const [isLeftOpen, setIsLeftOpen] = useState(true);
     const [isRightOpen, setIsRightOpen] = useState(true);
+
+    // Agent Config State
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [configAgent, setConfigAgent] = useState<any>(null);
+
+    const handleOpenConfig = async () => {
+        // Hardcoded agent ID from processAIResponse for context
+        const agentId = 'dcf594b0-148c-47e3-95a7-78c09b339740';
+        try {
+            const res = await fetch(`${API_URL}/api/v1/agents/${agentId}?userId=${userId}`);
+            if (res.ok) {
+                const agent = await res.json();
+                setConfigAgent(agent);
+                setIsConfigOpen(true);
+            }
+        } catch (e) {
+            console.error("Failed to load agent for config", e);
+        }
+    };
 
     const userId = user?.id || localStorage.getItem('userId') || 'guest';
 
@@ -490,25 +510,39 @@ export default function CanvasPage() {
 
         // Fetch connection map before streaming
         let connectionMap = {};
-        let agentConnectionId1 = 'dcf594b0-148c-47e3-95a7-78c09b339740'; // Default
+        let openrouterkey: string | undefined;
+        let cId: string | undefined;
 
-        try {
-            const linkRes = await fetch(`${API_URL}/api/v1/agents/${agentConnectionId1}/user-link?userId=625ea375-e6ff-44be-91bc-dcd3d495ad98`);
-            const linkData = await linkRes.json();
-            if (linkData && linkData.connection_map) {
-                connectionMap = linkData.connection_map;
-                // // If the link has a specific connection ID override for the agent, use it
-                // if (linkData.connection_id) {
-                //     agentConnectionId = linkData.connection_id; // Keeping default for now as per user request snippet, but map is key
-                // }
+        // Try to identify the agent from the current conversation metadata
+        // const currentConv = conversations.find(c => c.conversation_id === currentConversationId);
+        let agentConnectionId1 = 'dcf594b0-148c-47e3-95a7-78c09b339740'
+
+        // If we have a specific agent (not the default assistant), fetch user-specific connection links
+        if (agentConnectionId1 && agentConnectionId1 !== 'assistant') {
+            try {
+                const linkRes = await fetch(`${API_URL}/api/v1/agents/${agentConnectionId1}/user-link?userId=${userId}`);
+                if (linkRes.ok) {
+                    const linkData = await linkRes.json();
+                    if (linkData) {
+                        if (linkData.connection_map) {
+                            connectionMap = linkData.connection_map;
+                        }
+                        if (linkData.api_key) {
+                            openrouterkey = linkData.api_key;
+                        }
+                        if (linkData.connection_id) {
+                            cId = linkData.connection_id;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to fetch agent user link:", err);
             }
-        } catch (err) {
-            console.warn("Failed to fetch agent user link:", err);
         }
 
         try {
-            console.log("agent id", agentConnectionId1)
-            const response = await fetch(`${AI_URL}/agents/${agentConnectionId1}/stream`, {
+            console.log("Running Agent ID:", agentConnectionId1);
+       const response = await fetch(`${AI_URL}/agents/${agentConnectionId1}/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
                 body: JSON.stringify({
@@ -523,13 +557,13 @@ export default function CanvasPage() {
                             conversationId: currentConversationId,
                             tooluserid: userId,
                             connectionMap: connectionMap,
-                            agentId: agentConnectionId1
+                            agentId: agentConnectionId1,
+                            openrouterkey:openrouterkey
                         },
-                        maxSteps: 10,
+                        maxSteps: 100,
                     }
                 })
-            });
-
+            })
             if (!response.body) throw new Error("No response body");
 
             const reader = response.body.getReader();
@@ -836,6 +870,9 @@ export default function CanvasPage() {
                                         {conversations.find(c => c.conversation_id === currentConversationId)?.title || 'Untitled'}
                                     </Badge>
                                 )}
+                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1 text-muted-foreground" onClick={handleOpenConfig} title="Configure Agent Connections">
+                                    <Settings className="h-3.5 w-3.5" />
+                                </Button>
                             </div>
                         </div>
 
@@ -981,6 +1018,12 @@ export default function CanvasPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AgentConnectionDialog
+                open={isConfigOpen}
+                onOpenChange={setIsConfigOpen}
+                agent={configAgent}
+            />
         </TooltipProvider>
     );
 }

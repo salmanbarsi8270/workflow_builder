@@ -12,6 +12,7 @@ import type { Agent, ConnectionOption } from './types';
 import { RunAgentDialog } from './RunAgentDialog';
 import { AgentInfoSheet } from './AgentInfoSheet';
 import { CreateAgentDialog } from './CreateAgentDialog';
+import { AgentConnectionDialog } from './AgentConnectionDialog';
 import { ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/skeleton';
 import { type AutomationItem } from '@/ui_components/Automation/components/AutomationList';
@@ -34,6 +35,7 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubagents = (agent.subagents && agent.subagents.length > 0) || (agent.sub_agents && agent.sub_agents.length > 0);
   const subagentsList = agent.subagents || agent.sub_agents || [];
+  const isPublic = agent.visibility === 'public' || (agent as any).is_public;
 
   return (
     <div className={cn("flex flex-col gap-4", level > 0 && "ml-8 border-l-2 border-slate-200 dark:border-white/5 pl-8")}>
@@ -47,7 +49,10 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
         )} />
 
         <div className="relative bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-xl dark:shadow-2xl group-hover:border-blue-500/30 transition-all duration-300 h-full flex flex-col justify-between overflow-hidden">
-          <div className="absolute top-4 right-4 flex items-center gap-2">
+          {/* Subtle gradient overlay for public agents in dark mode */}
+          {isPublic && <div className="absolute inset-0 bg-linear-to-br from-purple-500/5 to-fuchsia-500/5 dark:from-purple-500/10 dark:to-fuchsia-500/10 pointer-events-none" />}
+
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             {hasSubagents && (
               <button
                 onClick={(e) => {
@@ -59,12 +64,15 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </button>
             )}
-            <div className="w-3 h-3 rounded-full shadow-lg bg-emerald-500" />
+            <div className={cn(
+              "w-3 h-3 rounded-full shadow-lg",
+              isPublic ? "bg-fuchsia-500 shadow-fuchsia-500/50" : "bg-emerald-500"
+            )} />
           </div>
 
           <div className="relative mb-4 shrink-0">
             <div className="relative bg-linear-to-br from-blue-600 to-indigo-600 p-3 rounded-xl w-fit shadow-lg shadow-blue-500/20">
-              <Bot className="h-6 w-6 text-white" />
+              {isPublic ? <Globe className="h-6 w-6 text-white" /> : <Bot className="h-6 w-6 text-white" />}
             </div>
           </div>
           <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-300 line-clamp-1">
@@ -74,6 +82,12 @@ function AgentTreeNode({ agent, idx, onCardClick, onRunClick, onEditClick, onPub
             <div className="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 rounded-lg text-xs font-mono text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 truncate max-w-full">
               {agent.model}
             </div>
+            {(agent.visibility === 'public' || (agent as any).is_public) && (
+              <div className="px-2 py-1 bg-purple-100 dark:bg-purple-500/10 rounded-lg text-[10px] font-bold text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 uppercase tracking-tighter flex items-center gap-1">
+                <Globe className="h-3 w-3" />
+                Public
+              </div>
+            )}
             {agent.parent_agent && (
               <div className="px-2 py-1 bg-slate-100 dark:bg-white/5 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 uppercase tracking-tighter">
                 Sub-Agent
@@ -177,9 +191,19 @@ export default function Agents() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const topLevelAgents = agents.filter(a => !a.parent_agent);
+  const [activeTab, setActiveTab] = useState<'all' | 'private' | 'public'>('all');
+
+  const filteredAgents = agents.filter(a => {
+    if (a.parent_agent) return false; // Filter out subagents from main list
+    if (activeTab === 'all') return true;
+    const isPublic = a.visibility === 'public' || (a as any).is_public;
+    if (activeTab === 'public') return isPublic;
+    if (activeTab === 'private') return !isPublic;
+    return true;
+  });
+
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAgents = topLevelAgents.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedAgents = filteredAgents.slice(startIndex, startIndex + itemsPerPage);
 
   // console.log("agents", agents);
   useEffect(() => {
@@ -370,10 +394,24 @@ export default function Agents() {
     }
   };
 
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [configAgent, setConfigAgent] = useState<Agent | null>(null);
+
   const handleEditClick = (agent: Agent, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingAgent(agent);
-    setIsCreateModalOpen(true);
+
+    // Check if user is owner
+    const isOwner = user?.id && (agent.userId === user.id || (agent as any).user_id === user.id);
+
+    if (!isOwner && (agent.visibility === 'public' || (agent as any).is_public)) {
+      // Open Config Dialog for Public Agents not owned by user
+      setConfigAgent(agent);
+      setIsConfigModalOpen(true);
+    } else {
+      // Standard Edit for Owner
+      setEditingAgent(agent);
+      setIsCreateModalOpen(true);
+    }
   };
 
   const handleCardClick = (agent: Agent) => {
@@ -401,8 +439,9 @@ export default function Agents() {
 
       <div className="relative z-10 container mx-auto p-8 w-full flex flex-col min-h-full">
         {/* Header */}
-        <div className="mb-12 animate-in fade-in slide-in-from-top duration-700">
+        <div className="mb-8 animate-in fade-in slide-in-from-top duration-700">
           <div className="flex items-center justify-between mb-6">
+            {/* ... header content ... */}
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="absolute inset-0 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-20" />
@@ -441,6 +480,26 @@ export default function Agents() {
                   Create Agent
                 </div>
               </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex justify-center mb-8">
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10">
+              {(['all', 'public', 'private'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 capitalize",
+                    activeTab === tab
+                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  {tab} Agents
+                </button>
+              ))}
             </div>
           </div>
 
@@ -583,6 +642,22 @@ export default function Agents() {
         onRefreshConnections={() => loadConnections(true)}
       />
 
+      {configAgent && (
+        <AgentConnectionDialog
+          open={isConfigModalOpen}
+          onOpenChange={(val) => {
+            setIsConfigModalOpen(val);
+            if (!val) setConfigAgent(null);
+          }}
+          agent={configAgent}
+          onSaved={() => {
+            setIsConfigModalOpen(false);
+            setConfigAgent(null);
+            toast.success("Connection configuration saved");
+          }}
+        />
+      )}
+
       <RunAgentDialog
         agent={selectedRunAgent}
         open={isRunModalOpen}
@@ -607,7 +682,7 @@ export default function Agents() {
       {/* Pagination Footer */}
       <CustomPagination
         currentPage={currentPage}
-        totalItems={topLevelAgents.length}
+        totalItems={filteredAgents.length}
         itemsPerPage={itemsPerPage}
         onPageChange={setCurrentPage}
         onItemsPerPageChange={setItemsPerPage}
