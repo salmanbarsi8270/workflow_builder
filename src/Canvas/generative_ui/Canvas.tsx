@@ -7,9 +7,9 @@ interface CanvasProps {
 
 export function Canvas({ uiSchema }: CanvasProps) {
     return (
-        <div className="flex-1 w-full h-full overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 scrollbar-track-transparent">
-            <div className="min-h-full w-full pb-32 max-w-7xl mx-auto">
-                <div className="grid grid-cols-12 gap-6" style={{ gridAutoFlow: 'dense' }}>
+        <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10">
+            <div className="min-h-full w-full px-4 lg:px-6 xl:px-8 py-6 sm:py-8 md:py-12 pb-32 sm:pb-48 max-w-7xl mx-auto relative z-10">
+                <div className="grid grid-cols-12 gap-4 sm:gap-6" style={{ gridAutoFlow: 'dense' }}>
                     <DynamicRenderer component={uiSchema} isRoot={true} />
                 </div>
             </div>

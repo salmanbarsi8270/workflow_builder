@@ -158,9 +158,9 @@ export function getGridClasses(
  * Get max columns based on sidebar state
  */
 function getMaxColumns(leftSidebarOpen: boolean, rightSidebarOpen: boolean): number {
-    if (!leftSidebarOpen && !rightSidebarOpen) return 4;
-    if (leftSidebarOpen && rightSidebarOpen) return 2;
-    return 3;
+    if (!leftSidebarOpen && !rightSidebarOpen) return 5; // Increased from 4
+    if (leftSidebarOpen && rightSidebarOpen) return 3;   // Increased from 2
+    return 4;                                            // Increased from 3
 }
 
 /**
@@ -178,25 +178,21 @@ function getAdaptiveColSpan(
     }
     
     if (width === 'quarter') {
-        if (maxCols === 4) return 'col-span-12 md:col-span-6 lg:col-span-3';  // 1/4
-        if (maxCols === 3) return 'col-span-12 md:col-span-6 lg:col-span-4';  // 1/3
-        return 'col-span-12 md:col-span-6';  // 1/2
+        if (maxCols >= 5) return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3 xl:col-span-2_4'; // 1/5 approx or just 2-3
+        return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3'; 
     }
     
     if (width === 'third') {
-        if (maxCols === 4) return 'col-span-12 md:col-span-6 lg:col-span-4';  // 1/3
-        if (maxCols === 3) return 'col-span-12 md:col-span-6 lg:col-span-4';  // 1/3
-        return 'col-span-12 md:col-span-6';  // 1/2
+        return 'col-span-12 sm:col-span-6 md:col-span-4'; // Always try 1/3
     }
     
     if (width === 'half') {
-        if (maxCols === 4) return 'col-span-12 md:col-span-6';  // 1/2
-        if (maxCols === 3) return 'col-span-12 md:col-span-6 lg:col-span-4';  // 1/3
-        return 'col-span-12 md:col-span-6';  // 1/2
+        if (maxCols >= 4) return 'col-span-12 md:col-span-6'; 
+        return 'col-span-12 md:col-span-6'; 
     }
     
-    // Default to half
-    return 'col-span-12 md:col-span-6';
+    // Default to medium/small (1/3 or 1/2) instead of big
+    return 'col-span-12 md:col-span-6 lg:col-span-4';
 }
 
 /**

@@ -3,36 +3,20 @@ import {
     Plus, PanelLeftClose, PanelLeftOpen,
     PanelRightClose, PanelRightOpen, Sparkles, Send,
     Loader2, Trash2, Settings,
-    Code, Menu, LayoutTemplate, MoreVertical
+    Code, Menu, LayoutTemplate, MoreVertical,
+    MessageSquare, Zap
 } from "lucide-react";
-import { Canvas } from "./generative_ui/Canvas";
 import type { UIComponent } from "./generative_ui/types";
 import { parseSSEChunk } from "../lib/sse-parser";
 import { applyAutoGridFlow } from "./generative_ui/auto-grid-engine";
 import { AgentConnectionDialog } from "../ui_components/Agents/AgentConnectionDialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/collapsible";
 import {
-    TooltipProvider
+    TooltipProvider,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger
 } from "@/components/ui/tooltip";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -41,13 +25,23 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "../context/UserContext";
 import { AI_URL, API_URL } from "../ui_components/api/apiurl";
 import { cn } from "@/lib/utils";
+
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+
+
+// Imported Components
+import { LeftSidebar } from "./components/LeftSidebar";
+import { RightSidebar } from "./components/RightSidebar";
+import { InputArea } from "./components/InputArea";
+import { CanvasArea } from "./components/CanvasArea";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { SidebarContent } from "@/components/sidebar";
 
 interface Message {
     id?: string;
@@ -60,39 +54,64 @@ interface Message {
 const initialSchema: UIComponent = {
     type: 'container',
     props: {
-        className: 'p-8 h-full overflow-y-auto pb-48 items-start content-start',
+        className: 'w-full h-full',
         layout: 'grid',
-        gap: 6
+        cols: 12,
+        gap: 4
     },
     children: []
 };
 
-// Adaptive grid column calculation based on sidebar visibility
-const getAdaptiveColSpan = (leftSidebarOpen: boolean, rightSidebarOpen: boolean): string => {
+// Responsive grid column calculation based on sidebar visibility and screen size
+const getAdaptiveColSpan = (
+    leftSidebarOpen: boolean, 
+    rightSidebarOpen: boolean,
+    isMobile: boolean
+): string => {
+    if (isMobile) {
+        // Mobile: Full width cards
+        return 'col-span-12';
+    }
+
     if (!leftSidebarOpen && !rightSidebarOpen) {
-        // Full canvas: 4 columns per row (12/4 = 3)
-        return 'col-span-12 md:col-span-6 lg:col-span-3';
+        // Full canvas: 4 columns per row on desktop
+        return 'col-span-12 md:col-span-6 lg:col-span-4 xl:col-span-3';
     } else if (leftSidebarOpen && !rightSidebarOpen) {
-        // Left sidebar only: 3 columns per row (12/3 = 4  )
+        // Left sidebar only: 3 columns per row
         return 'col-span-12 md:col-span-6 lg:col-span-4';
     } else if (!leftSidebarOpen && rightSidebarOpen) {
         // Right sidebar only: 3 columns per row
         return 'col-span-12 md:col-span-6 lg:col-span-4';
     } else {
-        // Both sidebars: 2 columns per row (12/2 = 6)
-        return 'col-span-12 md:col-span-6';
+        // Both sidebars: 3 columns per row (was 2)
+        return 'col-span-12 md:col-span-6 lg:col-span-4';
     }
 };
 
+// Mobile sidebar detection
+const useMobile = () => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    return isMobile;
+};
 
 const transformComponentData = (data: any): any => {
     if (!data || typeof data !== 'object') return data;
     if (Array.isArray(data)) {
         const transformedChildren = data.map(transformComponentData);
-        // If it's a top-level array, wrap it in a container
         return {
             type: 'container',
-            props: { layout: 'grid', cols: 1 },
+            props: { layout: 'grid', cols: 12 },
             children: transformedChildren
         };
     }
@@ -131,25 +150,21 @@ const transformComponentData = (data: any): any => {
             transformed.props = { ...transformed.props, ...sourceData.props };
         }
 
-        // Copy all other keys as props (excluding known keywords)
         Object.keys(sourceData).forEach(key => {
             if (!['type', 'component', 'children', 'content', 'props', 'items', 'rows', 'data'].includes(key)) {
                 transformed.props[key] = sourceData[key];
             }
         });
 
-        // Resolve children from multiple possible sources
         const childrenSource = sourceData.children || sourceData.content || sourceData.items || sourceData.rows || sourceData.data;
 
         if (childrenSource !== undefined) {
             if (Array.isArray(childrenSource)) {
                 transformed.children = childrenSource.map(transformComponentData);
             } else if (typeof childrenSource === 'object' && childrenSource !== null) {
-                // If it's a single object that looks like a component, transform it
                 if (childrenSource.type || childrenSource.component || (Object.keys(childrenSource).length === 1 && componentTypes.includes(Object.keys(childrenSource)[0]))) {
                     transformed.children = [transformComponentData(childrenSource)];
                 } else {
-                    // Otherwise, just pass it (might be a raw data object)
                     transformed.children = childrenSource;
                 }
             } else {
@@ -171,6 +186,7 @@ export default function CanvasPage() {
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [conversations, setConversations] = useState<any[]>([]);
+    const [convasationloading, setConvasationloading] = useState(false);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -182,8 +198,8 @@ export default function CanvasPage() {
     const [isClearingHistory, setIsClearingHistory] = useState(false);
     const [isLoadingConv, setIsLoadingConv] = useState(false);
 
-    const [isLeftOpen, setIsLeftOpen] = useState(true);
-    const [isRightOpen, setIsRightOpen] = useState(true);
+    const [isLeftOpen, setIsLeftOpen] = useState(false);
+    const [isRightOpen, setIsRightOpen] = useState(false);
 
     // Agent Config State
     const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -204,10 +220,19 @@ export default function CanvasPage() {
         }
     };
 
+    const isMobile = useMobile();
     const userId = user?.id || localStorage.getItem('userId') || 'guest';
+
+    useEffect(() => {
+        if (isMobile) {
+            setIsLeftOpen(false);
+            setIsRightOpen(false);
+        }
+    }, [isMobile]);
 
     const fetchConversations = async () => {
         try {
+            setConvasationloading(true);
             const response = await fetch(`${AI_URL}/api/memory/conversations?userId=${userId}&limit=50&offset=0`);
             const data = await response.json();
             if (data.conversations) setConversations(data.conversations);
@@ -218,6 +243,9 @@ export default function CanvasPage() {
                 description: "Failed to load conversations",
                 variant: "destructive",
             });
+        }
+        finally {
+            setConvasationloading(false);
         }
     };
 
@@ -276,6 +304,8 @@ export default function CanvasPage() {
             });
         } finally {
             setIsCreating(false);
+            setIsRightOpen(true);
+            setIsLeftOpen(false);
         }
     };
 
@@ -303,6 +333,8 @@ export default function CanvasPage() {
             });
         } finally {
             setDeletingConvId(null);
+            setIsRightOpen(false);
+            setIsLeftOpen(false);
         }
     };
 
@@ -335,6 +367,8 @@ export default function CanvasPage() {
             });
         } finally {
             setIsClearingHistory(false);
+            setIsRightOpen(false);
+            setIsLeftOpen(false);
         }
     };
 
@@ -366,26 +400,23 @@ export default function CanvasPage() {
                     const components = messagesWithUI.map((msg: Message) => {
                         try {
                             const transformed = transformComponentData(JSON.parse(msg.componentJson!));
-
-                            // Find matching user message (preceding the assistant message)
                             const msgIndex = loadedMessages.findIndex((m: any) => m.id === msg.id);
                             const userMsg = msgIndex > 0 ? loadedMessages[msgIndex - 1] : null;
                             const userPrompt = userMsg?.role === 'user' ? userMsg.content : "Generated Component";
-                            // For historical messages, if content is the default success msg, we might not have the thinking text.
                             const thinkingText = msg.content !== "UI component generated successfully" ? msg.content : "Process completed";
 
-                            const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen, isRightOpen);
+                            const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen && !isMobile, isRightOpen && !isMobile);
                             return {
                                 type: 'card',
-                                props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden` },
+                                props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden` },
                                 children: [
                                     {
                                         type: 'div',
-                                        props: { className: 'p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent backdrop-blur-sm' },
+                                        props: { className: 'p-3 sm:p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent backdrop-blur-sm' },
                                         children: [
                                             {
                                                 type: 'text',
-                                                props: { className: 'text-sm font-semibold text-foreground mb-3 line-clamp-2 leading-relaxed', content: userPrompt }
+                                                props: { className: 'text-sm font-semibold text-foreground mb-2 sm:mb-3 line-clamp-2 leading-relaxed', content: userPrompt }
                                             },
                                             {
                                                 type: 'thinking-block',
@@ -396,7 +427,7 @@ export default function CanvasPage() {
                                     },
                                     {
                                         type: 'div',
-                                        props: { className: 'p-4' },
+                                        props: { className: 'p-3 sm:p-4' },
                                         children: [transformed]
                                     }
                                 ]
@@ -407,9 +438,10 @@ export default function CanvasPage() {
                     setUiSchema({
                         type: 'container',
                         props: {
-                            className: 'p-8 h-full overflow-y-auto pb-48 items-start content-start',
+                            className: 'w-full h-full',
                             layout: 'grid',
-                            gap: 6
+                            cols: 12,
+                            gap: 4
                         },
                         children: components
                     });
@@ -425,13 +457,13 @@ export default function CanvasPage() {
                 variant: "destructive",
             });
         }
-        finally { setIsLoadingConv(false); }
+        finally { setIsLoadingConv(false); setTimeout(() => setIsRightOpen(true), 1000); setTimeout(() => setIsLeftOpen(false), 1000); }
     };
 
     const scrollToBottom = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
     };
 
     useEffect(() => {
@@ -462,24 +494,23 @@ export default function CanvasPage() {
         setInputValue('');
         setIsLoading(true);
 
-        // Immediately create placeholder card with question
         const placeholderId = `placeholder-${Date.now()}`;
-        const adaptiveColSpan = getAdaptiveColSpan(isLeftOpen, isRightOpen);
+        const adaptiveColSpan = getAdaptiveColSpan(isLeftOpen, isRightOpen, isMobile);
         const placeholderCard = {
             type: 'card',
             props: {
-                className: `${adaptiveColSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg rounded-2xl overflow-hidden animate-in fade-in duration-300`,
+                className: `${adaptiveColSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in duration-300`,
                 id: placeholderId
             },
             children: [
                 {
                     type: 'div',
-                    props: { className: 'p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent' },
+                    props: { className: 'p-3 sm:p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent' },
                     children: [
-                        { type: 'text', props: { className: 'text-sm font-semibold text-foreground mb-3 line-clamp-2 leading-relaxed', content: text } },
+                        { type: 'text', props: { className: 'text-sm font-semibold text-foreground mb-2 sm:mb-3 line-clamp-2 leading-relaxed', content: text } },
                         {
                             type: 'div',
-                            props: { className: 'flex items-center gap-2 py-2' },
+                            props: { className: 'flex items-center gap-2 py-1 sm:py-2' },
                             children: [
                                 { type: 'text', props: { className: 'text-[11px] font-medium text-muted-foreground uppercase tracking-wider', content: '⚡ Thinking...' } }
                             ]
@@ -488,13 +519,13 @@ export default function CanvasPage() {
                 },
                 {
                     type: 'div',
-                    props: { className: 'p-4 min-h-[120px] flex items-center justify-center' },
+                    props: { className: 'p-3 sm:p-4 min-h-[100px] sm:min-h-[120px] flex items-center justify-center' },
                     children: [
                         {
                             type: 'div',
-                            props: { className: 'flex flex-col items-center gap-3 text-muted-foreground' },
+                            props: { className: 'flex flex-col items-center gap-2 sm:gap-3 text-muted-foreground' },
                             children: [
-                                { type: 'text', props: { className: 'text-sm animate-pulse', content: 'Processing your request...' } }
+                                { type: 'text', props: { className: 'text-xs sm:text-sm animate-pulse', content: 'Processing your request...' } }
                             ]
                         }
                     ]
@@ -504,11 +535,10 @@ export default function CanvasPage() {
 
         setUiSchema(prev => ({
             type: 'container',
-            props: { className: 'p-8 h-full overflow-y-auto pb-48 items-start content-start', layout: 'grid', gap: 6 },
+            props: { className: 'w-full h-full', layout: 'grid', cols: 12, gap: 4 },
             children: [...(prev.children || []), placeholderCard]
         }));
 
-        // Fetch connection map before streaming
         let connectionMap = {};
         let openrouterkey: string | undefined;
         let cId: string | undefined;
@@ -601,11 +631,9 @@ export default function CanvasPage() {
                     const parsed = JSON.parse(jsonText);
                     const transformed = transformComponentData(parsed);
 
-                    // Preserve thinking text
                     assistantContent = fullStreamBuffer.substring(0, jsonStartIndex).replace('```json', '').trim();
                     if (!assistantContent) assistantContent = "Process completed";
 
-                    // Update placeholder to "Generating UI" state
                     setUiSchema(prev => ({
                         ...prev,
                         children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
@@ -613,18 +641,18 @@ export default function CanvasPage() {
                                 ? {
                                     ...child,
                                     children: [
-                                        child.children[0], // Keep header
+                                        child.children[0],
                                         {
                                             type: 'div',
-                                            props: { className: 'p-4 min-h-[120px]' },
+                                            props: { className: 'p-3 sm:p-4 min-h-[100px] sm:min-h-[120px]' },
                                             children: [
                                                 {
                                                     type: 'div',
-                                                    props: { className: 'space-y-3 animate-pulse' },
+                                                    props: { className: 'space-y-2 sm:space-y-3 animate-pulse' },
                                                     children: [
-                                                        { type: 'div', props: { className: 'h-8 bg-muted rounded' } },
-                                                        { type: 'div', props: { className: 'h-4 bg-muted rounded w-3/4' } },
-                                                        { type: 'div', props: { className: 'h-4 bg-muted rounded w-1/2' } }
+                                                        { type: 'div', props: { className: 'h-6 sm:h-8 bg-muted rounded' } },
+                                                        { type: 'div', props: { className: 'h-3 sm:h-4 bg-muted rounded w-3/4' } },
+                                                        { type: 'div', props: { className: 'h-3 sm:h-4 bg-muted rounded w-1/2' } }
                                                     ]
                                                 }
                                             ]
@@ -640,19 +668,18 @@ export default function CanvasPage() {
                         componentJson: JSON.stringify(parsed, null, 2)
                     };
 
-                    // Wrap new component with intelligent grid
-                    const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen, isRightOpen);
+                    const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen && !isMobile, isRightOpen && !isMobile);
                     const wrapperComponent = {
                         type: 'card',
-                        props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500` },
+                        props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500` },
                         children: [
                             {
                                 type: 'div',
-                                props: { className: 'p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent backdrop-blur-sm' },
+                                props: { className: 'p-3 sm:p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent backdrop-blur-sm' },
                                 children: [
                                     {
                                         type: 'text',
-                                        props: { className: 'text-sm font-semibold text-foreground mb-3 line-clamp-2 leading-relaxed', content: text }
+                                        props: { className: 'text-sm font-semibold text-foreground mb-2 sm:mb-3 line-clamp-2 leading-relaxed', content: text }
                                     },
                                     {
                                         type: 'thinking-block',
@@ -663,13 +690,12 @@ export default function CanvasPage() {
                             },
                             {
                                 type: 'div',
-                                props: { className: 'p-4' },
+                                props: { className: 'p-3 sm:p-4' },
                                 children: [transformed]
                             }
                         ]
                     };
 
-                    // Replace placeholder with final component
                     setUiSchema(prev => ({
                         ...prev,
                         children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
@@ -703,7 +729,6 @@ export default function CanvasPage() {
             };
             setMessages(prev => [...prev, assistantMsg]);
 
-            // Save messages to memory
             fetch(`${AI_URL}/api/memory/save-messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -737,114 +762,31 @@ export default function CanvasPage() {
     };
 
 
-    const SidebarContent = ({ className }: { className?: string }) => (
-        <div className={cn("flex flex-col h-full bg-card/50 backdrop-blur-xl", className)}>
-            <div className="p-4 flex items-center justify-between border-b border-border/10">
-                <div className="flex items-center gap-2">
-                    <LayoutTemplate className="h-5 w-5 text-primary" />
-                    <h2 className="font-semibold text-sm">My Projects</h2>
-                </div>
-                <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
-                    <Plus className="h-4 w-4" />
-                </Button>
-            </div>
-
-            <ScrollArea className="flex-1 py-2">
-                <div className="px-3 space-y-1">
-                    {conversations.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-muted-foreground">
-                            No projects yet
-                        </div>
-                    ) : (
-                        conversations.map(conv => (
-                            <div
-                                key={conv.conversation_id}
-                                onClick={() => !isLoadingConv && handleLoadConversation(conv)}
-                                className={cn(
-                                    "group flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-colors hover:bg-muted/50",
-                                    currentConversationId === conv.conversation_id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
-                                    isLoadingConv && "opacity-50 cursor-not-allowed"
-                                )}
-                            >
-                                <span className="truncate flex-1 pr-2">{conv.title || 'Untitled'}</span>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100" onClick={(e) => e.stopPropagation()}>
-                                            <MoreVertical className="h-3 w-3" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                            className="text-destructive focus:text-destructive"
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.conversation_id, conv.title); }}
-                                            disabled={deletingConvId === conv.conversation_id}
-                                        >
-                                            {deletingConvId === conv.conversation_id ? (
-                                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                                            ) : (
-                                                <Trash2 className="h-3 w-3 mr-2" />
-                                            )}
-                                            Delete Project
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </ScrollArea>
-            <div className="p-4 border-t border-border/10">
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start text-xs text-muted-foreground hover:text-destructive h-8 px-2">
-                            <Trash2 className="h-3 w-3 mr-2" />
-                            Clear All History
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete ALL your projects and messages. This action cannot be undone.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={handleClearAllHistory}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                disabled={isClearingHistory}
-                            >
-                                {isClearingHistory ? (
-                                    <>
-                                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                                        Clearing...
-                                    </>
-                                ) : (
-                                    'Permanently Delete All'
-                                )}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
-        </div>
-    );
-
     return (
         <TooltipProvider>
             <div className="flex h-screen w-full bg-background overflow-hidden relative">
 
                 {/* Desktop Left Sidebar */}
                 <aside className={cn(
-                    "hidden md:flex w-64 border-r shrink-0 flex-col bg-card transition-all duration-300",
+                    "hidden md:flex w-[23%] border-r shrink-0 flex-col transition-all duration-300 ease-out",
                     !isLeftOpen && "w-0 border-none overflow-hidden"
                 )}>
-                    <SidebarContent />
+                    <LeftSidebar 
+                        conversations={conversations}
+                        convasationloading={convasationloading}
+                        currentConversationId={currentConversationId}
+                        isLoadingConv={isLoadingConv}
+                        deletingConvId={deletingConvId}
+                        isClearingHistory={isClearingHistory}
+                        handleNewChat={handleNewChat}
+                        handleLoadConversation={handleLoadConversation}
+                        handleDeleteConversation={handleDeleteConversation}
+                        handleClearAllHistory={handleClearAllHistory}
+                    />
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 flex flex-col relative overflow-hidden bg-background/50">
+                <main className="flex-1 flex flex-col relative overflow-hidden">
                     {/* Header */}
                     <div className="absolute top-0 left-0 right-0 z-20 h-14 flex items-center justify-between px-4 bg-background/30 backdrop-blur-md border-b border-border/5">
                         <div className="flex items-center gap-3">
@@ -876,100 +818,127 @@ export default function CanvasPage() {
                             </div>
                         </div>
 
+                    <div className="h-14 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 z-40
+                        bg-[radial-gradient(#e5e7eb_1px,transparent_1px)]
+                        dark:bg-[radial-gradient(#1f1f1f_1px,transparent_1px)]"
+                        style={{ backgroundSize: '20px 20px' }}
+                    >
+                        {/* LEFT */}
                         <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="hidden md:flex h-8 w-8" onClick={() => setIsRightOpen(!isRightOpen)}>
-                                {isRightOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Canvas Area */}
-                    <div className="h-full pb-0 overflow-hidden relative">
-                        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none" />
-                        <div className="h-full w-full overflow-auto px-4 md:px-8 py-8 pb-32">
-                            <Canvas uiSchema={uiSchema} />
-                        </div>
-                    </div>
-
-                    {/* Floating Chat Input */}
-                    <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center z-30 pointer-events-none">
-                        <div className="w-full max-w-2xl pointer-events-auto">
-                            <form onSubmit={handleSendMessage} className="relative group">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-500" />
-                                <div className="relative flex items-center bg-background/80 backdrop-blur-xl border shadow-2xl rounded-xl p-2 transition-all ring-1 ring-border/20 focus-within:ring-primary/20">
-                                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground">
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                    <Input
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                        placeholder="Ask Voltagent to build something..."
-                                        className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent h-10 px-3"
-                                        disabled={isLoading || !currentConversationId}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        size="icon"
-                                        disabled={!inputValue.trim() || isLoading}
-                                        className={cn("h-9 w-9 rounded-lg transition-all", inputValue.trim() ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground")}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => setIsLeftOpen(!isLeftOpen)}
+                                        className={cn(
+                                            "h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300",
+                                            "hover:scale-110 active:scale-95",
+                                            "hover:shadow-[0_0_15px_rgba(var(--primary),0.2)]",
+                                            isLeftOpen
+                                                ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                                        )}
                                     >
-                                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                    </Button>
-                                </div>
-                            </form>
+                                        <PanelLeftOpen className="h-4 w-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isLeftOpen ? 'Close History' : 'Show History'}</p>
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
+
+                        {/* RIGHT */}
+                        <div className="flex items-center gap-2">
+                            {((uiSchema.children?.length ?? 0) > 0) && (
+                                <button
+                                    onClick={() => {
+                                        setUiSchema(initialSchema);
+                                        setMessages([]);
+                                        setCurrentConversationId(null);
+                                        setIsRightOpen(false);
+                                        setIsLeftOpen(false);
+                                    }}
+                                    title="Clear Canvas"
+                                    className="h-9 w-9 rounded-xl bg-destructive/10 hover:bg-destructive/20
+                                        hover:text-destructive text-destructive/80 flex items-center
+                                        justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+                                >
+                                    ✕
+                                </button>
+                            )}
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => setIsRightOpen(!isRightOpen)}
+                                        className={cn(
+                                            "h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300",
+                                            "hover:scale-110 active:scale-95",
+                                            "hover:shadow-[0_0_15px_rgba(var(--primary),0.2)]",
+                                            isRightOpen
+                                                ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                                        )}
+                                    >
+                                        <MessageSquare className="h-4 w-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isRightOpen ? 'Close Chat' : 'Show Chat'}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </div>
+
+
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-hidden">
+                        {/* Desktop Content */}
+                        <div className="hidden md:flex h-full pb-20">
+                            {/* Canvas Area */}
+                            <CanvasArea uiSchema={uiSchema} />   
+                        </div>
+                    </div>
+
+                    {/* Floating Chat Input with Dynamic Positioning & Title */}
+                    <div
+                        className={cn(
+                            "absolute z-40 transition-all duration-700 ease-in-out w-full px-4 pointer-events-none",
+                            (messages.length > 0)
+                                ? "bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 max-w-4xl"
+                                : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-3xl"
+                        )}
+                    >
+                        {messages.length === 0 && (
+                            <div className="mb-8 sm:mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000 pointer-events-auto">
+                                <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4 bg-linear-to-br from-foreground to-foreground/40 bg-clip-text text-transparent">
+                                    CANVAS BUILDER
+                                </h1>
+                                <p className="text-muted-foreground max-w-sm mx-auto text-sm font-medium leading-relaxed opacity-60">
+                                    Ask any question and receive visual, component-based answers.
+                                </p>
+                            </div>
+                        )}
+                        <InputArea
+                            inputValue={inputValue}
+                            setInputValue={setInputValue}
+                            handleSendMessage={handleSendMessage}
+                            handleNewChat={handleNewChat}
+                            isLoading={isLoading}
+                            currentConversationId={currentConversationId}
+                            className={messages.length > 0 ? "shadow-2xl translate-y-0" : "shadow-3xl"}
+                        />
                     </div>
                 </main>
+                
 
-                {/* Desktop Right Sidebar (Assistant History) */}
+                {/* Desktop Right Sidebar */}
                 <aside className={cn(
-                    "hidden md:flex w-80 border-l shrink-0 flex-col bg-card transition-all duration-300",
+                    "flex w-[30%] border-l shrink-0 flex-col transition-all duration-300 ease-out h-full",
                     !isRightOpen && "w-0 border-none overflow-hidden"
                 )}>
-                    <div className="p-4 border-b border-border/10 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <h2 className="font-semibold text-sm">Assistant</h2>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:transition-colors">
-                        <div className="space-y-4 pb-4">
-                            {messages.length === 0 ? (
-                                <div className="text-center text-xs text-muted-foreground py-12">
-                                    Start a conversation to see history
-                                </div>
-                            ) : (
-                                messages.map(msg => (
-                                    <div key={msg.id} className={cn("flex flex-col gap-1", msg.role === 'user' ? "items-end" : "items-start")}>
-                                        <div className={cn(
-                                            "max-w-[90%] rounded-2xl px-3 py-2 text-sm break-words",
-                                            msg.role === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-muted-foreground rounded-bl-none"
-                                        )}>
-                                            {msg.content}
-                                        </div>
-                                        {msg.componentJson && (
-                                            <Collapsible>
-                                                <CollapsibleTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-6 gap-1 text-[10px] text-muted-foreground hover:text-foreground">
-                                                        <Code className="h-3 w-3" /> View Code
-                                                    </Button>
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent>
-                                                    <div className="mt-2 text-[10px] bg-muted/50 p-2 rounded border font-mono overflow-auto max-h-32">
-                                                        {msg.componentJson}
-                                                    </div>
-                                                </CollapsibleContent>
-                                            </Collapsible>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    </div>
-                </aside>
-
+                    <RightSidebar messages={messages} messagesEndRef={messagesEndRef} />
+                </aside> 
             </div>
 
             {/* Create Project Dialog */}
