@@ -1,22 +1,27 @@
+import React, { useMemo } from 'react';
 import type { UIComponent } from './types';
 import { componentRegistry } from './ComponentRegistry';
 import { analyzeComponent, sortComponentsByPriority } from './auto-grid-engine';
 
 interface DynamicRendererProps {
     component: UIComponent | string;
-    isRoot?: boolean; // New prop to track if we're at the root level
+    isRoot?: boolean;
 }
 
-export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isRoot = false }) => {
+export const DynamicRenderer: React.FC<DynamicRendererProps> = React.memo(({ component, isRoot = false }) => {
     if (!component) return null;
 
     // Handle arrays (e.g. fragments or Multiple components)
     if (Array.isArray(component)) {
-        const sortedComponents = isRoot ? sortComponentsByPriority(component) : component;
+        const sortedComponents = useMemo(() =>
+            isRoot ? sortComponentsByPriority(component) : component,
+            [component, isRoot]
+        );
+
         return (
             <>
                 {sortedComponents.map((child, index) => (
-                    <DynamicRenderer key={(child as any)?.id || index} component={child as any} isRoot={isRoot} />
+                    <DynamicRenderer key={(child as any)?.id || `child-${index}`} component={child as any} isRoot={isRoot} />
                 ))}
             </>
         );
@@ -45,8 +50,6 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isR
 
     // Convert metrics width to span if span is not provided
     const getSpanFromWidth = (width: string | undefined): string | number => {
-        // With dynamic grid-cols (4, 2, or 1), a span of 1 is usually enough.
-        // We can still support 'full' if needed.
         switch (width) {
             case 'full': return 'col-span-full';
             default: return 'col-span-1';
@@ -57,25 +60,17 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isR
     const finalSpan = props.span || getSpanFromWidth(metrics?.width) || 'col-span-1';
     const finalRowSpan = props.rowSpan || metrics?.rowSpan || 1;
 
-    // Debug logging
-    if (type !== 'container' && type !== 'div') {
-        console.log(`[DynamicRenderer] ${type}:`, {
-            metricsWidth: metrics?.width,
-            calculatedSpan: getSpanFromWidth(metrics?.width),
-            propsSpan: props.span,
-            finalSpan
-        });
-    }
-
     return (
         <Component {...props} span={finalSpan} rowSpan={finalRowSpan}>
             {Array.isArray(children) ? (
                 children.map((child, index) => (
-                    <DynamicRenderer key={(child as any)?.id || index} component={child} isRoot={false} />
+                    <DynamicRenderer key={(child as any)?.id || `node-${index}`} component={child} isRoot={false} />
                 ))
             ) : (
                 children
             )}
         </Component>
     );
-};
+});
+
+DynamicRenderer.displayName = 'DynamicRenderer';

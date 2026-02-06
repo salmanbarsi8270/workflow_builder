@@ -71,7 +71,7 @@ const getAdaptiveCols = (
     if (isMobile) return 1;
     const openCount = (leftSidebarOpen ? 1 : 0) + (rightSidebarOpen ? 1 : 0);
     if (openCount === 2) return 1;
-    if (openCount === 1) return 2;
+    if (openCount === 1) return 3;
     return 4;
 };
 
@@ -232,14 +232,16 @@ export default function CanvasPage() {
     // Update grid columns when sidebars toggle
     useEffect(() => {
         const cols = getAdaptiveCols(isLeftOpen, isRightOpen, isMobile);
-        setUiSchema(prev => ({
-            ...prev,
-            props: {
-                ...prev.props,
-                cols
-            }
-        }));
-    }, [isLeftOpen, isRightOpen, isMobile]);
+        if (uiSchema.props?.cols !== cols) {
+            setUiSchema(prev => ({
+                ...prev,
+                props: {
+                    ...prev.props,
+                    cols
+                }
+            }));
+        }
+    }, [isLeftOpen, isRightOpen, isMobile, uiSchema.props?.cols]);
 
     const fetchConversations = async () => {
         try {
@@ -269,8 +271,8 @@ export default function CanvasPage() {
         setNewChatName(`Project ${new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })}`);
     };
 
-    const confirmCreateChat = async () => {
-        const title = newChatName.trim() || `Project ${new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    const confirmCreateChat = async (customTitle?: string) => {
+        const title = customTitle || newChatName.trim() || `Project ${new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
         setIsCreating(true);
 
         try {
@@ -292,19 +294,25 @@ export default function CanvasPage() {
             if (newId) {
                 setCurrentConversationId(newId);
                 setUiSchema(initialSchema);
-                setMessages([{
-                    id: '1',
-                    role: 'assistant',
-                    content: `Welcome to "${title}"! I'm ready to help you build amazing UIs.`,
-                    timestamp: new Date()
-                }]);
+
+                // Only send welcome message if manually created through dialog
+                if (!customTitle) {
+                    setMessages([{
+                        id: '1',
+                        role: 'assistant',
+                        content: `Welcome to "${title}"! I'm ready to help you build amazing UIs.`,
+                        timestamp: new Date()
+                    }]);
+                    toast({
+                        title: "Project created",
+                        description: `"${title}" has been created successfully`,
+                    });
+                }
+
                 fetchConversations();
-                toast({
-                    title: "Project created",
-                    description: `"${title}" has been created successfully`,
-                });
                 setCreateDialogOpen(false);
                 setNewChatName("");
+                return newId;
             }
         } catch (error) {
             console.error('Failed to create chat:', error);
@@ -315,9 +323,12 @@ export default function CanvasPage() {
             });
         } finally {
             setIsCreating(false);
-            setIsRightOpen(true);
-            setIsLeftOpen(false);
+            if (!customTitle) {
+                setIsRightOpen(true);
+                setIsLeftOpen(false);
+            }
         }
+        return null;
     };
 
     const handleDeleteConversation = async (id: string, title: string) => {
@@ -416,10 +427,10 @@ export default function CanvasPage() {
                             const userPrompt = userMsg?.role === 'user' ? userMsg.content : "Generated Component";
                             const thinkingText = msg.content !== "UI component generated successfully" ? msg.content : "Process completed";
 
-                            const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen && !isMobile, isRightOpen && !isMobile);
+                            // Response cards (wrappers) always occupy 1 column of the main canvas grid
                             return {
                                 type: 'card',
-                                props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden` },
+                                props: { className: `col-span-1 bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden` },
                                 children: [
                                     {
                                         type: 'div',
@@ -446,18 +457,23 @@ export default function CanvasPage() {
                         } catch (e) { return null; }
                     }).filter(Boolean);
 
+                    const currentColCount = getAdaptiveCols(isLeftOpen, isRightOpen, isMobile);
                     setUiSchema({
                         type: 'container',
                         props: {
                             className: 'w-full h-full',
                             layout: 'grid',
-                            cols: 4,
+                            cols: currentColCount,
                             gap: 4
                         },
                         children: components
                     });
                 } else {
-                    setUiSchema(initialSchema);
+                    const currentColCount = getAdaptiveCols(isLeftOpen, isRightOpen, isMobile);
+                    setUiSchema({
+                        ...initialSchema,
+                        props: { ...initialSchema.props, cols: currentColCount }
+                    });
                 }
             }
         } catch (error) {
@@ -483,18 +499,27 @@ export default function CanvasPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inputValue.trim() || isLoading) return;
-        if (!currentConversationId) {
-            toast({
-                title: "No project selected",
-                description: "Please create or select a project first",
-            });
-            return;
+        const text = inputValue.trim();
+        if (!text || isLoading) return;
+
+        let conversationId = currentConversationId;
+
+        // Auto-create project if none selected
+        if (!conversationId) {
+            setIsLoading(true);
+            const newId = await confirmCreateChat();
+            if (!newId) {
+                setIsLoading(false);
+                return;
+            }
+            conversationId = newId;
         }
-        processAIResponse(inputValue.trim());
+
+        processAIResponse(text, conversationId ?? undefined);
     };
 
-    const processAIResponse = async (text: string) => {
+    const processAIResponse = async (text: string, conversationIdOverride?: string) => {
+        const conversationId = conversationIdOverride || currentConversationId || undefined;
         const userMsg: Message = {
             id: Date.now().toString(),
             role: 'user',
@@ -587,13 +612,13 @@ export default function CanvasPage() {
                 body: JSON.stringify({
                     input: text,
                     userId,
-                    conversationId: currentConversationId,
+                    conversationId: conversationId,
                     options: {
                         userId,
-                        conversationId: currentConversationId,
+                        conversationId: conversationId,
                         context: {
                             userId: userId,
-                            conversationId: currentConversationId,
+                            conversationId: conversationId,
                             tooluserid: userId,
                             connectionMap: connectionMap,
                             agentId: agentConnectionId1,
@@ -631,6 +656,8 @@ export default function CanvasPage() {
             }
 
             let assistantContent = fullStreamBuffer || "Processed", assistantMetadata: any = {};
+            let isStructured = false;
+
             if (isCollectingJson) {
                 let jsonText = fullStreamBuffer.substring(jsonStartIndex);
                 const closingIdx = jsonText.lastIndexOf('```');
@@ -639,48 +666,20 @@ export default function CanvasPage() {
                 try {
                     const parsed = JSON.parse(jsonText);
                     const transformed = transformComponentData(parsed);
+                    isStructured = true;
 
                     assistantContent = fullStreamBuffer.substring(0, jsonStartIndex).replace('```json', '').trim();
                     if (!assistantContent) assistantContent = "Process completed";
-
-                    setUiSchema(prev => ({
-                        ...prev,
-                        children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
-                            child.props?.id === placeholderId
-                                ? {
-                                    ...child,
-                                    children: [
-                                        child.children[0],
-                                        {
-                                            type: 'div',
-                                            props: { className: 'p-3 sm:p-4 min-h-[100px] sm:min-h-[120px]' },
-                                            children: [
-                                                {
-                                                    type: 'div',
-                                                    props: { className: 'space-y-2 sm:space-y-3 animate-pulse' },
-                                                    children: [
-                                                        { type: 'div', props: { className: 'h-6 sm:h-8 bg-muted rounded' } },
-                                                        { type: 'div', props: { className: 'h-3 sm:h-4 bg-muted rounded w-3/4' } },
-                                                        { type: 'div', props: { className: 'h-3 sm:h-4 bg-muted rounded w-1/2' } }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                                : child
-                        ) : prev.children
-                    }));
 
                     assistantMetadata = {
                         agentId: 'assistant',
                         componentJson: JSON.stringify(parsed, null, 2)
                     };
 
-                    const autoGridSpan = applyAutoGridFlow(transformed, isLeftOpen && !isMobile, isRightOpen && !isMobile);
+                    // Response cards (wrappers) always occupy 1 column of the main canvas grid
                     const wrapperComponent = {
                         type: 'card',
-                        props: { className: `${autoGridSpan} bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500` },
+                        props: { className: `col-span-1 bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500` },
                         children: [
                             {
                                 type: 'div',
@@ -708,9 +707,7 @@ export default function CanvasPage() {
                     setUiSchema(prev => ({
                         ...prev,
                         children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
-                            child.props?.id === placeholderId
-                                ? wrapperComponent
-                                : child
+                            child.props?.id === placeholderId ? wrapperComponent : child
                         ) : prev.children
                     }));
 
@@ -720,13 +717,55 @@ export default function CanvasPage() {
                     });
 
                 } catch (e) {
-                    assistantContent = "Error parsing component JSON";
-                    toast({
-                        title: "Error",
-                        description: "Failed to parse component JSON",
-                        variant: "destructive",
-                    });
+                    console.error("Failed to parse component JSON:", e);
+                    isStructured = false;
                 }
+            }
+
+            // Fallback for non-JSON or failed parse
+            if (!isStructured) {
+                const textContent = fullStreamBuffer.trim() || "No response content generated.";
+                const fallbackCard = {
+                    type: 'card',
+                    props: { className: `col-span-1 bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in duration-500` },
+                    children: [
+                        {
+                            type: 'div',
+                            props: { className: 'p-3 sm:p-4 border-b border-border/20 bg-gradient-to-r from-primary/5 to-transparent' },
+                            children: [
+                                { type: 'text', props: { className: 'text-sm font-semibold text-foreground mb-2 sm:mb-3 line-clamp-2 leading-relaxed', content: text } },
+                                {
+                                    type: 'thinking-block',
+                                    props: { finished: true },
+                                    children: [{ type: 'text', content: "Response" }]
+                                }
+                            ]
+                        },
+                        {
+                            type: 'div',
+                            props: { className: 'p-3 sm:p-4' },
+                            children: [
+                                {
+                                    type: 'TextCard',
+                                    props: {
+                                        content: textContent,
+                                        variant: 'default',
+                                        bordered: false,
+                                        background: false,
+                                        size: 'md'
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                };
+
+                setUiSchema(prev => ({
+                    ...prev,
+                    children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
+                        child.props?.id === placeholderId ? fallbackCard : child
+                    ) : prev.children
+                }));
             }
 
             const assistantMsg: Message = {
@@ -980,7 +1019,7 @@ export default function CanvasPage() {
                             Cancel
                         </Button>
                         <Button
-                            onClick={confirmCreateChat}
+                            onClick={() => { confirmCreateChat(); }}
                             disabled={isCreating || !newChatName.trim()}
                         >
                             {isCreating ? (

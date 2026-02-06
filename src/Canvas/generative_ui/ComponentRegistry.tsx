@@ -12,7 +12,7 @@ import { renderIcon } from './components/utils';
 // Standardized grid classes helper
 
 // Card Wrapper with Responsive Grid Span Support
-const CardWrapper = ({ className, children, responsive = true, ...props }: any) => {
+const CardWrapper = React.memo(({ className, children, responsive = true, ...props }: any) => {
     return (
         <Card className={cn(
             "group overflow-hidden transition-all duration-300",
@@ -28,7 +28,7 @@ const CardWrapper = ({ className, children, responsive = true, ...props }: any) 
             </div>
         </Card>
     );
-};
+});
 
 // Wrapper for Lucide Icons
 const IconWrapper = ({ name, className, size = 'md', responsive = true, ...props }: { name: string; className?: string; size?: string; responsive?: boolean }) => {
@@ -47,7 +47,7 @@ const IconWrapper = ({ name, className, size = 'md', responsive = true, ...props
 };
 
 // Layout Components with Responsive Design
-const Container = ({
+const Container = React.memo(({
     className,
     children,
     layout = 'grid',
@@ -85,7 +85,7 @@ const Container = ({
             {children}
         </div>
     );
-};
+});
 
 const Section = ({ title, description, children, className, responsive = true, ...props }: any) => (
     <div className={cn("space-y-4 mb-6 sm:mb-8", className)} {...props}>
@@ -131,7 +131,7 @@ const Stack = ({ className, children, gap = 2, direction = 'col', responsive = t
     );
 };
 
-const Grid = ({ className, children, cols, gap = 4, dense = true, responsive = true, ...props }: any) => {
+const Grid = React.memo(({ className, children, cols, gap = 4, dense = true, responsive = true, ...props }: any) => {
     const gridCols = !cols
         ? 'grid-cols-1'
         : cols === 'auto'
@@ -155,7 +155,7 @@ const Grid = ({ className, children, cols, gap = 4, dense = true, responsive = t
             {children}
         </div>
     );
-};
+});
 
 // Typography & Content with Responsive Text
 const Text = ({ className, variant = 'p', children, value, content, responsive = true, ...props }: any) => {

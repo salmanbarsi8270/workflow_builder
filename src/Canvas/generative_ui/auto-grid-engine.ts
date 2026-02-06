@@ -18,9 +18,9 @@ export interface LayoutHint {
  * Analyzes component structure and content to determine optimal grid placement
  */
 export function analyzeComponent(_component: any): ComponentMetrics {
-    // Force a 4-column layout (quarter width) for all components
+    // Default to full width for components inside containers
     return { 
-        width: 'quarter', 
+        width: 'full', 
         height: 'medium', 
         priority: 2, 
         complexity: 'moderate', 
@@ -36,7 +36,7 @@ export function getGridClasses(
     leftSidebarOpen: boolean = true, 
     rightSidebarOpen: boolean = true
 ): string {
-    const width = metrics.width || 'quarter';
+    const width = metrics.width || 'full';
     const rowSpan = metrics.rowSpan || 1;
     
     // Generate Tailwind classes
@@ -50,11 +50,14 @@ export function getGridClasses(
  * Generate adaptive column span classes
  */
 function getAdaptiveColSpan(
-    _width: ComponentMetrics['width'], 
+    width: ComponentMetrics['width'], 
     _leftSidebarOpen: boolean, 
     _rightSidebarOpen: boolean
 ): string {
-    // With dynamic grid-cols (4, 2, or 1), a span of 1 always takes the correct proportion
+    // If width is 'full' or not specified, use col-span-full
+    if (width === 'full' || !width) return 'col-span-full';
+    
+    // Otherwise, default to col-span-1 for other widths since we use a dynamic grid
     return 'col-span-1';
 }
 
