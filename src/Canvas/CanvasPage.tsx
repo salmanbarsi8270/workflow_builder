@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import type { UIComponent } from "./generative_ui/types";
 import { parseSSEChunk } from "../lib/sse-parser";
-import { applyAutoGridFlow } from "./generative_ui/auto-grid-engine";
 import { AgentConnectionDialog } from "../ui_components/Agents/AgentConnectionDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +40,7 @@ import { InputArea } from "./components/InputArea";
 import { CanvasArea } from "./components/CanvasArea";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarContent } from "@/components/sidebar";
+import { SidebarProvider } from "./context/SidebarContext";
 
 interface Message {
     id?: string;
@@ -199,6 +199,9 @@ export default function CanvasPage() {
 
     const [isLeftOpen, setIsLeftOpen] = useState(false);
     const [isRightOpen, setIsRightOpen] = useState(false);
+
+    // Calculate sidebar open count for context
+    const sidebarOpenCount = (isLeftOpen ? 1 : 0) + (isRightOpen ? 1 : 0);
 
     // Agent Config State
     const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -963,8 +966,10 @@ export default function CanvasPage() {
                     <div className="flex-1 overflow-hidden">
                         {/* Desktop Content */}
                         <div className="hidden md:flex h-full pb-20">
-                            {/* Canvas Area */}
-                            <CanvasArea uiSchema={uiSchema} />
+                            {/* Canvas Area with Sidebar Context */}
+                            <SidebarProvider sidebarOpenCount={sidebarOpenCount}>
+                                <CanvasArea uiSchema={uiSchema} />
+                            </SidebarProvider>
                         </div>
                     </div>
 

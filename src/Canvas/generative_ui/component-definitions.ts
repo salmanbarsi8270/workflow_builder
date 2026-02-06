@@ -359,7 +359,7 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
      },
      'data-table': {
          type: 'data-table',
-         description: 'Sortable data table with columns and rows. Perfect for displaying employee lists, product catalogs, or any tabular data.',
+         description: 'Sortable data table with columns and rows. Renders directly when both sidebars are open, shows "View Table" button with modal when 0 or 1 sidebar is open. Perfect for displaying employee lists, product catalogs, or any tabular data.',
          category: 'display',
          props: {
              title: { type: 'string', description: 'Table title', required: false },

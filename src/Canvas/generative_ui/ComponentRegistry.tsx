@@ -674,14 +674,14 @@ const ChartPlaceholder = ({ type = 'bar', title, className, responsive = true }:
 );
 
 // Import specialized responsive components
-import { DataTable } from './components/DataTable';
+import { DataTableWrapper } from './wrappers/DataTableWrapper';
+import { StatsGridWrapper } from './wrappers/StatsGridWrapper';
 import { KPICard } from './components/KPICard';
 import { InfoCard } from './components/InfoCard';
 import { ActivityFeed } from './components/ActivityFeed';
 import { TimelineCard } from './components/TimelineCard';
 import { ChartCard } from './components/ChartCard';
 import { GridContainer } from './components/GridContainer';
-import { StatsGrid } from './components/StatsGrid';
 import { StatsList } from './components/StatsList';
 import { CalendarCard } from './components/CalendarCard';
 import { CodeCard } from './components/CodeCard';
@@ -923,14 +923,14 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
     'thinking-block': ThinkingBlock,
 
     // Specialized responsive components
-    'data-table': DataTable,
+    'data-table': DataTableWrapper,
     'kpi-card': KPICard,
     'info-card': InfoCard,
     'activity-feed': ActivityFeed,
     'timeline-card': TimelineCard,
     'chart-card': ChartCard,
     'grid-container': GridContainer,
-    'stats-grid': StatsGrid,
+    'stats-grid': StatsGridWrapper,
     'stats-list': StatsList,
     'calendar-card': CalendarCard,
     'code-card': CodeCard,
