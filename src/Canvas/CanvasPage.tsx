@@ -55,7 +55,7 @@ const initialSchema: UIComponent = {
     props: {
         className: 'w-full h-full',
         layout: 'grid',
-        cols: 12,
+        cols: 4,
         gap: 4,
         dir: 'rtl'
     },
@@ -63,18 +63,28 @@ const initialSchema: UIComponent = {
 };
 
 // Responsive grid column calculation based on sidebar visibility and screen size
+const getAdaptiveCols = (
+    leftSidebarOpen: boolean,
+    rightSidebarOpen: boolean,
+    isMobile: boolean
+): number => {
+    if (isMobile) return 1;
+    const openCount = (leftSidebarOpen ? 1 : 0) + (rightSidebarOpen ? 1 : 0);
+    if (openCount === 2) return 1;
+    if (openCount === 1) return 2;
+    return 4;
+};
+
 const getAdaptiveColSpan = (
     _leftSidebarOpen: boolean,
     _rightSidebarOpen: boolean,
     isMobile: boolean
 ): string => {
     if (isMobile) {
-        // Mobile: Full width cards
-        return 'col-span-12';
+        return 'col-span-1';
     }
-
-    // Consistent 4-column layout (col-span-3) for desktop across all sidebar states
-    return 'col-span-12 sm:col-span-6 md:col-span-6 lg:col-span-3';
+    // With dynamic grid-cols (4, 2, or 1), a span of 1 always takes the correct proportion
+    return 'col-span-1';
 };
 
 // Mobile sidebar detection
@@ -100,7 +110,7 @@ const transformComponentData = (data: any): any => {
         const transformedChildren = data.map(transformComponentData);
         return {
             type: 'container',
-            props: { layout: 'grid', cols: 12 },
+            props: { layout: 'grid', cols: 4 },
             children: transformedChildren
         };
     }
@@ -218,6 +228,18 @@ export default function CanvasPage() {
             setIsRightOpen(false);
         }
     }, [isMobile]);
+
+    // Update grid columns when sidebars toggle
+    useEffect(() => {
+        const cols = getAdaptiveCols(isLeftOpen, isRightOpen, isMobile);
+        setUiSchema(prev => ({
+            ...prev,
+            props: {
+                ...prev.props,
+                cols
+            }
+        }));
+    }, [isLeftOpen, isRightOpen, isMobile]);
 
     const fetchConversations = async () => {
         try {
@@ -429,7 +451,7 @@ export default function CanvasPage() {
                         props: {
                             className: 'w-full h-full',
                             layout: 'grid',
-                            cols: 12,
+                            cols: 4,
                             gap: 4
                         },
                         children: components
@@ -524,7 +546,7 @@ export default function CanvasPage() {
 
         setUiSchema(prev => ({
             type: 'container',
-            props: { className: 'w-full h-full', layout: 'grid', cols: 12, gap: 4 },
+            props: { className: 'w-full h-full', layout: 'grid', cols: 4, gap: 4 },
             children: [...(prev.children || []), placeholderCard]
         }));
 
@@ -815,7 +837,7 @@ export default function CanvasPage() {
 
                             {/* Branding & Config */}
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">Voltagent Canvas</span>
+                                <span className="text-sm font-medium">Canvas</span>
                                 {currentConversationId && (
                                     <Badge variant="outline" className="font-normal text-xs bg-primary/5 text-primary border-primary/20">
                                         {conversations.find(c => c.conversation_id === currentConversationId)?.title || 'Untitled'}

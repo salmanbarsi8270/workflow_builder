@@ -23,7 +23,7 @@ const initialSchema: UIComponent = {
     props: {
         className: 'p-6 h-full overflow-y-auto custom-scrollbar',
         layout: 'grid',
-        cols: 12,
+        cols: 4,
         gap: 4
     },
     children: []

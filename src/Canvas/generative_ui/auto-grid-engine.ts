@@ -54,11 +54,8 @@ function getAdaptiveColSpan(
     _leftSidebarOpen: boolean, 
     _rightSidebarOpen: boolean
 ): string {
-    // Consistent 4-column layout across all sidebar states on desktop
-    // Mobile: Full width (col-span-12)
-    // Small/Medium: 2 columns (col-span-6)
-    // Large/XL: 4 columns (col-span-3)
-    return 'col-span-12 sm:col-span-6 md:col-span-6 lg:col-span-3';
+    // With dynamic grid-cols (4, 2, or 1), a span of 1 always takes the correct proportion
+    return 'col-span-1';
 }
 
 /**
@@ -80,7 +77,7 @@ export function applyAutoGridFlow(
     leftSidebarOpen: boolean = true,
     rightSidebarOpen: boolean = true
 ): string {
-    if (!component) return 'col-span-12 md:col-span-6 lg:col-span-3';
+    if (!component) return 'col-span-1';
 
     const metrics = analyzeComponent(component);
     return getGridClasses(metrics, leftSidebarOpen, rightSidebarOpen);

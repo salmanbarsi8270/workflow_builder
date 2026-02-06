@@ -45,17 +45,16 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isR
 
     // Convert metrics width to span if span is not provided
     const getSpanFromWidth = (width: string | undefined): string | number => {
+        // With dynamic grid-cols (4, 2, or 1), a span of 1 is usually enough.
+        // We can still support 'full' if needed.
         switch (width) {
-            case 'full': return 'col-span-12';
-            case 'half': return 'col-span-12 md:col-span-6';
-            case 'third': return 'col-span-12 md:col-span-4';
-            case 'quarter': return 'col-span-12 sm:col-span-6 lg:col-span-3';
-            default: return 'col-span-12'; // Default fallback
+            case 'full': return 'col-span-full';
+            default: return 'col-span-1';
         }
     };
 
     // Use explicit span > analyzed metrics > default classes
-    const finalSpan = props.span || getSpanFromWidth(metrics?.width) || 'col-span-12';
+    const finalSpan = props.span || getSpanFromWidth(metrics?.width) || 'col-span-1';
     const finalRowSpan = props.rowSpan || metrics?.rowSpan || 1;
 
     // Debug logging

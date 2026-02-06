@@ -61,9 +61,9 @@ const Container = ({
         ? layout === 'grid'
             ? cn(
                 "grid",
-                cols === 12
-                    ? "grid-cols-12"
-                    : `grid-cols-1 ${cols ? `sm:grid-cols-${Math.min(2, cols)} md:grid-cols-${Math.min(4, cols)} lg:grid-cols-${cols}` : ""}`,
+                cols === 4
+                    ? "grid-cols-4"
+                    : `grid-cols-1 ${cols ? `sm:grid-cols-${Math.min(2, cols)} md:grid-cols-${Math.min(4, cols)} lg:grid-cols-${cols}` : "sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4"}`,
                 gap === 4 ? "gap-4 md:gap-6" : (gap === 6 ? "gap-6 md:gap-8" : `gap-${gap}`),
                 dense && "grid-flow-dense"
             )
@@ -138,9 +138,9 @@ const Grid = ({ className, children, cols, gap = 4, dense = true, responsive = t
             ? 'grid-cols-[repeat(auto-fit,minmax(200px,1fr))]'
             : responsive
                 ? cn(
-                    "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12"
+                    "grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4"
                 )
-                : (cols === 12 ? "grid-cols-12" : `grid-cols-${cols}`);
+                : (cols === 4 ? "grid-cols-4" : `grid-cols-${cols}`);
 
     const responsiveGap = responsive
         ? `gap-${gap} sm:gap-${gap + 1} md:gap-${gap + 2}`
