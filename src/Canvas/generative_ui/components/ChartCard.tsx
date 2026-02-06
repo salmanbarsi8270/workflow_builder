@@ -17,8 +17,13 @@ export const ChartCard = ({
     config = {},
     dataKey = 'value',
     categoryKey = 'name',
-    className
+    className,
+    span,
+    rowSpan
 }: any) => {
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const chartConfig = React.useMemo(() => {
         const mergedConfig: ChartConfig = { ...config };
 
@@ -70,9 +75,9 @@ export const ChartCard = ({
                             tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                             width={35}
                         />
-                        <ChartTooltip 
+                        <ChartTooltip
                             cursor={{ fill: 'var(--muted)', fillOpacity: 0.2 }}
-                            content={<ChartTooltipContent 
+                            content={<ChartTooltipContent
                                 className="bg-background border shadow-lg"
                                 labelClassName="font-medium"
                                 formatter={(value, name) => [
@@ -111,9 +116,9 @@ export const ChartCard = ({
                             tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                             width={35}
                         />
-                        <ChartTooltip 
+                        <ChartTooltip
                             cursor={{ stroke: 'var(--border)', strokeWidth: 1, strokeDasharray: "3 3" }}
-                            content={<ChartTooltipContent 
+                            content={<ChartTooltipContent
                                 className="bg-background border shadow-lg"
                                 labelClassName="font-medium"
                             />}
@@ -151,9 +156,9 @@ export const ChartCard = ({
                             tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                             width={35}
                         />
-                        <ChartTooltip 
+                        <ChartTooltip
                             cursor={{ stroke: 'var(--border)', strokeWidth: 1, strokeDasharray: "3 3" }}
-                            content={<ChartTooltipContent 
+                            content={<ChartTooltipContent
                                 className="bg-background border shadow-lg"
                                 labelClassName="font-medium"
                             />}
@@ -182,20 +187,20 @@ export const ChartCard = ({
                 );
 
             case 'pie':
-                const pieData = data.map((item:any) => ({
+                const pieData = data.map((item: any) => ({
                     name: item[categoryKey],
                     value: item[dataKey]
                 }));
 
                 return (
                     <PieChart>
-                        <ChartTooltip 
-                            content={<ChartTooltipContent 
+                        <ChartTooltip
+                            content={<ChartTooltipContent
                                 className="bg-background border shadow-lg"
                                 formatter={(value) => [
                                     <span className="font-semibold" key="value">{value}</span>,
                                     <span key="percent" className="text-muted-foreground ml-2">
-                                        ({(Number(value) / pieData.reduce((sum:any, d:any) => sum + d.value, 0) * 100).toFixed(1)}%)
+                                        ({(Number(value) / pieData.reduce((sum: any, d: any) => sum + d.value, 0) * 100).toFixed(1)}%)
                                     </span>
                                 ]}
                             />}
@@ -214,9 +219,9 @@ export const ChartCard = ({
                             animationDuration={800}
                             animationEasing="ease-out"
                         >
-                            {pieData.map((_:any, index:number) => (
-                                <Cell 
-                                    key={`cell-${index}`} 
+                            {pieData.map((_: any, index: number) => (
+                                <Cell
+                                    key={`cell-${index}`}
                                     fill={`var(--color-chart-${(index % 5) + 1})`}
                                     strokeWidth={2}
                                 />
@@ -231,7 +236,7 @@ export const ChartCard = ({
     };
 
     return (
-        <div className={cn("bg-card rounded-xl border shadow-sm overflow-hidden", className)}>
+        <div className={cn("bg-card rounded-xl border shadow-sm overflow-hidden", spanClass, rowSpanClass, className)}>
             {title && (
                 <div className="px-6 pt-5 pb-3">
                     <div className="flex items-center justify-between">
@@ -240,7 +245,7 @@ export const ChartCard = ({
                             <div className="flex items-center gap-3">
                                 {activeKeys.map((key, index) => (
                                     <div key={key} className="flex items-center gap-2">
-                                        <div 
+                                        <div
                                             className="h-2.5 w-2.5 rounded-full"
                                             style={{ backgroundColor: `var(--color-chart-${index + 1})` }}
                                         />

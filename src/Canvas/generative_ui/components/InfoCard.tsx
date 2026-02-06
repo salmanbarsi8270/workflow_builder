@@ -17,6 +17,8 @@ interface InfoCardProps {
     shadow?: boolean;
     padding?: 'none' | 'sm' | 'md' | 'lg';
     rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const variantConfig = {
@@ -117,7 +119,9 @@ export const InfoCard = ({
     bordered = true,
     shadow = false,
     padding: customPadding,
-    rounded = 'md'
+    rounded = 'md',
+    span,
+    rowSpan
 }: InfoCardProps) => {
     const config = variantConfig[variant];
     const sizeStyle = sizeConfig[size];
@@ -126,19 +130,19 @@ export const InfoCard = ({
 
     const getIcon = () => {
         if (icon === null || icon === false) return null;
-        
+
         if (typeof icon === 'string') {
-            return renderIcon(icon, { 
-                className: cn(config.iconColor, sizeStyle.iconInnerSize) 
+            return renderIcon(icon, {
+                className: cn(config.iconColor, sizeStyle.iconInnerSize)
             });
         }
-        
+
         if (isValidElement(icon)) {
             return icon;
         }
-        
-        return renderIcon(config.icon, { 
-            className: cn(config.iconColor, sizeStyle.iconInnerSize) 
+
+        return renderIcon(config.icon, {
+            className: cn(config.iconColor, sizeStyle.iconInnerSize)
         });
     };
 
@@ -157,7 +161,7 @@ export const InfoCard = ({
                     {getIcon()}
                 </div>
             )}
-            
+
             <div className={cn(
                 "flex-1 min-w-0",
                 align === 'center' && "text-center"
@@ -170,7 +174,7 @@ export const InfoCard = ({
                         {title}
                     </h4>
                 )}
-                
+
                 {description && (
                     <p className={cn(
                         "text-muted-foreground leading-relaxed",
@@ -180,7 +184,7 @@ export const InfoCard = ({
                         {description}
                     </p>
                 )}
-                
+
                 {action && (
                     <div className={cn(
                         "mt-3 sm:mt-4",
@@ -190,7 +194,7 @@ export const InfoCard = ({
                     </div>
                 )}
             </div>
-            
+
             {closable && (
                 <button
                     onClick={onClose}
@@ -203,6 +207,14 @@ export const InfoCard = ({
         </div>
     );
 
+    // Apply span to wrapper
+    const spanClass = typeof span === 'string'
+        ? span
+        : span
+            ? `col-span-${span}`
+            : '';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
         <div
             className={cn(
@@ -213,6 +225,8 @@ export const InfoCard = ({
                 shadow && "shadow-sm hover:shadow-md",
                 paddingStyle,
                 roundedStyle,
+                spanClass,
+                rowSpanClass,
                 className
             )}
         >
@@ -244,11 +258,11 @@ InfoCard.Gradient = (props: Omit<InfoCardProps, 'variant'>) => (
 
 // Inline info card for compact layouts
 InfoCard.Inline = (props: Omit<InfoCardProps, 'size' | 'bordered' | 'shadow'>) => (
-    <InfoCard 
-        size="sm" 
+    <InfoCard
+        size="sm"
         bordered={false}
         shadow={false}
         className="bg-transparent"
-        {...props} 
+        {...props}
     />
 );

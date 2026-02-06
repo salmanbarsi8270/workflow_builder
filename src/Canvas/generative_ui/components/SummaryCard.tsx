@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { CardHeader, CardContent } from '@/components/ui/card';
 import { renderIcon } from './utils';
-import { ChevronRight} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SummaryCardProps {
@@ -31,6 +31,8 @@ interface SummaryCardProps {
     showIcon?: boolean;
     accent?: boolean;
     maxHeight?: string;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -134,7 +136,9 @@ export const SummaryCard = ({
     truncate = false,
     showIcon = true,
     accent = false,
-    maxHeight
+    maxHeight,
+    span,
+    rowSpan
 }: SummaryCardProps) => {
     const config = sizeConfig[size];
     const variantStyle = variantConfig[variant];
@@ -143,13 +147,13 @@ export const SummaryCard = ({
 
     const renderIconElement = () => {
         if (!icon || !showIcon) return null;
-        
+
         if (typeof icon === 'string') {
-            return renderIcon(icon, { 
-                className: cn(variantStyle.iconColor, config.iconSize) 
+            return renderIcon(icon, {
+                className: cn(variantStyle.iconColor, config.iconSize)
             });
         }
-        
+
         return icon;
     };
 
@@ -263,8 +267,8 @@ export const SummaryCard = ({
                                 >
                                     {action.label}
                                     {action.icon ? (
-                                        typeof action.icon === 'string' ? 
-                                            renderIcon(action.icon, { className: "h-3.5 w-3.5" }) : 
+                                        typeof action.icon === 'string' ?
+                                            renderIcon(action.icon, { className: "h-3.5 w-3.5" }) :
                                             action.icon
                                     ) : (
                                         <ChevronRight className="h-3.5 w-3.5" />
@@ -281,8 +285,13 @@ export const SummaryCard = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const cardClasses = cn(
         "w-full rounded-xl transition-all duration-200",
+        spanClass,
+        rowSpanClass,
         variantStyle.bg,
         bordered && "border",
         bordered && variantStyle.border,
@@ -334,9 +343,9 @@ SummaryCard.Gradient = (props: Omit<SummaryCardProps, 'variant'>) => (
 
 // Compact version for dense layouts
 SummaryCard.Compact = (props: Omit<SummaryCardProps, 'size' | 'bordered' | 'shadow'>) => (
-    <SummaryCard 
-        size="sm" 
-        bordered={false} 
+    <SummaryCard
+        size="sm"
+        bordered={false}
         shadow={false}
         className="bg-transparent"
         {...props}
@@ -345,9 +354,9 @@ SummaryCard.Compact = (props: Omit<SummaryCardProps, 'size' | 'bordered' | 'shad
 
 // Interactive version with onClick
 SummaryCard.Interactive = (props: Omit<SummaryCardProps, 'interactive'> & { onClick: () => void }) => (
-    <SummaryCard 
-        interactive 
-        shadow 
+    <SummaryCard
+        interactive
+        shadow
         className="hover:shadow-lg transition-all"
         {...props}
     />

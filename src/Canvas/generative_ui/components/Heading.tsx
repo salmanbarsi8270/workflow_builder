@@ -16,6 +16,8 @@ interface HeadingProps {
     icon?: any;
     subheading?: string;
     as?: any;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const gradientColors = {
@@ -40,6 +42,8 @@ export const Heading = ({
     icon,
     subheading,
     as,
+    span,
+    rowSpan
 }: HeadingProps) => {
     // Normalize level to ensure it's a valid h1-h6 tag
     const normalizedLevel = useMemo(() => {
@@ -54,7 +58,7 @@ export const Heading = ({
 
     // Determine the actual tag to render
     const Tag = as || normalizedLevel;
-    
+
     // Level-specific styles
     const levelStyles: Record<string, string> = {
         h1: cn(
@@ -113,9 +117,14 @@ export const Heading = ({
     // Line clamp utility
     const lineClampClass = lineClamp && `line-clamp-${lineClamp}`;
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
         <div className={cn(
             "space-y-2",
+            spanClass,
+            rowSpanClass,
             alignClasses[align]
         )}>
             <div className="flex flex-col">
@@ -123,14 +132,14 @@ export const Heading = ({
                 {decorative && level === 'h1' && (
                     <div className={cn(
                         "h-0.5 w-12 mb-4",
-                        gradient 
-                            ? typeof gradient === 'string' 
-                                ? `bg-gradient-to-r ${gradientColors[gradient]}` 
+                        gradient
+                            ? typeof gradient === 'string'
+                                ? `bg-gradient-to-r ${gradientColors[gradient]}`
                                 : gradientColors.default
                             : "bg-primary"
                     )} />
                 )}
-                
+
                 <div className="flex items-center gap-3">
                     {icon && (
                         <div className={cn(
@@ -141,7 +150,7 @@ export const Heading = ({
                             {icon}
                         </div>
                     )}
-                    
+
                     <div className={cn(
                         "flex-1",
                         icon && align === 'left' && 'ml-0',
@@ -156,7 +165,7 @@ export const Heading = ({
                                 trackingClasses,
                                 lineClampClass,
                                 balance && 'text-balance',
-                                gradient 
+                                gradient
                                     ? typeof gradient === 'string'
                                         ? `bg-clip-text text-transparent bg-gradient-to-r ${gradientColors[gradient]}`
                                         : `bg-clip-text text-transparent bg-gradient-to-r ${gradientColors.default}`
@@ -167,14 +176,14 @@ export const Heading = ({
                         >
                             {children}
                         </Tag>
-                        
+
                         {/* Decorative underline for h2-h4 */}
                         {decorative && ['h2', 'h3', 'h4'].includes(level) && (
                             <div className={cn(
                                 "h-0.5 w-8 mt-2",
-                                gradient 
-                                    ? typeof gradient === 'string' 
-                                        ? `bg-gradient-to-r ${gradientColors[gradient]}` 
+                                gradient
+                                    ? typeof gradient === 'string'
+                                        ? `bg-gradient-to-r ${gradientColors[gradient]}`
                                         : gradientColors.default
                                     : "bg-primary/30"
                             )} />
@@ -182,7 +191,7 @@ export const Heading = ({
                     </div>
                 </div>
             </div>
-            
+
             {/* Subheading */}
             {subheading && (
                 <p className={cn(
@@ -203,41 +212,41 @@ export const Heading = ({
 
 // Pre-styled heading variants for common use cases
 Heading.PageTitle = (props: Omit<HeadingProps, 'level'>) => (
-    <Heading 
-        level="h1" 
-        gradient="primary" 
-        decorative 
-        balance 
-        responsive 
-        {...props} 
+    <Heading
+        level="h1"
+        gradient="primary"
+        decorative
+        balance
+        responsive
+        {...props}
     />
 );
 
 Heading.SectionTitle = (props: Omit<HeadingProps, 'level'>) => (
-    <Heading 
-        level="h2" 
-        gradient={false} 
-        decorative 
-        responsive 
-        {...props} 
+    <Heading
+        level="h2"
+        gradient={false}
+        decorative
+        responsive
+        {...props}
     />
 );
 
 Heading.CardTitle = (props: Omit<HeadingProps, 'level'>) => (
-    <Heading 
-        level="h3" 
-        responsive={false} 
-        weight="semibold" 
-        {...props} 
+    <Heading
+        level="h3"
+        responsive={false}
+        weight="semibold"
+        {...props}
     />
 );
 
 Heading.Subtitle = (props: Omit<HeadingProps, 'level'>) => (
-    <Heading 
-        level="h4" 
-        responsive={false} 
-        weight="medium" 
-        className="text-muted-foreground" 
-        {...props} 
+    <Heading
+        level="h4"
+        responsive={false}
+        weight="medium"
+        className="text-muted-foreground"
+        {...props}
     />
 );

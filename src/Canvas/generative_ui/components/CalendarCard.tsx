@@ -9,8 +9,13 @@ export const CalendarCard = ({
     onSelect,
     title,
     className,
-    mode = "single"
+    mode = "single",
+    span,
+    rowSpan
 }: any) => {
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const [date, setDate] = React.useState<Date | undefined>(selectedDate ? new Date(selectedDate) : new Date());
 
     const handleSelect = (newDate: Date | undefined) => {
@@ -19,7 +24,7 @@ export const CalendarCard = ({
     }
 
     return (
-        <div className={cn("w-full bg-primary/1 rounded-2xl overflow-hidden shadow-sm border border-border/50", className)}>
+        <div className={cn("w-full bg-primary/1 rounded-2xl overflow-hidden shadow-sm border border-border/50", spanClass, rowSpanClass, className)}>
             {title && (
                 <div className="px-6 py-4 border-b bg-primary/2">
                     <h3 className="text-lg font-bold tracking-tight">{title}</h3>

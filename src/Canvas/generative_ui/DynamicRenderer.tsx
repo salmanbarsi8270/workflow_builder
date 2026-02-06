@@ -39,22 +39,34 @@ export const DynamicRenderer: React.FC<DynamicRendererProps> = ({ component, isR
         );
     }
 
-    // Auto-grid logic: only calculate spans if we're at the root level
-    const metrics = isRoot ? analyzeComponent(component) : null;
+    // Auto-grid logic: calculate metrics if no explicit span is provided
+    const shouldAnalyze = !props.span;
+    const metrics = shouldAnalyze ? analyzeComponent(component) : null;
 
     // Convert metrics width to span if span is not provided
-    const getSpanFromWidth = (width: string | undefined) => {
+    const getSpanFromWidth = (width: string | undefined): string | number => {
         switch (width) {
-            case 'full': return 12;
-            case 'half': return 6;
-            case 'third': return 4;
-            case 'quarter': return 3;
-            default: return 12; // Nested components default to full container width
+            case 'full': return 'col-span-12';
+            case 'half': return 'col-span-12 md:col-span-6';
+            case 'third': return 'col-span-12 md:col-span-4';
+            case 'quarter': return 'col-span-12 sm:col-span-6 lg:col-span-3';
+            default: return 'col-span-12'; // Default fallback
         }
     };
 
-    const finalSpan = isRoot ? (props.span || 12) : (props.span || getSpanFromWidth(metrics?.width));
-    const finalRowSpan = isRoot ? (props.rowSpan || 1) : (props.rowSpan || metrics?.rowSpan || 1);
+    // Use explicit span > analyzed metrics > default classes
+    const finalSpan = props.span || getSpanFromWidth(metrics?.width) || 'col-span-12';
+    const finalRowSpan = props.rowSpan || metrics?.rowSpan || 1;
+
+    // Debug logging
+    if (type !== 'container' && type !== 'div') {
+        console.log(`[DynamicRenderer] ${type}:`, {
+            metricsWidth: metrics?.width,
+            calculatedSpan: getSpanFromWidth(metrics?.width),
+            propsSpan: props.span,
+            finalSpan
+        });
+    }
 
     return (
         <Component {...props} span={finalSpan} rowSpan={finalRowSpan}>

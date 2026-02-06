@@ -3,18 +3,23 @@ import { cn } from '@/lib/utils';
 import { CardHeader, CardContent } from '@/components/ui/card';
 import { ChevronUp, ChevronDown, ArrowUpDown, ChevronRight, Filter } from 'lucide-react';
 
-export const DataTable = ({ 
-    title, 
-    data = [], 
-    columns = [], 
+export const DataTable = ({
+    title,
+    data = [],
+    columns = [],
     className,
     pageSize = 10,
     showPagination = true,
     striped = true,
     compact = true,
     searchable = true,
-    onRowClick
+    onRowClick,
+    span,
+    rowSpan
 }: any) => {
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const [sortKey, setSortKey] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [currentPage, setCurrentPage] = useState(1);
@@ -33,8 +38,8 @@ export const DataTable = ({
     // Filter data based on search term
     const filteredData = useMemo(() => {
         if (!searchTerm) return data;
-        return data.filter((row:any) => 
-            columns.some((col:any) => {
+        return data.filter((row: any) =>
+            columns.some((col: any) => {
                 const value = row[col.key];
                 return String(value).toLowerCase().includes(searchTerm.toLowerCase());
             })
@@ -65,8 +70,8 @@ export const DataTable = ({
     }, [sortedData, currentPage, pageSize, showPagination]);
 
     const TableRow = ({ row, rowIdx }: { row: any, rowIdx: number }) => (
-        <tr 
-            key={rowIdx} 
+        <tr
+            key={rowIdx}
             className={cn(
                 "border-b transition-colors",
                 striped && rowIdx % 2 === 0 && "bg-muted/30",
@@ -76,8 +81,8 @@ export const DataTable = ({
             onClick={() => onRowClick?.(row)}
         >
             {columns.map((col: any, colIdx: number) => (
-                <td 
-                    key={colIdx} 
+                <td
+                    key={colIdx}
                     className={cn(
                         "align-middle",
                         compact ? "p-2" : "p-3",
@@ -100,7 +105,7 @@ export const DataTable = ({
     );
 
     return (
-        <div className={cn("bg-card rounded-xl border shadow-sm overflow-hidden", className)}>
+        <div className={cn("bg-card rounded-xl border shadow-sm overflow-hidden", spanClass, rowSpanClass, className)}>
             {/* Header */}
             {(title || searchable) && (
                 <CardHeader className="px-6 py-4 border-b">
@@ -156,14 +161,14 @@ export const DataTable = ({
                                                         <>
                                                             <ChevronUp className={cn(
                                                                 "h-3 w-3",
-                                                                sortDirection === 'asc' 
-                                                                    ? "text-primary" 
+                                                                sortDirection === 'asc'
+                                                                    ? "text-primary"
                                                                     : "text-muted-foreground/40"
                                                             )} />
                                                             <ChevronDown className={cn(
                                                                 "h-3 w-3 -mt-2",
-                                                                sortDirection === 'desc' 
-                                                                    ? "text-primary" 
+                                                                sortDirection === 'desc'
+                                                                    ? "text-primary"
                                                                     : "text-muted-foreground/40"
                                                             )} />
                                                         </>
@@ -184,8 +189,8 @@ export const DataTable = ({
                                 ))
                             ) : (
                                 <tr>
-                                    <td 
-                                        colSpan={columns.length} 
+                                    <td
+                                        colSpan={columns.length}
                                         className="p-8 text-center text-muted-foreground"
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -212,7 +217,7 @@ export const DataTable = ({
                         Showing {paginatedData.length} of {sortedData.length} results
                         {searchTerm && ` for "${searchTerm}"`}
                     </div>
-                    
+
                     {showPagination && totalPages > 1 && (
                         <div className="flex items-center gap-1">
                             <button
@@ -227,7 +232,7 @@ export const DataTable = ({
                             >
                                 Previous
                             </button>
-                            
+
                             <div className="flex items-center gap-1">
                                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                                     let pageNum;
@@ -240,7 +245,7 @@ export const DataTable = ({
                                     } else {
                                         pageNum = currentPage - 2 + i;
                                     }
-                                    
+
                                     return (
                                         <button
                                             key={pageNum}
@@ -257,7 +262,7 @@ export const DataTable = ({
                                     );
                                 })}
                             </div>
-                            
+
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
@@ -282,7 +287,7 @@ export const DataTable = ({
 export const DataTableList = (props: any) => {
     return (
         <div className="sm:hidden">
-            <DataTable 
+            <DataTable
                 {...props}
                 columns={props.columns.map((col: any) => ({
                     ...col,

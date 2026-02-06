@@ -34,6 +34,8 @@ interface StatsListProps {
     striped?: boolean;
     interactive?: boolean;
     onItemClick?: (stat: any, index: number) => void;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -83,7 +85,9 @@ export const StatsList = ({
     maxHeight,
     striped = false,
     interactive = false,
-    onItemClick
+    onItemClick,
+    span,
+    rowSpan
 }: StatsListProps) => {
     const config = sizeConfig[size];
     const hasTrend = stats.some(stat => stat.trend !== undefined);
@@ -91,14 +95,14 @@ export const StatsList = ({
 
     const renderTrendIndicator = (trend?: number, trendDirection?: string) => {
         if (trend === undefined) return null;
-        
+
         const isUp = trendDirection === 'up' || (trendDirection === undefined && trend > 0);
         const color = isUp ? 'text-green-600' : 'text-red-600';
         const bgColor = isUp ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30';
         const Icon = isUp ? TrendingUp : TrendingDown;
-        
+
         return (
-            <Badge 
+            <Badge
                 variant="outline"
                 className={cn(
                     "rounded-full font-medium border-0",
@@ -115,21 +119,21 @@ export const StatsList = ({
 
     const renderIconElement = (icon?: string | ReactNode) => {
         if (!icon || !showIcons) return null;
-        
+
         if (typeof icon === 'string') {
-            return renderIcon(icon, { 
-                className: cn("text-muted-foreground", config.iconSize) 
+            return renderIcon(icon, {
+                className: cn("text-muted-foreground", config.iconSize)
             });
         }
-        
+
         return icon;
     };
 
     const renderLoading = () => (
         <div className="animate-pulse">
             {Array.from({ length: 5 }).map((_, idx) => (
-                <div 
-                    key={idx} 
+                <div
+                    key={idx}
                     className={cn(
                         "flex items-center justify-between",
                         config.padding,
@@ -153,7 +157,7 @@ export const StatsList = ({
 
     const renderEmptyState = () => {
         if (emptyState) return emptyState;
-        
+
         return (
             <div className="text-center py-8">
                 <div className="mx-auto max-w-sm space-y-2">
@@ -179,7 +183,7 @@ export const StatsList = ({
                             {renderIconElement(stat.icon)}
                         </div>
                     )}
-                    
+
                     <div className={cn("min-w-0", config.spacing)}>
                         <div className="flex items-center gap-2">
                             <span className={cn(
@@ -190,40 +194,40 @@ export const StatsList = ({
                                 {stat.label}
                             </span>
                             {!isCompact && stat.badge && (
-                                <Badge 
-                                    variant="outline" 
+                                <Badge
+                                    variant="outline"
                                     className={cn(
                                         "rounded-full",
-                                        (size as string) === 'sm' ? 'h-4 text-[9px] px-1.5' : 
-                                        (size as string) === 'md' ? 'h-5 text-xs px-2' : 
-                                        'h-6 text-sm px-2.5'
+                                        (size as string) === 'sm' ? 'h-4 text-[9px] px-1.5' :
+                                            (size as string) === 'md' ? 'h-5 text-xs px-2' :
+                                                'h-6 text-sm px-2.5'
                                     )}
                                 >
                                     {stat.badge}
                                 </Badge>
                             )}
                         </div>
-                        
+
                         {!isCompact && stat.description && (
                             <p className={cn(
                                 "text-muted-foreground truncate",
-                                (size as string) === 'sm' ? 'text-xs' : 
-                                (size as string) === 'md' ? 'text-xs sm:text-sm' : 
-                                'text-sm'
+                                (size as string) === 'sm' ? 'text-xs' :
+                                    (size as string) === 'md' ? 'text-xs sm:text-sm' :
+                                        'text-sm'
                             )}>
                                 {stat.description}
                             </p>
                         )}
                     </div>
                 </div>
-                
+
                 <div className={cn(
                     "flex items-center gap-2",
                     isCompact ? "shrink-0 ml-2" : "shrink-0"
                 )}>
                     {isCompact && stat.badge && (
-                        <Badge 
-                            variant="outline" 
+                        <Badge
+                            variant="outline"
                             className={cn(
                                 "rounded-full",
                                 (size as string) === 'sm' ? 'h-4 text-[9px] px-1.5' : 'h-5 text-xs px-2'
@@ -232,7 +236,7 @@ export const StatsList = ({
                             {stat.badge}
                         </Badge>
                     )}
-                    
+
                     <span className={cn(
                         "font-bold whitespace-nowrap",
                         config.valueSize,
@@ -240,9 +244,9 @@ export const StatsList = ({
                     )}>
                         {stat.value}
                     </span>
-                    
+
                     {showTrend && hasTrend && renderTrendIndicator(stat.trend, stat.trendDirection)}
-                    
+
                     {isInteractive && (
                         <ChevronRight className={cn(
                             "text-muted-foreground",
@@ -300,11 +304,16 @@ export const StatsList = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
         <div className={cn(
             "w-full rounded-xl",
             bordered && "border",
             shadow && "shadow-sm",
+            spanClass,
+            rowSpanClass,
             className
         )}>
             {/* Header */}
@@ -372,9 +381,9 @@ export const StatsList = ({
 
 // Pre-configured variants
 StatsList.Compact = (props: Omit<StatsListProps, 'size' | 'compact' | 'bordered'>) => (
-    <StatsList 
-        size="sm" 
-        compact 
+    <StatsList
+        size="sm"
+        compact
         bordered={false}
         className="bg-transparent"
         {...props}
@@ -382,10 +391,10 @@ StatsList.Compact = (props: Omit<StatsListProps, 'size' | 'compact' | 'bordered'
 );
 
 StatsList.Dashboard = (props: Omit<StatsListProps, 'size' | 'bordered' | 'shadow' | 'showTrend'>) => (
-    <StatsList 
-        size="md" 
-        bordered 
-        shadow 
+    <StatsList
+        size="md"
+        bordered
+        shadow
         showTrend
         striped
         interactive
@@ -395,7 +404,7 @@ StatsList.Dashboard = (props: Omit<StatsListProps, 'size' | 'bordered' | 'shadow
 );
 
 StatsList.Scrollable = (props: Omit<StatsListProps, 'maxHeight'> & { maxHeight?: string }) => (
-    <StatsList 
+    <StatsList
         maxHeight="400px"
         bordered
         className="overflow-hidden"

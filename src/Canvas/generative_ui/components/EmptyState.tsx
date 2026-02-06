@@ -19,6 +19,8 @@ interface EmptyStateProps {
     illustration?: boolean;
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
     align?: 'left' | 'center';
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const getIcon = (iconName: string) => {
@@ -43,7 +45,9 @@ export const EmptyState = ({
     image,
     illustration = false,
     maxWidth = 'lg',
-    align = 'center'
+    align = 'center',
+    span,
+    rowSpan
 }: EmptyStateProps) => {
     const sizeClasses = {
         sm: 'p-6 space-y-3',
@@ -87,10 +91,15 @@ export const EmptyState = ({
         lg: 2,
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
         <div className={cn(
             "w-full rounded-xl",
             variantClasses[variant],
+            spanClass,
+            rowSpanClass,
             className
         )}>
             <div className={cn(
@@ -119,11 +128,11 @@ export const EmptyState = ({
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[120%] w-[120%] rounded-full border border-primary/10" />
                             </div>
                         )}
-                        
+
                         <div className={cn(
                             "rounded-2xl flex items-center justify-center",
-                            illustration 
-                                ? "bg-linear-to-br from-background to-primary/5 border border-primary/10 shadow-sm" 
+                            illustration
+                                ? "bg-linear-to-br from-background to-primary/5 border border-primary/10 shadow-sm"
                                 : "bg-primary/5",
                             iconContainerSize[size]
                         )}>
@@ -148,7 +157,7 @@ export const EmptyState = ({
                     )}>
                         {title}
                     </h3>
-                    
+
                     {description && (
                         <p className={cn(
                             "text-muted-foreground",

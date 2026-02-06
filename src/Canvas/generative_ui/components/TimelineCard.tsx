@@ -34,6 +34,8 @@ interface TimelineCardProps {
     interactive?: boolean;
     onEventClick?: (event: any, index: number) => void;
     headerAction?: ReactNode;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -137,7 +139,9 @@ export const TimelineCard = ({
     truncate = true,
     interactive = false,
     onEventClick,
-    headerAction
+    headerAction,
+    span,
+    rowSpan
 }: TimelineCardProps) => {
     const config = sizeConfig[size];
     const displayedEvents = maxEvents ? events.slice(0, maxEvents) : events;
@@ -164,7 +168,7 @@ export const TimelineCard = ({
 
     const renderEmptyState = () => {
         if (emptyState) return emptyState;
-        
+
         return (
             <div className="text-center py-8">
                 <div className="mx-auto max-w-sm space-y-2">
@@ -187,7 +191,7 @@ export const TimelineCard = ({
         const status = (event.status || 'pending') as keyof typeof statusConfig;
         const statusStyle = statusConfig[status];
         const isClickable = interactive || event.onClick || event.link || onEventClick;
-        
+
         const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
             if (event.onClick) event.onClick();
@@ -262,7 +266,7 @@ export const TimelineCard = ({
                     const status = (event.status || 'pending') as keyof typeof statusConfig;
                     const statusStyle = statusConfig[status];
                     const isClickable = interactive || event.onClick || event.link || onEventClick;
-                    
+
                     return (
                         <div key={index} className="flex flex-col items-center px-4">
                             {/* Timeline track */}
@@ -272,12 +276,12 @@ export const TimelineCard = ({
                                     status === 'completed' ? "bg-green-500" : "bg-border"
                                 )} />
                             )}
-                            
+
                             {/* Event dot */}
                             <div className="relative z-10">
                                 {renderEvent(event, index, index === displayedEvents.length - 1)}
                             </div>
-                            
+
                             {/* Event content */}
                             <div className={cn(
                                 "mt-3 text-center min-w-[120px] max-w-[200px]",
@@ -292,7 +296,7 @@ export const TimelineCard = ({
                                     )}>
                                         {event.title}
                                     </h5>
-                                    
+
                                     {showDates && event.time && (
                                         <span className={cn(
                                             "text-muted-foreground",
@@ -301,7 +305,7 @@ export const TimelineCard = ({
                                             {event.time}
                                         </span>
                                     )}
-                                    
+
                                     {!isCompact && event.description && (
                                         <p className={cn(
                                             "text-muted-foreground mt-1",
@@ -311,7 +315,7 @@ export const TimelineCard = ({
                                             {event.description}
                                         </p>
                                     )}
-                                    
+
                                     {event.badge && (
                                         <span className={cn(
                                             "mt-1 text-xs font-medium px-2 py-0.5 rounded-full",
@@ -337,16 +341,16 @@ export const TimelineCard = ({
                 const statusStyle = statusConfig[status];
                 const isClickable = interactive || event.onClick || event.link || onEventClick;
                 const isLast = index === displayedEvents.length - 1;
-                
+
                 return (
                     <div key={index} className="flex group">
                         {/* Timeline column */}
                         <div className="flex flex-col items-center mr-4">
                             {renderEvent(event, index, isLast)}
                         </div>
-                        
+
                         {/* Content column */}
-                        <div 
+                        <div
                             className={cn(
                                 "flex-1 pb-6",
                                 !isLast && "border-b border-border/50",
@@ -366,7 +370,7 @@ export const TimelineCard = ({
                                         )}>
                                             {event.title}
                                         </h5>
-                                        
+
                                         {event.badge && (
                                             <span className={cn(
                                                 "text-xs font-medium px-2 py-0.5 rounded-full shrink-0",
@@ -377,7 +381,7 @@ export const TimelineCard = ({
                                             </span>
                                         )}
                                     </div>
-                                    
+
                                     {showDates && event.time && (
                                         <span className={cn(
                                             "text-muted-foreground shrink-0",
@@ -387,7 +391,7 @@ export const TimelineCard = ({
                                         </span>
                                     )}
                                 </div>
-                                
+
                                 {/* Description */}
                                 {!isCompact && event.description && (
                                     <p className={cn(
@@ -398,7 +402,7 @@ export const TimelineCard = ({
                                         {event.description}
                                     </p>
                                 )}
-                                
+
                                 {/* Additional info */}
                                 {isDetailed && (
                                     <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -408,7 +412,7 @@ export const TimelineCard = ({
                                                 {event.duration}
                                             </span>
                                         )}
-                                        
+
                                         {showAvatars && event.people && event.people.length > 0 && (
                                             <div className="flex items-center gap-1">
                                                 <User className="h-3 w-3 text-muted-foreground" />
@@ -417,7 +421,7 @@ export const TimelineCard = ({
                                                 </span>
                                             </div>
                                         )}
-                                        
+
                                         {isClickable && (
                                             <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
                                         )}
@@ -431,8 +435,13 @@ export const TimelineCard = ({
         </div>
     );
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const containerClasses = cn(
         "w-full rounded-xl border",
+        spanClass,
+        rowSpanClass,
         isCard && "shadow-sm",
         className
     );
@@ -460,7 +469,7 @@ export const TimelineCard = ({
                     </div>
                 </CardHeader>
             )}
-            
+
             {/* Content */}
             <CardContent className={config.padding}>
                 {loading ? (
@@ -472,7 +481,7 @@ export const TimelineCard = ({
                 ) : (
                     renderVerticalTimeline()
                 )}
-                
+
                 {/* Show more indicator */}
                 {maxEvents && events.length > maxEvents && (
                     <div className="text-center mt-6">

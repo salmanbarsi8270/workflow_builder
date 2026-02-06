@@ -22,6 +22,8 @@ interface KPICardProps {
     bordered?: boolean;
     shadow?: boolean;
     compact?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -56,7 +58,7 @@ const sizeConfig = {
 
 const formatValue = (value: string | number, format?: string) => {
     if (typeof value === 'string') return value;
-    
+
     switch (format) {
         case 'currency':
             return new Intl.NumberFormat('en-US', {
@@ -94,7 +96,9 @@ export const KPICard = ({
     onClick,
     bordered = true,
     shadow = false,
-    compact = false
+    compact = false,
+    span,
+    rowSpan
 }: KPICardProps) => {
     const config = sizeConfig[size];
     const isInteractive = href || onClick;
@@ -108,15 +112,15 @@ export const KPICard = ({
             neutral: <Minus className="h-3 w-3" />
         }[trendDirection || 'neutral'];
 
-        const variant = trendDirection === 'up' ? 'default' : 
-                       trendDirection === 'down' ? 'destructive' : 'secondary';
+        const variant = trendDirection === 'up' ? 'default' :
+            trendDirection === 'down' ? 'destructive' : 'secondary';
 
         const bgColor = trendDirection === 'up' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                       trendDirection === 'down' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                       'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400';
+            trendDirection === 'down' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400';
 
         return (
-            <Badge 
+            <Badge
                 variant={variant}
                 className={cn(
                     "inline-flex items-center gap-1 rounded-full font-medium border-0",
@@ -132,21 +136,26 @@ export const KPICard = ({
 
     const renderIconElement = () => {
         if (!icon) return null;
-        
+
         if (typeof icon === 'string') {
-            return renderIcon(icon, { 
-                className: cn("text-muted-foreground", config.iconSize) 
+            return renderIcon(icon, {
+                className: cn("text-muted-foreground", config.iconSize)
             });
         }
-        
+
         return icon;
     };
+
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
 
     const content = (
         <div className={cn(
             "w-full h-full flex flex-col",
             config.padding,
             config.gap,
+            spanClass,
+            rowSpanClass,
             bordered && "rounded-xl border",
             shadow && "shadow-sm hover:shadow-md transition-shadow",
             isInteractive && "cursor-pointer",
@@ -185,7 +194,7 @@ export const KPICard = ({
                             {prefix}
                         </span>
                     )}
-                    
+
                     <span className={cn(
                         "font-bold tracking-tight text-foreground",
                         config.valueSize,
@@ -193,7 +202,7 @@ export const KPICard = ({
                     )}>
                         {loading ? '...' : formatValue(value, format)}
                     </span>
-                    
+
                     {suffix && (
                         <span className={cn(
                             "font-medium text-muted-foreground",
@@ -202,7 +211,7 @@ export const KPICard = ({
                             {suffix}
                         </span>
                     )}
-                    
+
                     {!compact && trend && renderTrend()}
                 </div>
 
@@ -253,8 +262,8 @@ export const KPICard = ({
     // Wrap in link if href is provided
     if (href) {
         return (
-            <a 
-                href={href} 
+            <a
+                href={href}
                 className="block no-underline hover:no-underline focus:no-underline"
                 onClick={onClick}
             >
@@ -284,7 +293,7 @@ export const KPICard = ({
 
 // Pre-styled variants
 KPICard.Success = (props: Omit<KPICardProps, 'trendDirection'> & { trendDirection?: 'up' | 'down' | 'neutral' }) => (
-    <KPICard 
+    <KPICard
         trendDirection="up"
         className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20"
         {...props}
@@ -292,7 +301,7 @@ KPICard.Success = (props: Omit<KPICardProps, 'trendDirection'> & { trendDirectio
 );
 
 KPICard.Warning = (props: Omit<KPICardProps, 'trendDirection'> & { trendDirection?: 'up' | 'down' | 'neutral' }) => (
-    <KPICard 
+    <KPICard
         trendDirection="down"
         className="border-l-4 border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20"
         {...props}
@@ -300,8 +309,8 @@ KPICard.Warning = (props: Omit<KPICardProps, 'trendDirection'> & { trendDirectio
 );
 
 KPICard.Compact = (props: Omit<KPICardProps, 'size' | 'compact'>) => (
-    <KPICard 
-        size="sm" 
+    <KPICard
+        size="sm"
         compact
         bordered={false}
         className="bg-transparent"
@@ -310,7 +319,7 @@ KPICard.Compact = (props: Omit<KPICardProps, 'size' | 'compact'>) => (
 );
 
 KPICard.Grid = (props: Omit<KPICardProps, 'size' | 'shadow'>) => (
-    <KPICard 
+    <KPICard
         size="md"
         shadow
         className="hover:shadow-lg transition-all duration-300"

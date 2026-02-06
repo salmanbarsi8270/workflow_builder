@@ -19,6 +19,8 @@ interface GridContainerProps {
     overflow?: 'visible' | 'hidden' | 'clip' | 'scroll' | 'auto';
     as?: React.ElementType;
     debug?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 // Helper function to convert numeric gaps to rem
@@ -35,11 +37,11 @@ const getResponsiveValue = (
     defaultVal: number | string
 ): any => {
     if (!value) return defaultVal;
-    
+
     if (typeof value === 'number' || typeof value === 'string') {
         return { base: value };
     }
-    
+
     return value;
 };
 
@@ -52,34 +54,34 @@ const generateResponsiveStyles = (
     heightValue: any
 ): React.CSSProperties => {
     const styles: React.CSSProperties & Record<string, string> = {};
-    
+
     // Generate CSS custom properties for responsive values
     const processValue = (value: any, prefix: string) => {
         if (typeof value !== 'object') {
-            styles[`--${prefix}`] = typeof value === 'number' 
-                ? `repeat(${value}, minmax(0, 1fr))` 
+            styles[`--${prefix}`] = typeof value === 'number'
+                ? `repeat(${value}, minmax(0, 1fr))`
                 : value;
             return;
         }
-        
+
         const breakpoints = ['base', 'sm', 'md', 'lg', 'xl'] as const;
         breakpoints.forEach(bp => {
             if (value[bp] !== undefined) {
                 const cssVar = bp === 'base' ? `--${prefix}` : `--${prefix}-${bp}`;
-                styles[cssVar] = typeof value[bp] === 'number' 
-                    ? `repeat(${value[bp]}, minmax(0, 1fr))` 
+                styles[cssVar] = typeof value[bp] === 'number'
+                    ? `repeat(${value[bp]}, minmax(0, 1fr))`
                     : value[bp]!;
             }
         });
     };
-    
+
     // Generate CSS custom properties for spacing values
     const processSpacingValue = (value: any, prefix: string) => {
         if (typeof value !== 'object') {
             styles[`--${prefix}`] = getGapValue(value);
             return;
         }
-        
+
         const breakpoints = ['base', 'sm', 'md', 'lg', 'xl'] as const;
         breakpoints.forEach(bp => {
             if (value[bp] !== undefined) {
@@ -88,12 +90,12 @@ const generateResponsiveStyles = (
             }
         });
     };
-    
+
     processValue(rowsValue, 'grid-rows');
     processValue(colsValue, 'grid-cols');
     processSpacingValue(gapValue, 'gap');
     processSpacingValue(paddingValue, 'padding');
-    
+
     // Process height values
     if (typeof heightValue !== 'object') {
         styles['--height'] = heightValue;
@@ -106,7 +108,7 @@ const generateResponsiveStyles = (
             }
         });
     }
-    
+
     return styles;
 };
 
@@ -125,7 +127,9 @@ export const GridContainer = ({
     justify = 'stretch',
     overflow = 'hidden',
     as: Component = 'div',
-    debug = false
+    debug = false,
+    span,
+    rowSpan
 }: GridContainerProps) => {
     // Process responsive values
     const rowsValue = getResponsiveValue(rows, 2);
@@ -149,9 +153,14 @@ export const GridContainer = ({
     const needsResponsivePadding = typeof paddingValue === 'object';
     const needsResponsiveHeight = typeof heightValue === 'object';
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     // Base grid classes
     const gridClasses = cn(
         "grid w-full",
+        spanClass,
+        rowSpanClass,
         // Responsive grid templates
         needsResponsiveRows && [
             "grid-rows-[--grid-rows]",
@@ -167,15 +176,15 @@ export const GridContainer = ({
             colsValue.lg && "lg:grid-cols-[--grid-cols-lg]",
             colsValue.xl && "xl:grid-cols-[--grid-cols-xl]",
         ],
-        
+
         // Static grid templates
-        !needsResponsiveRows && (typeof rowsValue === 'number' 
+        !needsResponsiveRows && (typeof rowsValue === 'number'
             ? `grid-rows-${rowsValue}`
             : `grid-rows-[${rowsValue.base}]`),
-        !needsResponsiveCols && (typeof colsValue === 'number' 
+        !needsResponsiveCols && (typeof colsValue === 'number'
             ? `grid-cols-${colsValue}`
             : `grid-cols-[${colsValue.base}]`),
-            
+
         // Responsive gaps
         needsResponsiveGap && [
             "gap-[--gap]",
@@ -184,11 +193,11 @@ export const GridContainer = ({
             gapValue.lg && "lg:gap-[--gap-lg]",
             gapValue.xl && "xl:gap-[--gap-xl]",
         ].filter(Boolean).join(' '),
-        
-        !needsResponsiveGap && (typeof gapValue === 'number' 
+
+        !needsResponsiveGap && (typeof gapValue === 'number'
             ? `gap-${gapValue}`
             : `gap-[${getGapValue(gapValue)}]`),
-            
+
         // Responsive padding
         needsResponsivePadding && [
             "p-[--padding]",
@@ -197,11 +206,11 @@ export const GridContainer = ({
             paddingValue.lg && "lg:p-[--padding-lg]",
             paddingValue.xl && "xl:p-[--padding-xl]",
         ].filter(Boolean).join(' '),
-        
-        !needsResponsivePadding && (typeof paddingValue === 'number' 
+
+        !needsResponsivePadding && (typeof paddingValue === 'number'
             ? `p-${paddingValue}`
             : `p-[${getGapValue(paddingValue)}]`),
-            
+
         // Responsive height
         needsResponsiveHeight && [
             "h-[--height]",
@@ -210,9 +219,9 @@ export const GridContainer = ({
             heightValue.lg && "lg:h-[--height-lg]",
             heightValue.xl && "xl:h-[--height-xl]",
         ].filter(Boolean).join(' '),
-        
+
         !needsResponsiveHeight && heightValue,
-        
+
         // Grid properties
         flow && `grid-flow-${flow.replace(' ', '-')}`,
         autoRows && `auto-rows-${autoRows}`,
@@ -220,11 +229,11 @@ export const GridContainer = ({
         align && `items-${align}`,
         justify && `justify-${justify}`,
         overflow && `overflow-${overflow}`,
-        
+
         // Visual styling
         "bg-background rounded-lg border",
         debug && "bg-grid bg-[size:20px_20px] border-dashed border-red-300",
-        
+
         className
     );
 
@@ -232,7 +241,7 @@ export const GridContainer = ({
         if (Array.isArray(children)) {
             return children.map((child: UIComponent | any, index: number) => {
                 const layout = child.layout || {};
-                
+
                 // Generate placement classes
                 const placementClasses = cn(
                     layout.colStart && `col-start-${layout.colStart}`,
@@ -241,13 +250,13 @@ export const GridContainer = ({
                     layout.rowStart && `row-start-${layout.rowStart}`,
                     layout.rowSpan && `row-span-${layout.rowSpan}`,
                     layout.rowEnd && `row-end-${layout.rowEnd}`,
-                    
+
                     // Responsive placements
                     layout.colStartSm && `sm:col-start-${layout.colStartSm}`,
                     layout.colSpanSm && `sm:col-span-${layout.colSpanSm}`,
                     layout.rowStartSm && `sm:row-start-${layout.rowStartSm}`,
                     layout.rowSpanSm && `sm:row-span-${layout.rowSpanSm}`,
-                    
+
                     // Ensure proper cell sizing
                     "h-full w-full min-h-0 min-w-0"
                 );

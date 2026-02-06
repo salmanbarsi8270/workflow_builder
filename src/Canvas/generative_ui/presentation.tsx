@@ -21,9 +21,10 @@ interface Message {
 const initialSchema: UIComponent = {
     type: 'container',
     props: {
-        className: 'p-8 h-full overflow-y-auto',
+        className: 'p-6 h-full overflow-y-auto custom-scrollbar',
         layout: 'grid',
-        gap: 6
+        cols: 12,
+        gap: 4
     },
     children: []
 };
@@ -243,7 +244,8 @@ export const Presentation = () => {
                             return {
                                 type: 'card',
                                 id: `wrapper-${m.id || Math.random()}`,
-                                props: { className: 'col-span-6 mb-8 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden' },
+                                span: 'quarter',
+                                props: { className: 'mb-6 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow' },
                                 children: [
                                     {
                                         type: 'div', props: { className: 'flex flex-col pt-2' },
@@ -304,7 +306,8 @@ export const Presentation = () => {
             children: [...(prev.children || []), {
                 type: 'card',
                 id: `wrapper-${Date.now()}`,
-                props: { className: 'col-span-6 mb-8 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500' },
+                span: 'quarter',
+                props: { className: 'mb-6 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 hover:shadow-md transition-shadow' },
                 children: [
                     {
                         type: 'div',

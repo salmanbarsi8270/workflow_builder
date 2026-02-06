@@ -8,8 +8,7 @@ import {
   SupportHeader,
   HistorySidebar,
   ChatMessages,
-  InputArea,
-  TableModal
+  InputArea
 } from './components';
 
 // Constants
@@ -207,8 +206,6 @@ export const Support = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
   const [isGeneratingTable, setIsGeneratingTable] = useState<boolean>(false);
   const [typingText, setTypingText] = useState<string>('');
-  const [showTableModal, setShowTableModal] = useState<boolean>(false);
-  const [modalTableData, setModalTableData] = useState<any[]>([]);
 
   // Use theme context for dark mode
   const { theme, setTheme } = useTheme();
@@ -334,7 +331,6 @@ export const Support = () => {
 
     try {
       // Fetch connection map before streaming
-      let connectionMap = {};
       let openrouterkey: string | undefined;
       // let cId: string | undefined;
 
@@ -344,9 +340,6 @@ export const Support = () => {
         if (linkRes.ok) {
           const linkData = await linkRes.json();
           if (linkData) {
-            if (linkData.connection_map) {
-              connectionMap = linkData.connection_map;
-            }
             if (linkData.api_key) {
               openrouterkey = linkData.api_key;
             }
@@ -374,7 +367,6 @@ export const Support = () => {
               userId: USER_ID,
               conversationId: nextConvId,
               tooluserid: USER_ID,
-              // connectionMap: {},
               agentId: AGENT_ID,
               openrouterkey: openrouterkey
             },
@@ -655,11 +647,7 @@ export const Support = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
-  // Handle view table
-  const handleViewTable = (data: any[]) => {
-    setModalTableData(data);
-    setShowTableModal(true);
-  };
+
 
   // Handle suggestion click
   const handleSuggestionClick = (message: string) => {
@@ -719,7 +707,6 @@ export const Support = () => {
           typingText={typingText}
           isGeneratingTable={isGeneratingTable}
           isDarkMode={isDarkMode}
-          onViewTable={handleViewTable}
           onSuggestionClick={handleSuggestionClick}
           extractJSON={extractJSON}
           messagesEndRef={messagesEndRef}
@@ -737,13 +724,7 @@ export const Support = () => {
         />
       </div>
 
-      {/* Table Modal */}
-      <TableModal
-        isOpen={showTableModal}
-        onClose={() => setShowTableModal(false)}
-        data={modalTableData}
-        isDarkMode={isDarkMode}
-      />
+      {/* Table Modal - Removed */}
     </div>
   );
 };

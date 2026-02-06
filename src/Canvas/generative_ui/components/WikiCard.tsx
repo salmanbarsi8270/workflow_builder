@@ -28,6 +28,8 @@ interface WikiCardProps {
     onShare?: () => void;
     onCopy?: () => void;
     responsive?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -81,7 +83,9 @@ export const WikiCard = ({
     onSearch,
     onShare,
     onCopy,
-    responsive = true
+    responsive = true,
+    span,
+    rowSpan
 }: WikiCardProps) => {
     const [expanded, setExpanded] = useState(defaultExpanded);
     const [searchQuery, setSearchQuery] = useState('');
@@ -109,7 +113,7 @@ export const WikiCard = ({
 
     const renderTableOfContents = () => {
         if (!showToc || !hasSections) return null;
-        
+
         return (
             <div className={cn(
                 "border-l-2 border-primary/20 pl-4 py-2 mb-6",
@@ -211,28 +215,28 @@ export const WikiCard = ({
                         <span className={config.meta}>{author}</span>
                     </div>
                 )}
-                
+
                 {lastUpdated && (
                     <div className="flex items-center gap-1.5">
                         <Eye className="h-3.5 w-3.5" />
                         <span className={config.meta}>Updated {lastUpdated}</span>
                     </div>
                 )}
-                
+
                 {views !== undefined && (
                     <div className="flex items-center gap-1.5">
                         <Eye className="h-3.5 w-3.5" />
                         <span className={config.meta}>{views.toLocaleString()} views</span>
                     </div>
                 )}
-                
+
                 {contributors !== undefined && (
                     <div className="flex items-center gap-1.5">
                         <Users className="h-3.5 w-3.5" />
                         <span className={config.meta}>{contributors} contributors</span>
                     </div>
                 )}
-                
+
                 {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 ml-auto">
                         {tags.map((tag, idx) => (
@@ -249,10 +253,15 @@ export const WikiCard = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
         <Card className={cn(
             "w-full flex flex-col overflow-hidden border-border bg-card",
             isEncyclopedia && "shadow-lg",
+            spanClass,
+            rowSpanClass,
             className
         )}>
             {/* Header */}
@@ -265,20 +274,20 @@ export const WikiCard = ({
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <BookOpen className={cn(
                             "text-primary",
-                            size === 'sm' ? "h-3.5 w-3.5" : 
-                            size === 'md' ? "h-4 w-4" : 
-                            "h-5 w-5"
+                            size === 'sm' ? "h-3.5 w-3.5" :
+                                size === 'md' ? "h-4 w-4" :
+                                    "h-5 w-5"
                         )} />
                         <span className={cn(
                             "uppercase tracking-widest font-bold",
-                            size === 'sm' ? "text-[10px]" : 
-                            size === 'md' ? "text-xs" : 
-                            "text-sm"
+                            size === 'sm' ? "text-[10px]" :
+                                size === 'md' ? "text-xs" :
+                                    "text-sm"
                         )}>
                             {isEncyclopedia ? 'Encyclopedia' : 'Documentation'}
                         </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         {searchable && (
                             <div className="relative">
@@ -295,7 +304,7 @@ export const WikiCard = ({
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             </div>
                         )}
-                        
+
                         {copyable && (
                             <button
                                 onClick={handleCopy}
@@ -310,7 +319,7 @@ export const WikiCard = ({
                                 )}
                             </button>
                         )}
-                        
+
                         {shareable && (
                             <button
                                 onClick={onShare}
@@ -323,7 +332,7 @@ export const WikiCard = ({
                         )}
                     </div>
                 </div>
-                
+
                 <CardTitle className={cn(
                     "font-serif tracking-tight text-foreground",
                     config.title,
@@ -332,7 +341,7 @@ export const WikiCard = ({
                 )}>
                     {title}
                 </CardTitle>
-                
+
                 {citation && (
                     <div className="text-sm text-muted-foreground font-mono bg-muted/50 p-3 rounded-lg">
                         {citation}
@@ -371,13 +380,13 @@ export const WikiCard = ({
                                 )} />
                                 {expanded ? 'Collapse' : 'Expand'} Article
                             </button>
-                            
+
                             {expanded && renderContent()}
                         </div>
                     ) : (
                         renderContent()
                     )}
-                    
+
                     {renderMetadata()}
                 </div>
 
@@ -416,37 +425,37 @@ export const WikiCard = ({
 
 // Pre-styled variants
 WikiCard.Compact = (props: Omit<WikiCardProps, 'variant' | 'size' | 'showToc'>) => (
-    <WikiCard 
-        variant="compact" 
-        size="sm" 
+    <WikiCard
+        variant="compact"
+        size="sm"
         showToc={false}
-        {...props} 
+        {...props}
     />
 );
 
 WikiCard.Expanded = (props: Omit<WikiCardProps, 'variant' | 'collapsible'>) => (
-    <WikiCard 
-        variant="expanded" 
+    <WikiCard
+        variant="expanded"
         collapsible={false}
-        {...props} 
+        {...props}
     />
 );
 
 WikiCard.Encyclopedia = (props: Omit<WikiCardProps, 'variant'>) => (
-    <WikiCard 
-        variant="encyclopedia" 
-        showToc 
+    <WikiCard
+        variant="encyclopedia"
+        showToc
         responsive
-        {...props} 
+        {...props}
     />
 );
 
 WikiCard.Documentation = (props: Omit<WikiCardProps, 'variant' | 'size'>) => (
-    <WikiCard 
-        size="lg" 
-        showToc 
+    <WikiCard
+        size="lg"
+        showToc
         searchable
         copyable
-        {...props} 
+        {...props}
     />
 );

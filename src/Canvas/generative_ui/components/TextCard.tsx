@@ -29,6 +29,8 @@ interface TextCardProps {
     padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
     radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
     interactive?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -159,7 +161,9 @@ export const TextCard = ({
     badge,
     padding,
     radius = 'md',
-    interactive
+    interactive,
+    span,
+    rowSpan
 }: TextCardProps) => {
     const [copied, setCopied] = useState(false);
     const config = sizeConfig[size];
@@ -229,7 +233,7 @@ export const TextCard = ({
                                 </h3>
                             )}
                         </div>
-                        
+
                         <div className="flex items-center gap-2 shrink-0">
                             {badge && (
                                 <span className={cn(
@@ -243,7 +247,7 @@ export const TextCard = ({
                                     {badge}
                                 </span>
                             )}
-                            
+
                             {copyable && typeof content === 'string' && (
                                 <button
                                     onClick={handleCopy}
@@ -312,8 +316,13 @@ export const TextCard = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const cardClasses = cn(
         "w-full transition-all duration-200",
+        spanClass,
+        rowSpanClass,
         background && variantStyle.bg,
         bordered && "border",
         bordered && variantStyle.border,
@@ -387,9 +396,9 @@ TextCard.Success = (props: Omit<TextCardProps, 'variant'>) => (
 
 // Compact version
 TextCard.Compact = (props: Omit<TextCardProps, 'size' | 'bordered' | 'shadow'>) => (
-    <TextCard 
-        size="sm" 
-        bordered={false} 
+    <TextCard
+        size="sm"
+        bordered={false}
         shadow={false}
         background={false}
         className="bg-transparent p-0"
@@ -399,9 +408,9 @@ TextCard.Compact = (props: Omit<TextCardProps, 'size' | 'bordered' | 'shadow'>) 
 
 // Interactive version
 TextCard.Interactive = (props: Omit<TextCardProps, 'interactive'> & { onClick: () => void }) => (
-    <TextCard 
-        interactive 
-        shadow 
+    <TextCard
+        interactive
+        shadow
         className="hover:shadow-lg transition-all"
         {...props}
     />
@@ -409,7 +418,7 @@ TextCard.Interactive = (props: Omit<TextCardProps, 'interactive'> & { onClick: (
 
 // Inline version for text flow
 TextCard.Inline = (props: Omit<TextCardProps, 'background' | 'bordered' | 'padding' | 'radius'>) => (
-    <TextCard 
+    <TextCard
         background={false}
         bordered={false}
         padding="none"

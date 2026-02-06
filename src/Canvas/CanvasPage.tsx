@@ -1,10 +1,9 @@
 import { useRef, useState, useEffect } from "react";
 import {
-    Plus, PanelLeftClose, PanelLeftOpen,
-    PanelRightClose, PanelRightOpen, Sparkles, Send,
-    Loader2, Trash2, Settings,
-    Code, Menu, LayoutTemplate, MoreVertical,
-    MessageSquare, Zap
+    PanelLeftClose, PanelLeftOpen,
+    Loader2, Settings,
+    Menu,
+    MessageSquare
 } from "lucide-react";
 import type { UIComponent } from "./generative_ui/types";
 import { parseSSEChunk } from "../lib/sse-parser";
@@ -57,15 +56,16 @@ const initialSchema: UIComponent = {
         className: 'w-full h-full',
         layout: 'grid',
         cols: 12,
-        gap: 4
+        gap: 4,
+        dir: 'rtl'
     },
     children: []
 };
 
 // Responsive grid column calculation based on sidebar visibility and screen size
 const getAdaptiveColSpan = (
-    leftSidebarOpen: boolean, 
-    rightSidebarOpen: boolean,
+    _leftSidebarOpen: boolean,
+    _rightSidebarOpen: boolean,
     isMobile: boolean
 ): string => {
     if (isMobile) {
@@ -73,19 +73,8 @@ const getAdaptiveColSpan = (
         return 'col-span-12';
     }
 
-    if (!leftSidebarOpen && !rightSidebarOpen) {
-        // Full canvas: 4 columns per row on desktop
-        return 'col-span-12 md:col-span-6 lg:col-span-4 xl:col-span-3';
-    } else if (leftSidebarOpen && !rightSidebarOpen) {
-        // Left sidebar only: 3 columns per row
-        return 'col-span-12 md:col-span-6 lg:col-span-4';
-    } else if (!leftSidebarOpen && rightSidebarOpen) {
-        // Right sidebar only: 3 columns per row
-        return 'col-span-12 md:col-span-6 lg:col-span-4';
-    } else {
-        // Both sidebars: 3 columns per row (was 2)
-        return 'col-span-12 md:col-span-6 lg:col-span-4';
-    }
+    // Consistent 4-column layout (col-span-3) for desktop across all sidebar states
+    return 'col-span-12 sm:col-span-6 md:col-span-6 lg:col-span-3';
 };
 
 // Mobile sidebar detection
@@ -96,7 +85,7 @@ const useMobile = () => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768);
         };
-        
+
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
@@ -541,7 +530,7 @@ export default function CanvasPage() {
 
         let connectionMap = {};
         let openrouterkey: string | undefined;
-        let cId: string | undefined;
+
 
         // Try to identify the agent from the current conversation metadata
         // const currentConv = conversations.find(c => c.conversation_id === currentConversationId);
@@ -560,9 +549,7 @@ export default function CanvasPage() {
                         if (linkData.api_key) {
                             openrouterkey = linkData.api_key;
                         }
-                        if (linkData.connection_id) {
-                            cId = linkData.connection_id;
-                        }
+
                     }
                 }
             } catch (err) {
@@ -572,7 +559,7 @@ export default function CanvasPage() {
 
         try {
             console.log("Running Agent ID:", agentConnectionId1);
-       const response = await fetch(`${AI_URL}/agents/${agentConnectionId1}/stream`, {
+            const response = await fetch(`${AI_URL}/agents/${agentConnectionId1}/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
                 body: JSON.stringify({
@@ -588,7 +575,7 @@ export default function CanvasPage() {
                             tooluserid: userId,
                             connectionMap: connectionMap,
                             agentId: agentConnectionId1,
-                            openrouterkey:openrouterkey
+                            openrouterkey: openrouterkey
                         },
                         maxSteps: 100,
                     }
@@ -771,7 +758,7 @@ export default function CanvasPage() {
                     "hidden md:flex w-[23%] border-r shrink-0 flex-col transition-all duration-300 ease-out",
                     !isLeftOpen && "w-0 border-none overflow-hidden"
                 )}>
-                    <LeftSidebar 
+                    <LeftSidebar
                         conversations={conversations}
                         convasationloading={convasationloading}
                         currentConversationId={currentConversationId}
@@ -788,8 +775,11 @@ export default function CanvasPage() {
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col relative overflow-hidden">
                     {/* Header */}
-                    <div className="absolute top-0 left-0 right-0 z-20 h-14 flex items-center justify-between px-4 bg-background/30 backdrop-blur-md border-b border-border/5">
+                    <div className="absolute top-0 left-0 right-0 z-20 h-14 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-border/5 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1f1f1f_1px,transparent_1px)]"
+                        style={{ backgroundSize: '20px 20px' }}
+                    >
                         <div className="flex items-center gap-3">
+                            {/* Mobile Menu Trigger */}
                             <Sheet>
                                 <SheetTrigger asChild>
                                     <Button variant="ghost" size="icon" className="md:hidden">
@@ -801,10 +791,29 @@ export default function CanvasPage() {
                                 </SheetContent>
                             </Sheet>
 
-                            <Button variant="ghost" size="icon" className="hidden md:flex h-8 w-8" onClick={() => setIsLeftOpen(!isLeftOpen)}>
-                                {isLeftOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-                            </Button>
+                            {/* Desktop Left Sidebar Toggle */}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => setIsLeftOpen(!isLeftOpen)}
+                                        className={cn(
+                                            "hidden md:flex h-9 w-9 rounded-xl items-center justify-center transition-all duration-300",
+                                            "hover:scale-110 active:scale-95",
+                                            "hover:shadow-[0_0_15px_rgba(var(--primary),0.2)]",
+                                            isLeftOpen
+                                                ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                                        )}
+                                    >
+                                        {isLeftOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{isLeftOpen ? 'Close History' : 'Show History'}</p>
+                                </TooltipContent>
+                            </Tooltip>
 
+                            {/* Branding & Config */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium">Voltagent Canvas</span>
                                 {currentConversationId && (
@@ -818,53 +827,30 @@ export default function CanvasPage() {
                             </div>
                         </div>
 
-                    <div className="h-14 bg-background/80 backdrop-blur-md flex items-center justify-between px-4 z-40
-                        bg-[radial-gradient(#e5e7eb_1px,transparent_1px)]
-                        dark:bg-[radial-gradient(#1f1f1f_1px,transparent_1px)]"
-                        style={{ backgroundSize: '20px 20px' }}
-                    >
-                        {/* LEFT */}
-                        <div className="flex items-center gap-2">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => setIsLeftOpen(!isLeftOpen)}
-                                        className={cn(
-                                            "h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300",
-                                            "hover:scale-110 active:scale-95",
-                                            "hover:shadow-[0_0_15px_rgba(var(--primary),0.2)]",
-                                            isLeftOpen
-                                                ? "bg-primary text-primary-foreground shadow-lg scale-105"
-                                                : "bg-primary/10 text-primary hover:bg-primary/20"
-                                        )}
-                                    >
-                                        <PanelLeftOpen className="h-4 w-4" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{isLeftOpen ? 'Close History' : 'Show History'}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-
-                        {/* RIGHT */}
+                        {/* Right Actions */}
                         <div className="flex items-center gap-2">
                             {((uiSchema.children?.length ?? 0) > 0) && (
-                                <button
-                                    onClick={() => {
-                                        setUiSchema(initialSchema);
-                                        setMessages([]);
-                                        setCurrentConversationId(null);
-                                        setIsRightOpen(false);
-                                        setIsLeftOpen(false);
-                                    }}
-                                    title="Clear Canvas"
-                                    className="h-9 w-9 rounded-xl bg-destructive/10 hover:bg-destructive/20
-                                        hover:text-destructive text-destructive/80 flex items-center
-                                        justify-center transition-all duration-300 hover:scale-110 active:scale-95"
-                                >
-                                    ✕
-                                </button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() => {
+                                                setUiSchema(initialSchema);
+                                                setMessages([]);
+                                                setCurrentConversationId(null);
+                                                setIsRightOpen(false);
+                                                setIsLeftOpen(false);
+                                            }}
+                                            className="h-9 w-9 rounded-xl bg-destructive/10 hover:bg-destructive/20
+                                                hover:text-destructive text-destructive/80 flex items-center
+                                                justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+                                        >
+                                            ✕
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Clear Canvas</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             )}
 
                             <Tooltip>
@@ -896,7 +882,7 @@ export default function CanvasPage() {
                         {/* Desktop Content */}
                         <div className="hidden md:flex h-full pb-20">
                             {/* Canvas Area */}
-                            <CanvasArea uiSchema={uiSchema} />   
+                            <CanvasArea uiSchema={uiSchema} />
                         </div>
                     </div>
 
@@ -930,7 +916,7 @@ export default function CanvasPage() {
                         />
                     </div>
                 </main>
-                
+
 
                 {/* Desktop Right Sidebar */}
                 <aside className={cn(
@@ -938,7 +924,7 @@ export default function CanvasPage() {
                     !isRightOpen && "w-0 border-none overflow-hidden"
                 )}>
                     <RightSidebar messages={messages} messagesEndRef={messagesEndRef} />
-                </aside> 
+                </aside>
             </div>
 
             {/* Create Project Dialog */}

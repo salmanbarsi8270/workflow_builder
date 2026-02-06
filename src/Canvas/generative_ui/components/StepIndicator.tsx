@@ -26,6 +26,8 @@ interface StepIndicatorProps {
     showStatus?: boolean;
     maxSteps?: number;
     truncate?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -123,7 +125,9 @@ export const StepIndicator = ({
     showTime = false,
     showStatus = true,
     maxSteps,
-    truncate = true
+    truncate = true,
+    span,
+    rowSpan
 }: StepIndicatorProps) => {
     const config = sizeConfig[size];
     const displaySteps = maxSteps ? steps.slice(0, maxSteps) : steps;
@@ -146,7 +150,7 @@ export const StepIndicator = ({
     const renderStepIcon = (index: number, step: any, status: string) => {
         const StatusIcon = statusIcons[status as keyof typeof statusIcons] || statusIcons.pending;
         const colors = statusColors[status as keyof typeof statusColors] || statusColors.pending;
-        
+
         if (step.icon && typeof step.icon !== 'string') {
             return step.icon;
         }
@@ -212,8 +216,8 @@ export const StepIndicator = ({
                             <div className={cn(
                                 "rounded-full flex items-center justify-center",
                                 config.step,
-                                ['completed', 'active', 'error', 'warning', 'loading'].includes(status) 
-                                    ? colors.bg 
+                                ['completed', 'active', 'error', 'warning', 'loading'].includes(status)
+                                    ? colors.bg
                                     : "bg-transparent"
                             )}>
                                 {renderStepIcon(index, step, status)}
@@ -280,8 +284,8 @@ export const StepIndicator = ({
                                     <div className={cn(
                                         "rounded-full flex items-center justify-center",
                                         config.step,
-                                        ['completed', 'active', 'error', 'warning', 'loading'].includes(status) 
-                                            ? colors.bg 
+                                        ['completed', 'active', 'error', 'warning', 'loading'].includes(status)
+                                            ? colors.bg
                                             : "bg-transparent"
                                     )}>
                                         {renderStepIcon(index, step, status)}
@@ -313,7 +317,7 @@ export const StepIndicator = ({
                                     )}>
                                         {step.label}
                                     </h4>
-                                    
+
                                     {showStatus && step.status && step.status !== 'pending' && (
                                         <span className={cn(
                                             "text-xs font-medium px-2 py-0.5 rounded-full",
@@ -357,11 +361,16 @@ export const StepIndicator = ({
         </div>
     );
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     // Card variant wrapper
     if (variant === 'card') {
         return (
             <div className={cn(
                 "rounded-xl border bg-card shadow-sm",
+                spanClass,
+                rowSpanClass,
                 className
             )}>
                 {orientation === 'horizontal' ? renderHorizontalLayout() : renderVerticalLayout()}
@@ -369,7 +378,11 @@ export const StepIndicator = ({
         );
     }
 
-    return orientation === 'horizontal' ? renderHorizontalLayout() : renderVerticalLayout();
+    return (
+        <div className={cn(spanClass, rowSpanClass, className)}>
+            {orientation === 'horizontal' ? renderHorizontalLayout() : renderVerticalLayout()}
+        </div>
+    );
 };
 
 // Pre-configured variants
@@ -378,19 +391,19 @@ StepIndicator.Horizontal = (props: Omit<StepIndicatorProps, 'orientation'>) => (
 );
 
 StepIndicator.Compact = (props: Omit<StepIndicatorProps, 'size' | 'variant'>) => (
-    <StepIndicator 
-        size="sm" 
-        variant="compact" 
+    <StepIndicator
+        size="sm"
+        variant="compact"
         showConnectors={false}
-        {...props} 
+        {...props}
     />
 );
 
 StepIndicator.Card = (props: Omit<StepIndicatorProps, 'variant'>) => (
-    <StepIndicator 
-        variant="card" 
-        showConnectors 
-        {...props} 
+    <StepIndicator
+        variant="card"
+        showConnectors
+        {...props}
     />
 );
 

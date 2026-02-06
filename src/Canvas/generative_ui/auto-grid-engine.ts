@@ -17,123 +17,15 @@ export interface LayoutHint {
 /**
  * Analyzes component structure and content to determine optimal grid placement
  */
-export function analyzeComponent(component: any): ComponentMetrics {
-    if (!component || typeof component !== 'object') {
-        return { width: 'quarter', height: 'compact', complexity: 'simple' };
-    }
-
-    let width: ComponentMetrics['width'] = 'half';
-    let height: ComponentMetrics['height'] = 'medium';
-    let complexity: ComponentMetrics['complexity'] = 'moderate';
-    let priority = 0;
-    let rowSpan = 1;
-
-    const type = component.type?.toLowerCase();
-    
-    // Analyze text content complexity
-    const textContent = extractTextContent(component);
-    const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
-    
-    // Simple text (1-3 words like "hi") - Quarter width
-    if (wordCount <= 3 && !hasComplexChildren(component)) {
-        width = 'quarter';
-        height = 'compact';
-        complexity = 'simple';
-        priority = 4;
-    }
-    // Short text or simple cards (4-20 words) - Third width
-    else if (wordCount <= 20 && !hasComplexChildren(component)) {
-        width = 'third';
-        height = 'compact';
-        complexity = 'simple';
-        priority = 3;
-    }
-    // Medium content - Half width
-    else if (wordCount <= 50 || type === 'card' || type === 'metric') {
-        width = 'half';
-        height = 'medium';
-        complexity = 'moderate';
-        priority = 2;
-    }
-    
-    // Charts and tables need more vertical space
-    if (type === 'chart' || type === 'chart-placeholder' || type === 'table') {
-        width = 'full';
-        height = 'tall';
-        complexity = 'complex';
-        priority = 1; // Highest priority for placement
-        rowSpan = 2; 
-    }
-    
-    // Grid containers with many children
-    if (component.children) {
-        const childCount = Array.isArray(component.children) ? component.children.length : 1;
-        
-        if (childCount > 6) {
-            width = 'full';
-            height = 'extra-tall';
-            complexity = 'complex';
-            priority = 1;
-            rowSpan = 3;
-        } else if (childCount > 3) {
-            width = 'half';
-            height = 'tall';
-            priority = 2;
-            rowSpan = 2;
-        }
-    }
-
-    // Special handling for metrics - they are compact but high priority
-    if (type === 'metric' || type === 'stat-card' || type === 'status-badge') {
-        width = 'quarter'; // Default to quarter for dense dashboard look
-        height = 'compact';
-        rowSpan = 1;
-    }
-
-    // Thinking blocks should be full width but compact
-    if (type === 'thinking-block') {
-        width = 'full';
-        height = 'compact';
-        rowSpan = 1;
-    }
-
-    return { width, height, priority, complexity, rowSpan };
-}
-
-/**
- * Extract all text content from component recursively
- */
-function extractTextContent(component: any): string {
-    if (!component) return '';
-    if (typeof component === 'string') return component;
-    
-    let text = '';
-    
-    if (component.props?.content) text += component.props.content + ' ';
-    if (component.content) text += component.content + ' ';
-    
-    if (component.children) {
-        const children = Array.isArray(component.children) ? component.children : [component.children];
-        children.forEach((child: any) => {
-            text += extractTextContent(child) + ' ';
-        });
-    }
-    
-    return text.trim();
-}
-
-/**
- * Check if component has complex children (tables, charts, etc.)
- */
-function hasComplexChildren(component: any): boolean {
-    if (!component.children) return false;
-    
-    const children = Array.isArray(component.children) ? component.children : [component.children];
-    return children.some((child: any) => {
-        const type = child?.type?.toLowerCase();
-        return type === 'table' || type === 'chart' || type === 'chart-placeholder' || 
-               type === 'grid' || type === 'card';
-    });
+export function analyzeComponent(_component: any): ComponentMetrics {
+    // Force a 4-column layout (quarter width) for all components
+    return { 
+        width: 'quarter', 
+        height: 'medium', 
+        priority: 2, 
+        complexity: 'moderate', 
+        rowSpan: 1 
+    };
 }
 
 /**
@@ -144,7 +36,7 @@ export function getGridClasses(
     leftSidebarOpen: boolean = true, 
     rightSidebarOpen: boolean = true
 ): string {
-    const width = metrics.width || 'half';
+    const width = metrics.width || 'quarter';
     const rowSpan = metrics.rowSpan || 1;
     
     // Generate Tailwind classes
@@ -155,44 +47,18 @@ export function getGridClasses(
 }
 
 /**
- * Get max columns based on sidebar state
- */
-function getMaxColumns(leftSidebarOpen: boolean, rightSidebarOpen: boolean): number {
-    if (!leftSidebarOpen && !rightSidebarOpen) return 5; // Increased from 4
-    if (leftSidebarOpen && rightSidebarOpen) return 3;   // Increased from 2
-    return 4;                                            // Increased from 3
-}
-
-/**
  * Generate adaptive column span classes
  */
 function getAdaptiveColSpan(
-    width: ComponentMetrics['width'], 
-    leftSidebarOpen: boolean, 
-    rightSidebarOpen: boolean
+    _width: ComponentMetrics['width'], 
+    _leftSidebarOpen: boolean, 
+    _rightSidebarOpen: boolean
 ): string {
-    const maxCols = getMaxColumns(leftSidebarOpen, rightSidebarOpen);
-    
-    if (width === 'full') {
-        return 'col-span-12';
-    }
-    
-    if (width === 'quarter') {
-        if (maxCols >= 5) return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3 xl:col-span-2_4'; // 1/5 approx or just 2-3
-        return 'col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3'; 
-    }
-    
-    if (width === 'third') {
-        return 'col-span-12 sm:col-span-6 md:col-span-4'; // Always try 1/3
-    }
-    
-    if (width === 'half') {
-        if (maxCols >= 4) return 'col-span-12 md:col-span-6'; 
-        return 'col-span-12 md:col-span-6'; 
-    }
-    
-    // Default to medium/small (1/3 or 1/2) instead of big
-    return 'col-span-12 md:col-span-6 lg:col-span-4';
+    // Consistent 4-column layout across all sidebar states on desktop
+    // Mobile: Full width (col-span-12)
+    // Small/Medium: 2 columns (col-span-6)
+    // Large/XL: 4 columns (col-span-3)
+    return 'col-span-12 sm:col-span-6 md:col-span-6 lg:col-span-3';
 }
 
 /**
@@ -214,7 +80,7 @@ export function applyAutoGridFlow(
     leftSidebarOpen: boolean = true,
     rightSidebarOpen: boolean = true
 ): string {
-    if (!component) return 'col-span-12 md:col-span-6';
+    if (!component) return 'col-span-12 md:col-span-6 lg:col-span-3';
 
     const metrics = analyzeComponent(component);
     return getGridClasses(metrics, leftSidebarOpen, rightSidebarOpen);

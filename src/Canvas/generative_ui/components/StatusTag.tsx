@@ -20,6 +20,8 @@ interface StatusTagProps {
     uppercase?: boolean;
     truncate?: boolean;
     loading?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const variantConfig = {
@@ -148,7 +150,9 @@ export const StatusTag = ({
     badge,
     uppercase = true,
     truncate = true,
-    loading = false
+    loading = false,
+    span,
+    rowSpan
 }: StatusTagProps) => {
     const config = variantConfig[variant];
     const sizeStyle = sizeConfig[size];
@@ -156,7 +160,7 @@ export const StatusTag = ({
 
     // Get icon to display
     const iconToDisplay = icon || config.icon;
-    const iconElement: any = typeof iconToDisplay === 'string' 
+    const iconElement: any = typeof iconToDisplay === 'string'
         ? getIconComponent(iconToDisplay)
         : iconToDisplay;
 
@@ -172,9 +176,14 @@ export const StatusTag = ({
         }
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const baseClasses = cn(
         "inline-flex items-center border shadow-xs whitespace-nowrap transition-all duration-200",
         pill ? "rounded-full" : "rounded-lg",
+        spanClass,
+        rowSpanClass,
         outlined ? config.outline : cn(config.bg, config.text),
         sizeStyle.padding,
         sizeStyle.gap,
@@ -200,13 +209,13 @@ export const StatusTag = ({
                     outlined ? config.border.replace('border-', 'bg-') : 'bg-current'
                 )} />
             )}
-            
+
             {!loading && showIcon && iconElement && (
                 <div className={cn(
                     "flex items-center justify-center",
                     outlined && "text-current"
                 )}>
-                    {isValidElement(iconElement) 
+                    {isValidElement(iconElement)
                         ? cloneElement(iconElement as React.ReactElement<any>, {
                             className: cn(
                                 sizeStyle.icon,
@@ -217,11 +226,11 @@ export const StatusTag = ({
                     }
                 </div>
             )}
-            
+
             <span className={textClasses}>
                 {loading ? '...' : status}
             </span>
-            
+
             {!loading && count !== undefined && (
                 <span className={cn(
                     "rounded-full bg-current/10 text-current font-bold",
@@ -230,7 +239,7 @@ export const StatusTag = ({
                     {count}
                 </span>
             )}
-            
+
             {!loading && badge && (
                 <span className={cn(
                     "rounded-full bg-current/20 text-current font-bold ml-1",
@@ -284,47 +293,47 @@ StatusTag.Neutral = (props: Omit<StatusTagProps, 'variant'>) => (
 
 // Common status tags with icons
 StatusTag.Active = (props: Omit<StatusTagProps, 'status' | 'variant' | 'icon' | 'animate'>) => (
-    <StatusTag 
-        status="Active" 
-        variant="success" 
-        icon="CheckCircle" 
-        {...props} 
+    <StatusTag
+        status="Active"
+        variant="success"
+        icon="CheckCircle"
+        {...props}
     />
 );
 
 StatusTag.Inactive = (props: Omit<StatusTagProps, 'status' | 'variant' | 'icon'>) => (
-    <StatusTag 
-        status="Inactive" 
-        variant="neutral" 
-        icon="Circle" 
-        {...props} 
+    <StatusTag
+        status="Inactive"
+        variant="neutral"
+        icon="Circle"
+        {...props}
     />
 );
 
 StatusTag.Pending = (props: Omit<StatusTagProps, 'status' | 'variant' | 'icon' | 'animate'>) => (
-    <StatusTag 
-        status="Pending" 
-        variant="warning" 
-        icon="Clock" 
-        animate 
-        {...props} 
+    <StatusTag
+        status="Pending"
+        variant="warning"
+        icon="Clock"
+        animate
+        {...props}
     />
 );
 
 StatusTag.Processing = (props: Omit<StatusTagProps, 'status' | 'variant' | 'icon' | 'animate'>) => (
-    <StatusTag 
-        status="Processing" 
-        variant="info" 
-        icon="Zap" 
-        animate 
-        {...props} 
+    <StatusTag
+        status="Processing"
+        variant="info"
+        icon="Zap"
+        animate
+        {...props}
     />
 );
 
 // Compact version for dense interfaces
 StatusTag.Compact = (props: Omit<StatusTagProps, 'size' | 'showIcon' | 'uppercase'>) => (
-    <StatusTag 
-        size="xs" 
+    <StatusTag
+        size="xs"
         showIcon={false}
         uppercase={false}
         pill={false}
@@ -335,7 +344,7 @@ StatusTag.Compact = (props: Omit<StatusTagProps, 'size' | 'showIcon' | 'uppercas
 
 // Interactive version with onClick
 StatusTag.Interactive = (props: Omit<StatusTagProps, 'onClick'> & { onClick: () => void }) => (
-    <StatusTag 
+    <StatusTag
         className="hover:opacity-80 active:scale-95 transition-all"
         {...props}
     />

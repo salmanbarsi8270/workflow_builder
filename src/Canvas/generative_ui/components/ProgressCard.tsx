@@ -22,6 +22,8 @@ interface ProgressCardProps {
     showMax?: boolean;
     compact?: boolean;
     responsive?: boolean;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 const sizeConfig = {
@@ -122,7 +124,9 @@ export const ProgressCard = ({
     showLabel = true,
     showMax = false,
     compact = false,
-    responsive = true
+    responsive = true,
+    span,
+    rowSpan
 }: ProgressCardProps) => {
     const percentage = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
     const config = sizeConfig[size];
@@ -144,7 +148,7 @@ export const ProgressCard = ({
                         animate && "animate-progress",
                         isInteractive && "hover:brightness-110"
                     )}
-                    style={{ 
+                    style={{
                         width: `${percentage}%`,
                         ...(striped && {
                             backgroundImage: `linear-gradient(
@@ -162,7 +166,7 @@ export const ProgressCard = ({
                     }}
                 />
             </div>
-            
+
             {/* Progress indicator dot */}
             {percentage > 0 && (
                 <div
@@ -177,10 +181,10 @@ export const ProgressCard = ({
     );
 
     const renderValueDisplay = () => {
-        const displayValue = formatValue 
+        const displayValue = formatValue
             ? formatValue(value, percentage)
             : `${value}${showMax ? `/${max}` : ''}`;
-        
+
         return (
             <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
                 {showValue && (
@@ -192,7 +196,7 @@ export const ProgressCard = ({
                         {displayValue}
                     </span>
                 )}
-                
+
                 {showPercentage && (
                     <span className={cn(
                         "font-semibold",
@@ -206,12 +210,17 @@ export const ProgressCard = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const content = (
         <div className={cn(
             "w-full transition-all duration-300 rounded-xl border",
             config.spaceY,
             variantStyle.bg,
             config.padding,
+            spanClass,
+            rowSpanClass,
             isInteractive && "cursor-pointer hover:shadow-md active:scale-[0.99]",
             className
         )}>
@@ -238,7 +247,7 @@ export const ProgressCard = ({
                             </h4>
                         </div>
                     )}
-                    
+
                     {/* Compact percentage display for headers */}
                     {compact && showPercentage && (
                         <span className={cn(
@@ -274,10 +283,10 @@ export const ProgressCard = ({
                 <>
                     {/* Value display */}
                     {renderValueDisplay()}
-                    
+
                     {/* Progress bar */}
                     {renderProgressBar()}
-                    
+
                     {/* Description */}
                     {description && (
                         <p className={cn(
@@ -287,7 +296,7 @@ export const ProgressCard = ({
                             {description}
                         </p>
                     )}
-                    
+
                     {/* Progress stats */}
                     {showMax && (
                         <div className="flex justify-between text-xs text-muted-foreground pt-2">
@@ -328,18 +337,18 @@ ProgressCard.Warning = (props: Omit<ProgressCardProps, 'variant'>) => (
 );
 
 ProgressCard.Compact = (props: Omit<ProgressCardProps, 'size' | 'compact'>) => (
-    <ProgressCard 
-        size="sm" 
-        compact 
+    <ProgressCard
+        size="sm"
+        compact
         showLabel={false}
         className="bg-transparent border-0 p-0"
         {...props}
     />
 );
 
-ProgressCard.Circular = ({ 
-    value, 
-    max = 100, 
+ProgressCard.Circular = ({
+    value,
+    max = 100,
     size = 100,
     strokeWidth = 8,
     className,
@@ -349,7 +358,7 @@ ProgressCard.Circular = ({
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percentage / 100) * circumference;
-    
+
     return (
         <div className={cn("flex flex-col items-center", className)}>
             <div className="relative" style={{ width: size, height: size }}>

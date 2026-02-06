@@ -9,21 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { renderIcon } from './components/utils';
 
 // Responsive grid utility function
-const getResponsiveColSpan = (span: number | string) => {
-  if (typeof span === 'string') return span;
-  return `col-span-${span}`;
-};
+// Standardized grid classes helper
 
 // Card Wrapper with Responsive Grid Span Support
-const CardWrapper = ({ span, rowSpan, className, children, responsive = true, ...props }: any) => {
-    const spanClass = responsive 
-        ? span 
-            ? `col-span-1 ${span >= 3 ? 'sm:col-span-2' : ''} ${span >= 6 ? 'lg:col-span-3' : ''} ${span >= 9 ? 'xl:col-span-4' : ''}` 
-            : 'col-span-12'
-        : getResponsiveColSpan(span || 12);
-    
-    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
-    
+const CardWrapper = ({ className, children, responsive = true, ...props }: any) => {
     return (
         <Card className={cn(
             "group overflow-hidden transition-all duration-300",
@@ -31,8 +20,6 @@ const CardWrapper = ({ span, rowSpan, className, children, responsive = true, ..
             "bg-card/50 backdrop-blur-sm border-border/30",
             "rounded-xl sm:rounded-2xl",
             "p-0 m-0",
-            spanClass,
-            rowSpanClass,
             className
         )} {...props}>
             <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -52,35 +39,32 @@ const IconWrapper = ({ name, className, size = 'md', responsive = true, ...props
         lg: 'h-5 w-5 sm:h-6 sm:w-6',
         xl: 'h-6 w-6 sm:h-7 sm:w-7'
     };
-    
-    return renderIcon(name, { 
-        className: cn(responsive ? sizeClasses[size as keyof typeof sizeClasses] : `h-${size} w-${size}`, className), 
-        ...props 
+
+    return renderIcon(name, {
+        className: cn(responsive ? sizeClasses[size as keyof typeof sizeClasses] : `h-${size} w-${size}`, className),
+        ...props
     });
 };
 
 // Layout Components with Responsive Design
-const Container = ({ 
-    className, 
-    children, 
-    layout = 'grid', 
-    gap = 4, 
-    span, 
-    rowSpan, 
-    cols, 
-    dense = true, 
+const Container = ({
+    className,
+    children,
+    layout = 'grid',
+    gap = 4,
+    cols,
+    dense = true,
     responsive = true,
-    ...props 
+    ...props
 }: any) => {
-    const spanClass = span ? getResponsiveColSpan(span) : 'col-span-12';
-    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
-    
-    const layoutClasses = responsive 
+    const layoutClasses = responsive
         ? layout === 'grid'
             ? cn(
-                "grid grid-cols-1",
-                cols ? `sm:grid-cols-${Math.min(2, cols)} lg:grid-cols-${Math.min(3, cols)} xl:grid-cols-${cols}` : "",
-                `gap-${gap} sm:gap-${gap + 1} md:gap-${gap + 2}`,
+                "grid",
+                cols === 12
+                    ? "grid-cols-12"
+                    : `grid-cols-1 ${cols ? `sm:grid-cols-${Math.min(2, cols)} md:grid-cols-${Math.min(4, cols)} lg:grid-cols-${cols}` : ""}`,
+                gap === 4 ? "gap-4 md:gap-6" : (gap === 6 ? "gap-6 md:gap-8" : `gap-${gap}`),
                 dense && "grid-flow-dense"
             )
             : layout === 'flex'
@@ -94,7 +78,7 @@ const Container = ({
 
     return (
         <div
-            className={cn("w-full", spanClass, rowSpanClass, layoutClasses, className)}
+            className={cn("w-full", layoutClasses, className)}
             style={dense ? { gridAutoFlow: 'dense' } : {}}
             {...props}
         >
@@ -130,14 +114,14 @@ const Section = ({ title, description, children, className, responsive = true, .
 );
 
 const Stack = ({ className, children, gap = 2, direction = 'col', responsive = true, ...props }: any) => {
-    const responsiveDirection = direction === 'col' 
-        ? "flex-col" 
-        : responsive 
+    const responsiveDirection = direction === 'col'
+        ? "flex-col"
+        : responsive
             ? "flex-col sm:flex-row"
             : "flex-row";
-    
-    const responsiveGap = responsive 
-        ? `gap-${gap} sm:gap-${gap + 1}` 
+
+    const responsiveGap = responsive
+        ? `gap-${gap} sm:gap-${gap + 1}`
         : `gap-${gap}`;
 
     return (
@@ -154,16 +138,12 @@ const Grid = ({ className, children, cols, gap = 4, dense = true, responsive = t
             ? 'grid-cols-[repeat(auto-fit,minmax(200px,1fr))]'
             : responsive
                 ? cn(
-                    "grid-cols-1",
-                    cols >= 2 && "sm:grid-cols-2",
-                    cols >= 3 && "lg:grid-cols-3",
-                    cols >= 4 && "xl:grid-cols-4",
-                    cols >= 6 && "2xl:grid-cols-6"
+                    "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12"
                 )
-                : `grid-cols-${cols}`;
+                : (cols === 12 ? "grid-cols-12" : `grid-cols-${cols}`);
 
-    const responsiveGap = responsive 
-        ? `gap-${gap} sm:gap-${gap + 1} md:gap-${gap + 2}` 
+    const responsiveGap = responsive
+        ? `gap-${gap} sm:gap-${gap + 1} md:gap-${gap + 2}`
         : `gap-${gap}`;
 
     return (
@@ -183,14 +163,14 @@ const Text = ({ className, variant = 'p', children, value, content, responsive =
         variant === 'h2' ? 'h2' :
             variant === 'h3' ? 'h3' :
                 variant === 'span' ? 'span' : 'p';
-    
+
     const responsiveClasses = responsive && variant.startsWith('h')
         ? variant === 'h1' ? 'text-2xl sm:text-3xl md:text-4xl'
             : variant === 'h2' ? 'text-xl sm:text-2xl md:text-3xl'
                 : variant === 'h3' ? 'text-lg sm:text-xl md:text-2xl'
                     : ''
         : '';
-    
+
     return (
         <Component className={cn(responsiveClasses, className)} {...props}>
             {children || content || value}
@@ -215,7 +195,7 @@ const StreamingText = ({ text, speed = 20, className, responsive = true, ...prop
     useEffect(() => {
         setDisplayedText('');
         setIsComplete(false);
-        
+
         let i = 0;
         const timer = setInterval(() => {
             if (i < text.length) {
@@ -255,7 +235,7 @@ const MetricCard = ({ label, value, icon, trend, trendDirection, subtext, gradie
         md: 'p-4',
         lg: 'p-6'
     };
-    
+
     const valueClasses = responsive ? {
         sm: 'text-2xl sm:text-3xl',
         md: 'text-3xl sm:text-4xl',
@@ -329,7 +309,7 @@ const StatusBadge = ({ status, dot = true, children, className, responsive = tru
         <span className={cn(
             "inline-flex items-center rounded-full border font-medium",
             responsive ? "px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs" : "px-2.5 py-0.5 text-xs",
-            variants[status as keyof typeof variants], 
+            variants[status as keyof typeof variants],
             className
         )} {...props}>
             {dot && <span className={cn("w-1.5 h-1.5 rounded-full mr-1.5", dotColors[status as keyof typeof dotColors])} />}
@@ -396,7 +376,7 @@ const StatCard = ({ label, value, icon, trend, trendDirection = 'neutral', color
     return (
         <Card className={cn(
             "border shadow-sm hover:shadow-md transition-shadow",
-            colorClasses[color as keyof typeof colorClasses], 
+            colorClasses[color as keyof typeof colorClasses],
             responsive && "rounded-xl sm:rounded-2xl",
             className
         )} {...props}>
@@ -468,10 +448,10 @@ const ErrorState = ({ title, message, retryAction, className, responsive = true,
             {message}
         </p>
         {retryAction && (
-            <Button 
-                variant="outline" 
-                size={responsive ? "sm" : "default"} 
-                onClick={retryAction} 
+            <Button
+                variant="outline"
+                size={responsive ? "sm" : "default"}
+                onClick={retryAction}
                 className="w-fit border-red-500/20 hover:bg-red-500/10 text-red-500 transition-colors"
             >
                 Try Again
@@ -515,36 +495,36 @@ const Chart = ({ type = 'bar', data = [], xAxisKey = 'name', series = [], title,
                     <ResponsiveContainer width="100%" height={chartHeight}>
                         <BarChart {...commonProps}>
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} />
-                            <XAxis 
-                                dataKey={xAxisKey} 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <XAxis
+                                dataKey={xAxisKey}
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                             />
-                            <YAxis 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <YAxis
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                                 tickFormatter={(value) => `${value}`}
                                 width={responsive ? 30 : 40}
                             />
                             <Tooltip
-                                contentStyle={{ 
-                                    backgroundColor: 'hsl(var(--popover))', 
-                                    borderColor: 'hsl(var(--border))', 
-                                    borderRadius: 'var(--radius)', 
+                                contentStyle={{
+                                    backgroundColor: 'hsl(var(--popover))',
+                                    borderColor: 'hsl(var(--border))',
+                                    borderRadius: 'var(--radius)',
                                     fontSize: responsive ? '12px' : '14px'
                                 }}
                                 cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
                             />
                             {series.map((s: any, i: number) => (
-                                <Bar 
-                                    key={s.key} 
-                                    dataKey={s.key} 
-                                    fill={s.color || colors[i % colors.length]} 
-                                    radius={[4, 4, 0, 0]} 
+                                <Bar
+                                    key={s.key}
+                                    dataKey={s.key}
+                                    fill={s.color || colors[i % colors.length]}
+                                    radius={[4, 4, 0, 0]}
                                 />
                             ))}
                         </BarChart>
@@ -555,37 +535,37 @@ const Chart = ({ type = 'bar', data = [], xAxisKey = 'name', series = [], title,
                     <ResponsiveContainer width="100%" height={chartHeight}>
                         <LineChart {...commonProps}>
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} />
-                            <XAxis 
-                                dataKey={xAxisKey} 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <XAxis
+                                dataKey={xAxisKey}
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                             />
-                            <YAxis 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <YAxis
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                                 tickFormatter={(value) => `${value}`}
                                 width={responsive ? 30 : 40}
                             />
                             <Tooltip
-                                contentStyle={{ 
-                                    backgroundColor: 'hsl(var(--popover))', 
-                                    borderColor: 'hsl(var(--border))', 
+                                contentStyle={{
+                                    backgroundColor: 'hsl(var(--popover))',
+                                    borderColor: 'hsl(var(--border))',
                                     borderRadius: 'var(--radius)',
                                     fontSize: responsive ? '12px' : '14px'
                                 }}
                             />
                             {series.map((s: any, i: number) => (
-                                <Line 
-                                    key={s.key} 
-                                    type="monotone" 
-                                    dataKey={s.key} 
-                                    stroke={s.color || colors[i % colors.length]} 
-                                    strokeWidth={2} 
-                                    dot={{ r: responsive ? 3 : 4, strokeWidth: 2 }} 
+                                <Line
+                                    key={s.key}
+                                    type="monotone"
+                                    dataKey={s.key}
+                                    stroke={s.color || colors[i % colors.length]}
+                                    strokeWidth={2}
+                                    dot={{ r: responsive ? 3 : 4, strokeWidth: 2 }}
                                     activeDot={{ r: responsive ? 4 : 5, strokeWidth: 2 }}
                                 />
                             ))}
@@ -597,37 +577,37 @@ const Chart = ({ type = 'bar', data = [], xAxisKey = 'name', series = [], title,
                     <ResponsiveContainer width="100%" height={chartHeight}>
                         <AreaChart {...commonProps}>
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.3} />
-                            <XAxis 
-                                dataKey={xAxisKey} 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <XAxis
+                                dataKey={xAxisKey}
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                             />
-                            <YAxis 
-                                stroke="hsl(var(--muted-foreground))" 
-                                fontSize={responsive ? 10 : 12} 
-                                tickLine={false} 
-                                axisLine={false} 
+                            <YAxis
+                                stroke="hsl(var(--muted-foreground))"
+                                fontSize={responsive ? 10 : 12}
+                                tickLine={false}
+                                axisLine={false}
                                 tickFormatter={(value) => `${value}`}
                                 width={responsive ? 30 : 40}
                             />
                             <Tooltip
-                                contentStyle={{ 
-                                    backgroundColor: 'hsl(var(--popover))', 
-                                    borderColor: 'hsl(var(--border))', 
+                                contentStyle={{
+                                    backgroundColor: 'hsl(var(--popover))',
+                                    borderColor: 'hsl(var(--border))',
                                     borderRadius: 'var(--radius)',
                                     fontSize: responsive ? '12px' : '14px'
                                 }}
                             />
                             {series.map((s: any, i: number) => (
-                                <Area 
-                                    key={s.key} 
-                                    type="monotone" 
-                                    dataKey={s.key} 
-                                    stroke={s.color || colors[i % colors.length]} 
-                                    fill={s.color || colors[i % colors.length]} 
-                                    fillOpacity={0.2} 
+                                <Area
+                                    key={s.key}
+                                    type="monotone"
+                                    dataKey={s.key}
+                                    stroke={s.color || colors[i % colors.length]}
+                                    fill={s.color || colors[i % colors.length]}
+                                    fillOpacity={0.2}
                                 />
                             ))}
                         </AreaChart>
@@ -717,9 +697,11 @@ import { WikiCard } from './components/WikiCard';
 import { GenButton, GenBadge, GenAccordion, GenAvatar, GenTabs, GenAvatarGroup } from './components/ShadcnPrimitives';
 
 // Basic HTML Elements with Responsive Support
-const DivWrapper = ({ className, children, responsive = true, ...props }: any) => (
-    <div className={cn("w-full", className)} {...props}>{children}</div>
-);
+const DivWrapper = ({ className, children, responsive = true, ...props }: any) => {
+    return (
+        <div className={cn(className)} {...props}>{children}</div>
+    );
+};
 
 // Thinking Block Component with Responsive Animation
 const ThinkingBlock = ({ children, className, finished, responsive = true }: any) => {
@@ -748,7 +730,7 @@ const ThinkingBlock = ({ children, className, finished, responsive = true }: any
     const steps = getSteps();
 
     return (
-        <div className={cn("w-full transition-all duration-300", className)}>
+        <div className={cn("transition-all duration-300", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
@@ -781,7 +763,7 @@ const ThinkingBlock = ({ children, className, finished, responsive = true }: any
                     )} />
                 )}
             </button>
-            
+
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -939,7 +921,7 @@ export const componentRegistry: Record<string, React.ComponentType<any>> = {
     'divider': Divider,
     'stat-card': StatCard,
     'thinking-block': ThinkingBlock,
-    
+
     // Specialized responsive components
     'data-table': DataTable,
     'kpi-card': KPICard,

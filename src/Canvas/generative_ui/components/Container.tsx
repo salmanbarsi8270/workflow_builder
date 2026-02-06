@@ -17,7 +17,7 @@ interface ContainerProps {
     colsLg?: number;
     justify?: 'start' | 'end' | 'center' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'end' | 'center' | 'baseline' | 'stretch';
-    padding?:  any;
+    padding?: any;
     paddingSm?: number | string;
     paddingMd?: number | string;
     paddingLg?: number | string;
@@ -25,6 +25,8 @@ interface ContainerProps {
     center?: boolean;
     wrap?: boolean;
     as?: keyof JSX.IntrinsicElements;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 export const Container = ({
@@ -49,7 +51,9 @@ export const Container = ({
     maxWidth = 'full',
     center = false,
     wrap = false,
-    as: Component = 'div'
+    as: Component = 'div',
+    span,
+    rowSpan
 }: ContainerProps) => {
 
     // Responsive gap classes
@@ -74,13 +78,18 @@ export const Container = ({
     };
 
     // Generate responsive layout classes
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : '';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     const layoutClasses = cn(
         'w-full',
+        spanClass,
+        rowSpanClass,
         // Max width and centering
         maxWidth !== 'full' && maxWidth !== 'screen' && `max-w-${maxWidth}`,
         maxWidth === 'screen' && 'max-w-screen',
         center && 'mx-auto',
-        
+
         // Layout specific classes
         layout === 'flex' && [
             'flex',
@@ -93,7 +102,7 @@ export const Container = ({
             gapMd && getGapClass(gapMd, 'md'),
             gapLg && getGapClass(gapLg, 'lg'),
         ],
-        
+
         layout === 'grid' && [
             'grid',
             getColsClass(cols),
@@ -107,7 +116,7 @@ export const Container = ({
             `justify-${justify}`,
             `items-${align}`,
         ],
-        
+
         layout === 'stack' && [
             'flex flex-col',
             'space-y-reverse space-y-0',
@@ -116,15 +125,15 @@ export const Container = ({
             gapMd && getGapClass(gapMd, 'md:space-y'),
             gapLg && getGapClass(gapLg, 'lg:space-y'),
         ],
-        
+
         layout === 'block' && 'block',
-        
+
         // Responsive padding
         getPaddingClass(padding),
         paddingSm && getPaddingClass(paddingSm, 'sm'),
         paddingMd && getPaddingClass(paddingMd, 'md'),
         paddingLg && getPaddingClass(paddingLg, 'lg'),
-        
+
         className
     );
 
@@ -135,26 +144,26 @@ export const Container = ({
                 if (React.isValidElement(child)) {
                     return <React.Fragment key={index}>{child}</React.Fragment>;
                 }
-                
+
                 // Check if child is an object (component definition)
                 if (typeof child === 'object' && child !== null) {
                     return <DynamicRenderer key={child.id || index} component={child} />;
                 }
-                
+
                 // Fallback for strings/other
                 return <React.Fragment key={index}>{child}</React.Fragment>;
             });
         }
-        
+
         // Single child
         if (React.isValidElement(children)) {
             return children;
         }
-        
+
         if (typeof children === 'object' && children !== null) {
             return <DynamicRenderer component={children} />;
         }
-        
+
         return children;
     };
 
@@ -166,8 +175,8 @@ export const Container = ({
 };
 
 // Helper component for responsive breakpoints
-Container.Section = ({ 
-    children, 
+Container.Section = ({
+    children,
     className,
     size = 'md',
     background = 'transparent'
@@ -184,22 +193,22 @@ Container.Section = ({
         lg: 'py-20 sm:py-24',
         xl: 'py-24 sm:py-32'
     };
-    
+
     const backgroundClasses = {
         transparent: '',
         muted: 'bg-muted',
         primary: 'bg-primary text-primary-foreground',
         secondary: 'bg-secondary text-secondary-foreground'
     };
-    
+
     return (
         <section className={cn(
             sizeClasses[size],
             backgroundClasses[background],
             className
         )}>
-            <Container 
-                maxWidth="lg" 
+            <Container
+                maxWidth="lg"
                 center
                 padding={{ base: 4, sm: 6, md: 8 }}
             >

@@ -19,6 +19,8 @@ interface StatsGridProps {
     emptyState?: ReactNode;
     responsive?: boolean;
     aspectRatio?: string;
+    span?: number | string;
+    rowSpan?: number;
 }
 
 export const StatsGrid = ({
@@ -37,7 +39,9 @@ export const StatsGrid = ({
     loading = false,
     emptyState,
     responsive = true,
-    aspectRatio
+    aspectRatio,
+    span,
+    rowSpan
 }: StatsGridProps) => {
     // Convert responsive cols config to Tailwind classes
     const getColsClasses = () => {
@@ -63,7 +67,7 @@ export const StatsGrid = ({
         if (typeof gap === 'number') {
             return `gap-${gap}`;
         }
-        
+
         if (typeof gap === 'string') {
             return `gap-[${gap}]`;
         }
@@ -103,7 +107,7 @@ export const StatsGrid = ({
     // Empty state
     const renderEmptyState = () => {
         if (emptyState) return emptyState;
-        
+
         return (
             <div className="col-span-full py-12 text-center">
                 <div className="mx-auto max-w-md space-y-3">
@@ -117,8 +121,11 @@ export const StatsGrid = ({
         );
     };
 
+    const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+    const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
     return (
-        <div className={cn("w-full space-y-6", className)}>
+        <div className={cn("w-full space-y-6", spanClass, rowSpanClass, className)}>
             {/* Header */}
             {(title || description) && (
                 <div className={cn(

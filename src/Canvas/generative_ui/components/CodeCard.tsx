@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { Copy, Terminal, Check } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import Prism from 'prismjs';
+import * as Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 
 // Supported languages for syntax highlighting
@@ -19,22 +19,27 @@ const LANGUAGES = {
   sql: 'sql',
 } as const;
 
-export const CodeCard = ({ 
-  code, 
-  title, 
-  language = 'json', 
+export const CodeCard = ({
+  code,
+  title,
+  language = 'json',
   className,
   showLineNumbers = true,
-  maxHeight = '400px'
+  maxHeight = '400px',
+  span,
+  rowSpan
 }: any) => {
+  const spanClass = span ? (typeof span === 'string' ? span : `col-span-${span}`) : 'col-span-12';
+  const rowSpanClass = rowSpan ? `row-span-${rowSpan}` : '';
+
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       toast.success("Code copied to clipboard");
-      
+
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast.error("Failed to copy code");
@@ -43,7 +48,7 @@ export const CodeCard = ({
 
   // Get language for syntax highlighting
   const lang = LANGUAGES[language as keyof typeof LANGUAGES] || 'json';
-  
+
   // Format and highlight code
   const formattedCode = (() => {
     if (language === 'json') {
@@ -69,6 +74,8 @@ export const CodeCard = ({
     <div className={cn(
       "group flex flex-col rounded-lg border border-border bg-card shadow-sm",
       "transition-all hover:shadow-md",
+      spanClass,
+      rowSpanClass,
       className
     )}>
       {/* Header */}
@@ -84,14 +91,14 @@ export const CodeCard = ({
             {language}
           </span>
         </div>
-        
+
         <button
           onClick={handleCopy}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all",
             "hover:bg-primary/10 active:scale-95",
-            copied 
-              ? "text-green-600 bg-green-50 dark:bg-green-950/30" 
+            copied
+              ? "text-green-600 bg-green-50 dark:bg-green-950/30"
               : "text-muted-foreground hover:text-foreground"
           )}
           aria-label={copied ? "Copied!" : "Copy code"}
@@ -115,17 +122,17 @@ export const CodeCard = ({
         {/* Gradient scroll indicators */}
         <div className="absolute inset-x-0 top-0 h-4 bg-linear-to-b from-card/80 to-transparent z-10 pointer-events-none" />
         <div className="absolute inset-x-0 bottom-0 h-4 bg-linear-to-t from-card/80 to-transparent z-10 pointer-events-none" />
-        
+
         {/* Code content */}
-        <div 
+        <div
           className="overflow-x-auto overflow-y-auto p-4"
           style={{ maxHeight }}
         >
           <div className="relative min-w-min">
             {showLineNumbers && (
               <div className="absolute left-0 top-0 bottom-0 pr-3 text-right select-none border-r border-border/50">
-                {formattedCode.split('\n').map((_:any, i:number) => (
-                  <div 
+                {formattedCode.split('\n').map((_: any, i: number) => (
+                  <div
                     key={i}
                     className="text-xs text-muted-foreground/50 px-1 font-mono"
                   >
@@ -134,12 +141,12 @@ export const CodeCard = ({
                 ))}
               </div>
             )}
-            
+
             <pre className={cn(
               "font-mono text-sm leading-relaxed",
               showLineNumbers && "pl-12"
             )}>
-              <code 
+              <code
                 className={cn(
                   `language-${lang}`,
                   "text-foreground/90"
