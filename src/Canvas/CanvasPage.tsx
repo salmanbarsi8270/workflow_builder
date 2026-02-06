@@ -419,16 +419,22 @@ export default function CanvasPage() {
                 setMessages(loadedMessages);
                 const messagesWithUI = loadedMessages.filter((m: any) => m.role === 'assistant' && m.componentJson);
                 if (messagesWithUI.length > 0) {
-                    const components = messagesWithUI.map((msg: Message) => {
+                    const components = messagesWithUI.flatMap((msg: Message) => {
                         try {
-                            const transformed = transformComponentData(JSON.parse(msg.componentJson!));
+                            const parsed = JSON.parse(msg.componentJson!);
+                            const transformed = transformComponentData(parsed);
                             const msgIndex = loadedMessages.findIndex((m: any) => m.id === msg.id);
                             const userMsg = msgIndex > 0 ? loadedMessages[msgIndex - 1] : null;
                             const userPrompt = userMsg?.role === 'user' ? userMsg.content : "Generated Component";
                             const thinkingText = msg.content !== "UI component generated successfully" ? msg.content : "Process completed";
 
-                            // Response cards (wrappers) always occupy 1 column of the main canvas grid
-                            return {
+                            // If the transformed component is a container, extract its children
+                            const componentsToWrap = (transformed.type === 'container' && Array.isArray(transformed.children))
+                                ? transformed.children
+                                : [transformed];
+
+                            // Wrap each child in its own card
+                            return componentsToWrap.map((comp: any) => ({
                                 type: 'card',
                                 props: { className: `col-span-1 bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden` },
                                 children: [
@@ -450,11 +456,11 @@ export default function CanvasPage() {
                                     {
                                         type: 'div',
                                         props: { className: 'p-3 sm:p-4' },
-                                        children: [transformed]
+                                        children: [comp]
                                     }
                                 ]
-                            };
-                        } catch (e) { return null; }
+                            }));
+                        } catch (e) { return []; }
                     }).filter(Boolean);
 
                     const currentColCount = getAdaptiveCols(isLeftOpen, isRightOpen, isMobile);
@@ -676,8 +682,13 @@ export default function CanvasPage() {
                         componentJson: JSON.stringify(parsed, null, 2)
                     };
 
-                    // Response cards (wrappers) always occupy 1 column of the main canvas grid
-                    const wrapperComponent = {
+                    // Extract children if it's a container
+                    const componentsToWrap = (transformed.type === 'container' && Array.isArray(transformed.children))
+                        ? transformed.children
+                        : [transformed];
+
+                    // Map each component to its own card
+                    const wrapperComponents = componentsToWrap.map((comp: any) => ({
                         type: 'card',
                         props: { className: `col-span-1 bg-gradient-to-br from-card to-card/50 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500` },
                         children: [
@@ -699,17 +710,27 @@ export default function CanvasPage() {
                             {
                                 type: 'div',
                                 props: { className: 'p-3 sm:p-4' },
-                                children: [transformed]
+                                children: [comp]
                             }
                         ]
-                    };
-
-                    setUiSchema(prev => ({
-                        ...prev,
-                        children: Array.isArray(prev.children) ? prev.children.map((child: any) =>
-                            child.props?.id === placeholderId ? wrapperComponent : child
-                        ) : prev.children
                     }));
+
+                    setUiSchema(prev => {
+                        const newChildren = [...(prev.children || [])];
+                        // Find and replace the placeholder with the new individual components
+                        const placeholderIndex = newChildren.findIndex((child: any) => child.props?.id === placeholderId);
+
+                        if (placeholderIndex !== -1) {
+                            newChildren.splice(placeholderIndex, 1, ...wrapperComponents);
+                        } else {
+                            newChildren.push(...wrapperComponents);
+                        }
+
+                        return {
+                            ...prev,
+                            children: newChildren
+                        };
+                    });
 
                     toast({
                         title: "UI Generated",

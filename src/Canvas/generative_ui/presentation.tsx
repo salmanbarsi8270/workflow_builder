@@ -234,16 +234,22 @@ export const Presentation = () => {
                 setMessages(loadedMessages);
                 const messagesWithUI = loadedMessages.filter((m: any) => m.role === 'assistant' && m.componentJson);
                 if (messagesWithUI.length > 0) {
-                    const canvasChildren = messagesWithUI.map((m: any) => {
+                    const canvasChildren = messagesWithUI.flatMap((m: any) => {
                         try {
                             const msgIndex = loadedMessages.indexOf(m);
                             const prevMessage = msgIndex > 0 ? loadedMessages[msgIndex - 1] : null;
                             const userQuestion = prevMessage && prevMessage.role === 'user' ? prevMessage.content : "AI Response";
 
                             const transformed = transformComponentData(JSON.parse(m.componentJson!));
-                            return {
+
+                            // Extract children if it's a container
+                            const componentsToWrap = (transformed.type === 'container' && Array.isArray(transformed.children))
+                                ? transformed.children
+                                : [transformed];
+
+                            return componentsToWrap.map((comp: any) => ({
                                 type: 'card',
-                                id: `wrapper-${m.id || Math.random()}`,
+                                id: `wrapper-${m.id || Math.random()}-${Math.random()}`,
                                 span: 'quarter',
                                 props: { className: 'mb-6 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow' },
                                 children: [
@@ -265,10 +271,10 @@ export const Presentation = () => {
                                             }
                                         ]
                                     },
-                                    { type: 'card-content', props: { className: 'p-6 pt-2 bg-transparent' }, children: [transformed] }
+                                    { type: 'card-content', props: { className: 'p-6 pt-2 bg-transparent' }, children: [comp] }
                                 ]
-                            };
-                        } catch (e) { return null; }
+                            }));
+                        } catch (e) { return []; }
                     }).filter(Boolean);
                     setUiSchema(prev => ({ ...prev, children: canvasChildren }));
                 } else {
@@ -438,7 +444,66 @@ export const Presentation = () => {
                         thinkingBlock.props.finished = true;
                         thinkingBlock.children = thinkingBlock.children.filter((c: any) => !c.props?.className?.includes('animate-pulse'));
                         thinkingBlock.children.push({ type: 'text', props: { className: 'text-green-600 dark:text-green-400 font-semibold block text-xs' }, children: '• UI Component Successfully Generated' });
-                        lastWrapper.children[1].children = [componentData];
+
+                        // Extract children if it's a container
+                        const componentsToWrap = (componentData.type === 'container' && Array.isArray(componentData.children))
+                            ? componentData.children
+                            : [componentData];
+
+                        // Create individual cards for each component
+                        const newCards = componentsToWrap.map((comp: any) => ({
+                            type: 'card',
+                            id: `wrapper-${Date.now()}-${Math.random()}`,
+                            span: 'quarter',
+                            props: { className: 'mb-6 border border-border/20 bg-card text-card-foreground shadow-sm rounded-2xl overflow-hidden hover:shadow-md transition-shadow' },
+                            children: [
+                                {
+                                    type: 'div',
+                                    props: { className: 'flex flex-col pt-2' },
+                                    children: [
+                                        {
+                                            type: 'div',
+                                            props: { className: 'flex items-center justify-between px-6 py-4' },
+                                            children: [
+                                                {
+                                                    type: 'stack',
+                                                    props: { direction: 'row', className: 'items-center gap-3' },
+                                                    children: [
+                                                        {
+                                                            type: 'div',
+                                                            props: { className: 'flex items-center justify-center w-10 h-10 rounded-full bg-primary/5 text-primary' },
+                                                            children: [{ type: 'icon', props: { name: 'User', className: 'h-5 w-5' } }]
+                                                        },
+                                                        {
+                                                            type: 'div',
+                                                            props: { className: 'flex flex-col gap-0.5' },
+                                                            children: [
+                                                                { type: 'text', props: { className: 'text-[11px] uppercase tracking-widest font-bold text-muted-foreground/70' }, children: 'Request' },
+                                                                { type: 'text', props: { className: 'text-base font-medium leading-none tracking-tight' }, children: userPrompt }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                { type: 'icon', props: { name: 'Sparkles', className: 'h-4 w-4 text-amber-500/80' } }
+                                            ]
+                                        },
+                                        {
+                                            type: 'thinking-block',
+                                            props: { finished: true },
+                                            children: [{ type: 'text', props: { className: 'text-green-600 dark:text-green-400 font-semibold block text-xs px-6 pb-4' }, children: '• UI Generated' }]
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: 'card-content',
+                                    props: { className: 'p-6 pt-2 bg-transparent' },
+                                    children: [comp]
+                                }
+                            ]
+                        }));
+
+                        // Replace the placeholder card with the new cards
+                        newChildren.splice(newChildren.length - 1, 1, ...newCards);
                         return { ...prev, children: newChildren };
                     });
                     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: assistantContent, timestamp: new Date(), componentJson: assistantMetadata.componentJson }]);
